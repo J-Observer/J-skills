@@ -568,6 +568,7 @@ detailed laws, the measurements behind them, the two other drivers and what they
 cost, and the ordered checklist for diagnosing "something stole my tab" now live in
 the `opencli` Skill — that file points at the exact reference for each, and keeps the
 backlink-specific residue (`scripts/opencli-core.mjs`, subagent session fan-out).
+<!-- Windows Node launcher: scripts/lib-opencli-process.mjs -->
 Load `/opencli` when you need the detail: `npx skills add yan-labs/yan-skills --skill opencli -g -y`.
 </summary>
 

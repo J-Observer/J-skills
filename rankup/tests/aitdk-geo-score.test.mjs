@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const scriptPath = path.join(here, '../scripts/aitdk-opencli.sh');
-const scriptSrc = readFileSync(scriptPath, 'utf8');
+const scriptSrc = readFileSync(scriptPath, 'utf8').replace(/\r\n/g, '\n');
 
 function extractFunction(src, name) {
   const lines = src.split('\n');
@@ -37,7 +37,7 @@ function extractFunction(src, name) {
 const geoScoreFn = extractFunction(scriptSrc, 'geo_score_from_text');
 
 function runGeoScoreFromText(input) {
-  const out = execFileSync('bash', ['-c', `${geoScoreFn}\ngeo_score_from_text "$TEST_INPUT"`], {
+  const out = execFileSync(process.platform === 'win32' ? path.join(process.env.ProgramFiles, 'Git', 'bin', 'bash.exe') : 'bash', ['-c', `${geoScoreFn}\ngeo_score_from_text "$TEST_INPUT"`], {
     env: { ...process.env, TEST_INPUT: input },
     encoding: 'utf8',
   });

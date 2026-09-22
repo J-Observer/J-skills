@@ -160,6 +160,7 @@
  * approach, not this script's templates.
  */
 import fs from 'node:fs';
+import { tmpdir } from 'node:os';
 import path, { dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
@@ -545,8 +546,14 @@ function selfTest() {
   check('no inurl:resources template shipped', !Object.keys(TEMPLATES).some((k) => /resources/.test(k)));
   check('no add-your-site template shipped', !Object.keys(TEMPLATES).some((k) => /add.?your/.test(k)));
 
-  const queriesFileList = buildQueryList({ 'queries-file': '/dev/null' });
-  eq('queries-file with no lines → empty list', queriesFileList, []);
+  const emptyDir = fs.mkdtempSync(path.join(tmpdir(), 'footprint-empty-'));
+  try {
+    const emptyFile = path.join(emptyDir, 'queries.txt');
+    fs.writeFileSync(emptyFile, '');
+    eq('queries-file with no lines → empty list', buildQueryList({ 'queries-file': emptyFile }), []);
+  } finally {
+    fs.rmSync(emptyDir, { recursive: true, force: true });
+  }
 
   // Serper: organic[] fixture, parse-only (no network).
   const serperFixture = {

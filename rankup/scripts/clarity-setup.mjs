@@ -45,7 +45,7 @@
  * 项目建没建好以截图为准；「无法自动提取 ID」路径退出前补截图。
  * 会话名不再用 pid。
  */
-import { execSync } from "node:child_process"
+import { execFileSync } from "../../backlink/scripts/lib-opencli-process.mjs"
 import { newEvidenceDir, captureScene, writeManifest, sessionSuffix } from "./lib-scene.mjs"
 
 // ── 参数 ──────────────────────────────────────────────────
@@ -81,21 +81,21 @@ if (action === "create" && !name) name = site.split(".")[0]
 // ── OpenCLI 封装 ──────────────────────────────────────────
 function cli(action_, { timeout = 30000 } = {}) {
   try {
-    return execSync(`opencli browser "${session}" --window background ${action_}`,
+    return execFileSync("opencli", ["browser", session, "--window", "background", ...action_],
       { encoding: "utf-8", timeout, stdio: ["pipe", "pipe", "pipe"] }).trim()
   } catch (e) {
     const err = (e.stderr?.toString() || e.stdout?.toString() || e.message).trim()
     throw new Error(`opencli 失败: ${action_}\n  ${err}`)
   }
 }
-function evalJs(js) { return cli(`eval '${`(()=>{${js}})()`.replace(/'/g, "'\\''")}'`) }
-function open(url) { cli(`open "${url}"`) }
+function evalJs(js) { return cli(["eval", `(()=>{${js}})()`]) }
+function open(url) { cli(["open", url]) }
 function pageText(max = 4000) {
   return evalJs(`return (document.querySelector('main')||document.body).innerText.replace(/\\n{2,}/g,'\\n').slice(0,${max})`)
 }
 /** 页内定时器，替换 execSync("sleep")。 */
 function settle(ms) {
-  cli(`eval '(async()=>{await new Promise(r=>setTimeout(r,${ms}));return true})()'`, { timeout: ms + 30000 })
+  cli(["eval", `(async()=>{await new Promise(r=>setTimeout(r,${ms}));return true})()`], { timeout: ms + 30000 })
 }
 function waitFor(js, seconds = 15) {
   const deadline = Date.now() + seconds * 1000
@@ -121,7 +121,7 @@ function scene(tag, extra) {
   return captureScene({
     dir: evidenceDir(),
     tag: `${String(sceneN).padStart(2, "0")}-${tag}`,
-    screenshot: (p) => cli(`screenshot "${p}"`, { timeout: 90000 }),
+    screenshot: (p) => cli(["screenshot", p], { timeout: 90000 }),
     pageText: () => { try { return pageText(20000) } catch (e) { return `PAGE_TEXT_FAILED:${e.message}` } },
     extra,
   })
@@ -133,13 +133,13 @@ function bail(stopReason, msg, extra) {
     console.error(`现场已落盘：${evidenceDir()}`)
   } catch (e) { console.error(`（取证失败：${String(e?.message || e).slice(0, 200)}）`) }
   console.error(msg)
-  if (!keepSession) { try { cli("close") } catch { /* ignore */ } }
+  if (!keepSession) { try { cli(["close"]) } catch { /* ignore */ } }
   process.exit(1)
 }
 
 function stampAndClick(js, label) {
   evalJs(`const el=${js};if(!el)throw new Error('找不到: ${label}');el.setAttribute('data-rankup-target','1')`)
-  cli('click "[data-rankup-target=\\"1\\"]"')
+  cli(['click', '[data-rankup-target="1"]'])
   evalJs(`document.querySelector('[data-rankup-target]')?.removeAttribute('data-rankup-target')`)
   scene(`clicked-${label.replace(/[^\w一-鿿-]/g, "_")}`)
 }
@@ -183,13 +183,13 @@ async function doCreate() {
   // 填写项目名称
   const nameInput = `document.querySelector('input[placeholder*="name" i],input[placeholder*="名称" i],input[type="text"]')`
   evalJs(`const el=${nameInput};if(!el)throw new Error('找不到名称输入框');el.setAttribute('data-rankup-field','name');`)
-  cli(`fill '[data-rankup-field=name]' '${name.replace(/'/g, "'\\''")}'`)
+  cli(["fill", "[data-rankup-field=name]", name])
   settle(500)
 
   // 填写网站 URL
   const urlInput = `[...document.querySelectorAll('input[type="text"],input[type="url"]')].find(i=>/url|网站|site/i.test([i.placeholder,i.labels?.[0]?.textContent,i.getAttribute('aria-label')].join(' ')))`
   evalJs(`const el=${urlInput};if(!el)throw new Error('找不到 URL 输入框');el.setAttribute('data-rankup-field','url');`)
-  cli(`fill '[data-rankup-field=url]' 'https://${site.replace(/'/g, "'\\''")}'`)
+  cli(["fill", "[data-rankup-field=url]", `https://${site}`])
   settle(500)
 
   // 选择网站类别（如果有下拉框的话跳过，不是必填项）
@@ -243,6 +243,6 @@ try {
   bail("execution-error", e.message)
 } finally {
   if (!keepSession) {
-    try { cli("close") } catch {}
+    try { cli(["close"]) } catch {}
   }
 }

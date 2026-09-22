@@ -46,11 +46,16 @@ def _children(path: Path) -> dict[str, Path]:
     }
 
 
+def _is_link(path: Path) -> bool:
+    return path.is_symlink() or getattr(path, "is_junction", lambda: False)()
+
+
 def _describe(path: Path) -> str:
-    if path.is_symlink():
+    if _is_link(path):
         target = os.readlink(path)
         suffix = " (broken)" if not path.exists() else ""
-        return f"symlink -> {target}{suffix}"
+        kind = "junction" if getattr(path, "is_junction", lambda: False)() else "symlink"
+        return f"{kind} -> {target}{suffix}"
     if path.is_dir():
         return "real directory"
     if path.exists():
@@ -66,15 +71,15 @@ def audit_scope(label: str, root: Path) -> ScopeResult | None:
     root = root.expanduser().resolve()
     agents = root / ".agents" / "skills"
     claude = root / ".claude" / "skills"
-    agents_present = agents.is_symlink() or agents.exists()
-    claude_present = claude.is_symlink() or claude.exists()
+    agents_present = _is_link(agents) or agents.exists()
+    claude_present = _is_link(claude) or claude.exists()
     if not agents_present and not claude_present:
         return None
 
     result = ScopeResult(label=label, root=root, agents=agents, claude=claude)
 
     if not agents_present:
-        if claude.is_symlink() and not claude.exists():
+        if _is_link(claude) and not claude.exists():
             result.mode = "parent-symlink-broken"
             result.issues.append(Issue(
                 kind="broken-symlink",
@@ -123,7 +128,7 @@ def audit_scope(label: str, root: Path) -> ScopeResult | None:
             ))
         return result
 
-    if claude.is_symlink():
+    if _is_link(claude):
         try:
             resolved = claude.resolve(strict=True)
         except (FileNotFoundError, OSError):
@@ -169,7 +174,7 @@ def audit_scope(label: str, root: Path) -> ScopeResult | None:
         mirror = claude_children[name]
 
         if in_claude and not in_agents:
-            if mirror.is_symlink():
+            if _is_link(mirror):
                 target = os.readlink(mirror)
                 if not mirror.exists():
                     result.issues.append(Issue(
@@ -205,7 +210,7 @@ def audit_scope(label: str, root: Path) -> ScopeResult | None:
             continue
 
         source = agents / name
-        if mirror.is_symlink():
+        if _is_link(mirror):
             target = os.readlink(mirror)
             try:
                 resolved = mirror.resolve(strict=True)

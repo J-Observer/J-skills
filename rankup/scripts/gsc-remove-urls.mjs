@@ -39,7 +39,7 @@
  * 崩溃）时已提交的部分也有案可查，不会「提交了 7 条、账面上一条都没有」。
  * 页面打不开等失败分支退出前同样落现场（截图 + 页面文本 + manifest）。
  */
-import { execSync } from "node:child_process"
+import { execFileSync } from "../../backlink/scripts/lib-opencli-process.mjs"
 import { readFileSync, existsSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { newEvidenceDir, captureScene, writeManifest, sessionSuffix } from "./lib-scene.mjs"
@@ -108,9 +108,8 @@ function usage() {
 
 // ── OpenCLI 封装 ─────────────────────────────────────────
 function cli(action, { timeout = 15000 } = {}) {
-  const cmd = `opencli browser "${session}" ${action}`
   try {
-    return execSync(cmd, { encoding: "utf-8", timeout, stdio: ["pipe", "pipe", "pipe"] }).trim()
+    return execFileSync("opencli", ["browser", session, ...action], { encoding: "utf-8", timeout, stdio: ["pipe", "pipe", "pipe"] }).trim()
   } catch (e) {
     const stderr = e.stderr ? e.stderr.toString().trim() : ""
     const stdout = e.stdout ? e.stdout.toString().trim() : ""
@@ -119,7 +118,7 @@ function cli(action, { timeout = 15000 } = {}) {
 }
 
 function waitText(text, timeout = 15000) {
-  cli(`wait text "${text}" --timeout ${timeout}`)
+  cli(["wait", "text", text, "--timeout", String(timeout)])
 }
 
 // `wait time` is broken in opencli 1.8.7 — it returns in well under a second no
@@ -130,11 +129,11 @@ function waitText(text, timeout = 15000) {
 function waitTime(sec) {
   const ms = Math.max(0, Math.round(Number(sec) * 1000))
   const js = `(async()=>{await new Promise(r=>setTimeout(r,${ms}));return true})()`
-  cli(`eval '${js}'`, { timeout: ms + 15000 })
+  cli(["eval", `${js}`], { timeout: ms + 15000 })
 }
 
 function click(text) {
-  cli(`click --text "${text}"`)
+  cli(["click", "--text", text])
 }
 
 /* ── 取证 ─────────────────────────────────────────────────── */
@@ -147,8 +146,8 @@ function scene(tag, extra) {
   return captureScene({
     dir: evidenceDir(),
     tag,
-    screenshot: (p) => cli(`screenshot "${p}"`, { timeout: 90000 }),
-    pageText: () => cli(`eval '(()=>{try{return document.body?document.body.innerText.slice(0,20000):""}catch(e){return "PAGE_TEXT_FAILED:"+e}})()'`),
+    screenshot: (p) => cli(["screenshot", p], { timeout: 90000 }),
+    pageText: () => cli(["eval", `(()=>{try{return document.body?document.body.innerText.slice(0,20000):""}catch(e){return "PAGE_TEXT_FAILED:"+e}})()`]),
     extra,
   })
 }
@@ -160,7 +159,7 @@ function persistResults(results, done) {
 }
 
 function clickRole(role, name) {
-  cli(`click --role "${role}" --name "${name}"`)
+  cli(["click", "--role", role, "--name", name])
 }
 
 // ── 主流程 ───────────────────────────────────────────────
@@ -179,7 +178,7 @@ if (dryRun) {
 // 1. 打开 GSC 移除页面
 const gscUrl = `https://search.google.com/search-console/removals?resource_id=${encodeURIComponent(property)}`
 console.log(`打开 GSC 移除页面...`)
-cli(`open "${gscUrl}" --window background`)
+cli(["open", gscUrl, "--window", "background"])
 
 try {
   waitText(L.submittedList, 20000)
@@ -191,7 +190,7 @@ try {
   1. 浏览器未登录 Google 账号
   2. 该账号没有 ${property} 的 GSC 权限
   3. 页面没加载完 / 界面语言不是中文（改 L 文案表）`)
-  if (!keepSession) { try { cli("close") } catch { /* ignore */ } }
+  if (!keepSession) { try { cli(["close"]) } catch { /* ignore */ } }
   process.exit(1)
 }
 console.log("  页面已加载\n")
@@ -221,7 +220,7 @@ for (let i = 0; i < urls.length; i++) {
       inp.dispatchEvent(new Event('change', {bubbles:true}));
       return 'OK';
     })()`
-    const fillResult = cli(`eval '${fillJs.replace(/'/g, "'\\''")}'`)
+    const fillResult = cli(["eval", fillJs])
     if (fillResult.includes("NO_INPUT")) {
       throw new Error("找不到 URL 输入框")
     }
@@ -232,7 +231,7 @@ for (let i = 0; i < urls.length; i++) {
       clickRole("radio", L.removeThisUrl)
     } catch {
       // 备选：用 eval 点击
-      cli(`eval '(()=>{const labels=document.querySelectorAll("[role=dialog] label, [role=dialog] span");for(const l of labels){if(l.textContent.includes("仅移除此网址")){l.click();return "OK"}}return "NOT_FOUND"})()'`)
+      cli(["eval", `(()=>{const labels=document.querySelectorAll("[role=dialog] label, [role=dialog] span");for(const l of labels){if(l.textContent.includes("仅移除此网址")){l.click();return "OK"}}return "NOT_FOUND"})()`])
     }
     waitTime(0.5)
 
@@ -292,7 +291,7 @@ persistResults(results, urls.length)
 console.log(`results.json 与每条截图在 ${evidenceDir()}`)
 
 if (!keepSession) {
-  try { cli("close") } catch { /* ignore */ }
+  try { cli(["close"]) } catch { /* ignore */ }
 }
 
 process.exit(fail > 0 ? 1 : 0)

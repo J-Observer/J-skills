@@ -18,7 +18,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 137 | [https://10015.io/product-finder/submit](<https://10015.io/product-finder/submit>) | 10015.io：在线工具集合网站，提供图片、开发、文本等网页工具。当前链接指向提交或新增条目入口。 | — | 未收录 无收费引导 | | 2026-09-06 videocatch run: form-not-found — genuine free tier exists; form auto-fetched name/tagline/description/images, but 'Submit Product' repeatedly showed 'Please check the errors & fill all required fields!' with no visibly-required empty field found after two attempts — hidden validation rule, gave up rather than keep guessing.",
+      "notes": "| 137 | [https://10015.io/product-finder/submit](<https://10015.io/product-finder/submit>) | 10015.io：在线工具集合网站，提供图片、开发、文本等网页工具。当前链接指向提交或新增条目入口。 | — | 未收录 无收费引导 | | 2026-09-06 视频下载工具 run: form-not-found — genuine free tier exists; form auto-fetched name/tagline/description/images, but 'Submit Product' repeatedly showed 'Please check the errors & fill all required fields!' with no visibly-required empty field found after two attempts — hidden validation rule, gave up rather than keep guessing.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -221,7 +221,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 633 | [https://www.247webdirectory.com](<https://www.247webdirectory.com>) | General Web Directory（247webdirectory.com）：是企业或本地商家目录，按地区、行业或服务类型展示公司资料。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 videocatch run: captcha-blocked — required captcha_answer field on /submit; free option exists but blocked by CAPTCHA.",
+      "notes": "| 633 | [https://www.247webdirectory.com](<https://www.247webdirectory.com>) | General Web Directory（247webdirectory.com）：是企业或本地商家目录，按地区、行业或服务类型展示公司资料。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 视频下载工具 run: captcha-blocked — required captcha_answer field on /submit; free option exists but blocked by CAPTCHA.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -708,7 +708,7 @@
       "priceCheckedAt": null,
       "status": "usable",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 15 | [https://www.activesearchresults.com/](<https://www.activesearchresults.com/>) | activesearchresults.com：独立网页搜索引擎，并提供网站收录相关入口。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 未收录 无付费引导 | | 67 | [https://www.activesearchresults.com/](<https://www.activesearchresults.com/>) | activesearchresults.com：独立网页搜索引擎， | 2026-09-06 videocatch run: submitted — CORRECTION: original gate=account (2026-08-19 anonymous-http probe) was a false positive; browser run confirmed no login required. Route corrected to /addwebsite.php. Confirmation: 'Added Web Site Confirmation — Thank you for adding your Web site to the Active Search Results search engine.' | 2026-09-06 mail-verify: confirmation email link clicked, landing page confirmed \"Activate Membership Confirmation - Thank you, your membership is now activated. All Web site submissions have been confirmed.\" Email confirm step complete; still status=usable (not yet observed on a public listing page).",
+      "notes": "| 15 | [https://www.activesearchresults.com/](<https://www.activesearchresults.com/>) | activesearchresults.com：独立网页搜索引擎，并提供网站收录相关入口。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 未收录 无付费引导 | | 67 | [https://www.activesearchresults.com/](<https://www.activesearchresults.com/>) | activesearchresults.com：独立网页搜索引擎， | 2026-09-06 视频下载工具 run: submitted — CORRECTION: original gate=account (2026-08-19 anonymous-http probe) was a false positive; browser run confirmed no login required. Route corrected to /addwebsite.php. Confirmation: 'Added Web Site Confirmation — Thank you for adding your Web site to the Active Search Results search engine.' | 2026-09-06 mail-verify: confirmation email link clicked, landing page confirmed \"Activate Membership Confirmation - Thank you, your membership is now activated. All Web site submissions have been confirmed.\" Email confirm step complete; still status=usable (not yet observed on a public listing page).",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "both",
@@ -2524,7 +2524,7 @@
       "priceCheckedAt": "2026-08-19",
       "status": "usable",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 423 | [https://www.aiheron.com/promote](<https://www.aiheron.com/promote>) | 智鹭AI导航 ，最新最全的AI网站和AI工具（aiheron.com）：是 AI 工具发现或导航网站，面向用户收集、分类和展示不同用途的 AI 产品。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | 3.18-3.19 | 未收录 有收费引导 | · Free submission is available but requires adding an AiHeron backlink to your own homepage  | 2026-09-06 videocatch run: submitted — clean POST form at /promote; confirmation '提交信息成功' (submission succeeded)",
+      "notes": "| 423 | [https://www.aiheron.com/promote](<https://www.aiheron.com/promote>) | 智鹭AI导航 ，最新最全的AI网站和AI工具（aiheron.com）：是 AI 工具发现或导航网站，面向用户收集、分类和展示不同用途的 AI 产品。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | 3.18-3.19 | 未收录 有收费引导 | · Free submission is available but requires adding an AiHeron backlink to your own homepage  | 2026-09-06 视频下载工具 run: submitted — clean POST form at /promote; confirmation '提交信息成功' (submission succeeded)",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -3504,7 +3504,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "web.cafe bounty wlhmhdaoqg",
-      "notes": "2026-09-06 videocatch run: form-not-found — the linked Tally form (tally.so/r/3jb99x) is titled 'Submit a blog post' and requires a .txt/.doc article upload — it's a guest-post intake, not a tool listing form. Page states tool advertising goes through DM/email to the site owner instead.",
+      "notes": "2026-09-06 视频下载工具 run: form-not-found — the linked Tally form (tally.so/r/3jb99x) is titled 'Submit a blog post' and requires a .txt/.doc article upload — it's a guest-post intake, not a tool listing form. Page states tool advertising goes through DM/email to the site owner instead.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -3558,7 +3558,7 @@
       "priceCheckedAt": "2026-08-19",
       "status": "unverified",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 114 | [https://aitools.inc/submit](<https://aitools.inc/submit>) | AI Tools Directory（aitools.inc）：是 AI 工具发现或导航网站，面向用户收集、分类和展示不同用途的 AI 产品。当前链接指向提交或新增条目入口。 | 3.12 | 已收录 等他们邮箱联系我们 | · A Free Listing ($0) is explicitly offered alongside the paid tier. | 2026-09-06 videocatch run: form-not-found — Typeform only advances on fully-trusted click/keypress events with real page focus; in opencli's background-tab mode (hasFocus=false, hidden) synthetic events only advanced one step then stalled. No captcha/login/payment involved — pure background-tab hydration limitation, not retried in foreground per safety-policy.",
+      "notes": "| 114 | [https://aitools.inc/submit](<https://aitools.inc/submit>) | AI Tools Directory（aitools.inc）：是 AI 工具发现或导航网站，面向用户收集、分类和展示不同用途的 AI 产品。当前链接指向提交或新增条目入口。 | 3.12 | 已收录 等他们邮箱联系我们 | · A Free Listing ($0) is explicitly offered alongside the paid tier. | 2026-09-06 视频下载工具 run: form-not-found — Typeform only advances on fully-trusted click/keypress events with real page focus; in opencli's background-tab mode (hasFocus=false, hidden) synthetic events only advanced one step then stalled. No captcha/login/payment involved — pure background-tab hydration limitation, not retried in foreground per safety-policy.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -3666,7 +3666,7 @@
       "priceCheckedAt": null,
       "status": "usable",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 663 | [https://aitools.rdlab.tw](<https://aitools.rdlab.tw>) | AI設計工具門（aitools.rdlab.tw）：是 AI 工具发现或导航网站，面向用户收集、分类和展示不同用途的 AI 产品。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 videocatch run: submitted — all required fields filled truthfully at /contact-us; HTTP 200 empty body (confirmModal did not render in background tab, so confirmation is inferred from HTTP 200 rather than visible toast — flagged as lower-confidence submit)",
+      "notes": "| 663 | [https://aitools.rdlab.tw](<https://aitools.rdlab.tw>) | AI設計工具門（aitools.rdlab.tw）：是 AI 工具发现或导航网站，面向用户收集、分类和展示不同用途的 AI 产品。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 视频下载工具 run: submitted — all required fields filled truthfully at /contact-us; HTTP 200 empty body (confirmModal did not render in background tab, so confirmation is inferred from HTTP 200 rather than visible toast — flagged as lower-confidence submit)",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -3811,7 +3811,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "web.cafe bounty wlhmhdaoqg",
-      "notes": "Found \"submit\" in links/text | 2026-09-06 videocatch run: form-not-found — real submission page is /submit (homepage has no form — prior 'no-form' probe note only reflects the homepage); form has real fields (Tool name/Website URL/Category/Why) and was filled+submitted twice, but both times the form reset with zero confirmation text/toast and zero network requests — cannot prove backend acceptance, so not counted as submitted.",
+      "notes": "Found \"submit\" in links/text | 2026-09-06 视频下载工具 run: form-not-found — real submission page is /submit (homepage has no form — prior 'no-form' probe note only reflects the homepage); form has real fields (Tool name/Website URL/Category/Why) and was filled+submitted twice, but both times the form reset with zero confirmation text/toast and zero network requests — cannot prove backend acceptance, so not counted as submitted.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "browser-dom",
@@ -5453,7 +5453,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 631 | [https://www.athenelinks.com](<https://www.athenelinks.com>) | athenelinks.com：公开网站或产品发现渠道；当前页面没有足够信息，具体用途与受众需再次核验。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 videocatch run: captcha-blocked — PHPLD-family /submit.php requires CAPTCHA field, same template as caida.eu.",
+      "notes": "| 631 | [https://www.athenelinks.com](<https://www.athenelinks.com>) | athenelinks.com：公开网站或产品发现渠道；当前页面没有足够信息，具体用途与受众需再次核验。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 视频下载工具 run: captcha-blocked — PHPLD-family /submit.php requires CAPTCHA field, same template as caida.eu.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -7176,7 +7176,7 @@
       "priceCheckedAt": null,
       "status": "usable",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 630 | [https://www.blogs-collection.com](<https://www.blogs-collection.com>) | blogs-collection.com 是文章、博客、新闻或数字出版平台，更适合有独立信息价值的内容投稿。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 videocatch run: skipped — SAFETY-POLICY EXCLUSION: landing page dominated by unrelated bulk consumer email-list spam ads alongside the directory listings, reads as link-farm-adjacent under safety-policy.md; did not proceed to /submit/. Status kept usable (site is technically reachable) but do NOT resubmit without a human re-review.",
+      "notes": "| 630 | [https://www.blogs-collection.com](<https://www.blogs-collection.com>) | blogs-collection.com 是文章、博客、新闻或数字出版平台，更适合有独立信息价值的内容投稿。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 视频下载工具 run: skipped — SAFETY-POLICY EXCLUSION: landing page dominated by unrelated bulk consumer email-list spam ads alongside the directory listings, reads as link-farm-adjacent under safety-policy.md; did not proceed to /submit/. Status kept usable (site is technically reachable) but do NOT resubmit without a human re-review.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -7897,7 +7897,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 658 | [https://caida.eu](<https://caida.eu>) | Caida Web Directory（caida.eu）：是综合网站或链接目录，按分类收集和展示外部网站。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 videocatch run: captcha-blocked — required CAPTCHA on /submit.php; also carries RECPR_URL/RECPR_TEXT fields indicating a reciprocal-link expectation (second independent gate).",
+      "notes": "| 658 | [https://caida.eu](<https://caida.eu>) | Caida Web Directory（caida.eu）：是综合网站或链接目录，按分类收集和展示外部网站。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 视频下载工具 run: captcha-blocked — required CAPTCHA on /submit.php; also carries RECPR_URL/RECPR_TEXT fields indicating a reciprocal-link expectation (second independent gate).",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -9317,7 +9317,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "footprint-run2 (serper + google footprint sweep, human-reviewed)",
-      "notes": "vertical=games; keyword=\"word games submit your game\"; fit=crossword-ar,nonogram-jp; discovered=footprint/serper 2026-09-12; 2026-09-12 复核（已登录账号，走到表单终点）：这不是外链/目录提交页，而是把整个游戏授权给 Coolmath 收购托管的意向表单（Google Form，已确认已登录，无 CAPTCHA），字段要求 Game Title/游戏引擎/试玩 URL 等；页面正文明确要求 \"The game must be free of any and all external links\" 且 \"no ad for your own site or company\"——即使被采纳也不会产生反链，反而要求提交方放弃站外链接。intabtools/videocatch/shindan 根本不是可试玩游戏，crossword-ar/nonogram-jp 虽是拼图类游戏但提交即等于申请被收购托管、放弃外链，与外链目标完全相悖，本轮未对 5 个项目做任何提交。原 form-fields-unverified 标记已解除，实际情况见上。",
+      "notes": "vertical=games; keyword=\"word games submit your game\"; fit=填字游戏,数织游戏; discovered=footprint/serper 2026-09-12; 2026-09-12 复核（已登录账号，走到表单终点）：这不是外链/目录提交页，而是把整个游戏授权给 Coolmath 收购托管的意向表单（Google Form，已确认已登录，无 CAPTCHA），字段要求 Game Title/游戏引擎/试玩 URL 等；页面正文明确要求 \"The game must be free of any and all external links\" 且 \"no ad for your own site or company\"——即使被采纳也不会产生反链，反而要求提交方放弃站外链接。浏览器工具/视频下载工具/测评工具 根本不是可试玩游戏，填字游戏/数织游戏 虽是拼图类游戏但提交即等于申请被收购托管、放弃外链，与外链目标完全相悖，本轮未对 5 个项目做任何提交。原 form-fields-unverified 标记已解除，实际情况见上。",
       "lastProbedAt": "2026-09-12",
       "evidence": {
         "method": "anonymous-http",
@@ -9772,7 +9772,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 585 | [https://cuspera.com/vendors#get-listed](<https://cuspera.com/vendors#get-listed>) | Cuspera : Right Software solutions for your Business Needs（cuspera.com）：是软件或 SaaS 产品目录、比较或评价平台，帮助用户发现同类工具。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 videocatch run: form-not-found — genuine free 'LIST SOFTWARE' Google Form ('Listing on Cuspera and traffic will always be FREE!'), but the required 'Work Email' field's client-side validator rejected both hello@videocatch.org and team@videocatch.org with 'Enter your work Email only' — appears to reject our own domain or is malfunctioning; no other genuine business email available without fabrication.",
+      "notes": "| 585 | [https://cuspera.com/vendors#get-listed](<https://cuspera.com/vendors#get-listed>) | Cuspera : Right Software solutions for your Business Needs（cuspera.com）：是软件或 SaaS 产品目录、比较或评价平台，帮助用户发现同类工具。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 视频下载工具 run: form-not-found — genuine free 'LIST SOFTWARE' Google Form ('Listing on Cuspera and traffic will always be FREE!'), but the required 'Work Email' field's client-side validator rejected both hello@视频下载工具.org and team@视频下载工具.org with 'Enter your work Email only' — appears to reject our own domain or is malfunctioning; no other genuine business email available without fabrication.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -10023,7 +10023,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 272 | [dealmango.com](<https://dealmango.com>) | dealmango.com 是软件或 SaaS 产品目录、比较或评价平台，帮助用户发现同类工具。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 无提交入口 未收录 | | 2026-09-06 videocatch run: form-not-found — curated deals aggregator only re-lists from named marketplaces (AppSumo/DealFuel/...); no submit/add-your-product link, contact form, or self-serve intake anywhere in nav/footer/page.",
+      "notes": "| 272 | [dealmango.com](<https://dealmango.com>) | dealmango.com 是软件或 SaaS 产品目录、比较或评价平台，帮助用户发现同类工具。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 无提交入口 未收录 | | 2026-09-06 视频下载工具 run: form-not-found — curated deals aggregator only re-lists from named marketplaces (AppSumo/DealFuel/...); no submit/add-your-product link, contact form, or self-serve intake anywhere in nav/footer/page.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -10719,7 +10719,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 625 | [https://www.directory.ldmstudio.com](<https://www.directory.ldmstudio.com>) | directory.ldmstudio.com 是综合网站或链接目录，按分类收集和展示外部网站。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 videocatch run: captcha-blocked — free-track form (submit-site-internet-category.php) requires a 'Validation Code' (CAPTCHA-style, field txtNumber); form redisplayed our values on submit, consistent with captcha rejection.",
+      "notes": "| 625 | [https://www.directory.ldmstudio.com](<https://www.directory.ldmstudio.com>) | directory.ldmstudio.com 是综合网站或链接目录，按分类收集和展示外部网站。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 视频下载工具 run: captcha-blocked — free-track form (submit-site-internet-category.php) requires a 'Validation Code' (CAPTCHA-style, field txtNumber); form redisplayed our values on submit, consistent with captcha rejection.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -10934,7 +10934,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 19 | [https://www.dizila.com/submit](<https://www.dizila.com/submit>) | dizila.com：提供公开联系、申请或资料提交入口的网站，实际展示位置和受众需再次核验。当前链接指向提交或新增条目入口。 | — | 网站已停服 | | 2026-09-06 videocatch run: form-not-found — phpLD-style multi-step /submit only offers a category picker; after selecting a category and continuing, flow routes to a public search page instead of an add-listing form — broken/decayed multi-step flow, no reliable 'add new listing' control found.",
+      "notes": "| 19 | [https://www.dizila.com/submit](<https://www.dizila.com/submit>) | dizila.com：提供公开联系、申请或资料提交入口的网站，实际展示位置和受众需再次核验。当前链接指向提交或新增条目入口。 | — | 网站已停服 | | 2026-09-06 视频下载工具 run: form-not-found — phpLD-style multi-step /submit only offers a category picker; after selecting a category and continuing, flow routes to a public search page instead of an add-listing form — broken/decayed multi-step flow, no reliable 'add new listing' control found.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -11036,7 +11036,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 717 | [https://dofollow.tools/](<https://dofollow.tools/>) | dofollow.tools：是 AI 工具发现或导航网站，面向用户收集、分类和展示不同用途的 AI 产品。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 videocatch run: skipped — CORRECTION: prior gate=account (2026-08-19 anonymous-http probe) was a false positive; browser run confirmed Step1 needs no login, no captcha ('Sign In' is just nav). Real blocker is a mandatory Logo image upload — opencli upload could not trigger the native file chooser (Page.fileChooserOpened not received) on this site's react-dropzone-style hidden input, tried multiple selector strategies. Tooling limitation, not a site login gate.",
+      "notes": "| 717 | [https://dofollow.tools/](<https://dofollow.tools/>) | dofollow.tools：是 AI 工具发现或导航网站，面向用户收集、分类和展示不同用途的 AI 产品。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 视频下载工具 run: skipped — CORRECTION: prior gate=account (2026-08-19 anonymous-http probe) was a false positive; browser run confirmed Step1 needs no login, no captcha ('Sign In' is just nav). Real blocker is a mandatory Logo image upload — opencli upload could not trigger the native file chooser (Page.fileChooserOpened not received) on this site's react-dropzone-style hidden input, tried multiple selector strategies. Tooling limitation, not a site login gate.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -11710,7 +11710,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 131 | [https://elitesitesdirectory.com/post-new/(收费)](<https://elitesitesdirectory.com/post-new/>) | elitesitesdirectory（elitesitesdirectory.com）：是综合网站或链接目录，按分类收集和展示外部网站。当前链接与内容发布或投稿有关。 | 3.12 | 未收录 | | 2026-09-06 videocatch run: submitted — 3-step free form completed; confirmation email promised: 'We have sent you an email to confirm your listing.' | 2026-09-06 videocatch run: confirmation email → $29/yr paywall",
+      "notes": "| 131 | [https://elitesitesdirectory.com/post-new/(收费)](<https://elitesitesdirectory.com/post-new/>) | elitesitesdirectory（elitesitesdirectory.com）：是综合网站或链接目录，按分类收集和展示外部网站。当前链接与内容发布或投稿有关。 | 3.12 | 未收录 | | 2026-09-06 视频下载工具 run: submitted — 3-step free form completed; confirmation email promised: 'We have sent you an email to confirm your listing.' | 2026-09-06 视频下载工具 run: confirmation email → $29/yr paywall",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -12335,7 +12335,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "web.cafe bounty wlhmhdaoqg",
-      "notes": "Found \"signup\" in links/text | 2026-09-06 videocatch run: login-required — queue route is literally the signup/signin page (?tab=signin); no submission reachable without an account.",
+      "notes": "Found \"signup\" in links/text | 2026-09-06 视频下载工具 run: login-required — queue route is literally the signup/signin page (?tab=signin); no submission reachable without an account.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "browser-dom",
@@ -12414,7 +12414,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 297 | [feedmystartup.com](<https://feedmystartup.com>) | FeedMyStartup（feedmystartup.com）：是创业产品发布、公司发现或独立开发者资源平台。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 未收录 入口关闭 | | 2026-09-06 videocatch run: form-not-found — all three nav 'submit' pages (/submit/, /submit-your-app/, /submit-your-startup/) render only static promotional text — no input form or CTA button anywhere.",
+      "notes": "| 297 | [feedmystartup.com](<https://feedmystartup.com>) | FeedMyStartup（feedmystartup.com）：是创业产品发布、公司发现或独立开发者资源平台。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 未收录 入口关闭 | | 2026-09-06 视频下载工具 run: form-not-found — all three nav 'submit' pages (/submit/, /submit-your-app/, /submit-your-startup/) render only static promotional text — no input form or CTA button anywhere.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -12819,7 +12819,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "web.cafe bounty wlhmhdaoqg",
-      "notes": "2026-09-06 videocatch run: login-required — submit click opens a 'Sign up to continue' modal requiring Google sign-up or email+password before the product is saved.",
+      "notes": "2026-09-06 视频下载工具 run: login-required — submit click opens a 'Sign up to continue' modal requiring Google sign-up or email+password before the product is saved.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -13192,7 +13192,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "web.cafe bounty wlhmhdaoqg",
-      "notes": "Found \"join\" in links/text | 2026-09-06 videocatch run: login-required — forum.bubble.io (Discourse) requires 'Log In' to post a new topic/showcase; no anonymous submission path.",
+      "notes": "Found \"join\" in links/text | 2026-09-06 视频下载工具 run: login-required — forum.bubble.io (Discourse) requires 'Log In' to post a new topic/showcase; no anonymous submission path.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "browser-dom",
@@ -13574,7 +13574,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 622 | [https://www.freelistingindia.in](<https://www.freelistingindia.in>) | freelistingindia.in 是企业或本地商家目录，按地区、行业或服务类型展示公司资料。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 videocatch run: login-required — /create-listing redirects to /login?action=create_listing; real account required.",
+      "notes": "| 622 | [https://www.freelistingindia.in](<https://www.freelistingindia.in>) | freelistingindia.in 是企业或本地商家目录，按地区、行业或服务类型展示公司资料。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 视频下载工具 run: login-required — /create-listing redirects to /login?action=create_listing; real account required.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -13606,7 +13606,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 551 | [www.freelistingusa.com](<https://www.freelistingusa.com>) | Free local business listing site USA, online business directory USA（freelistingusa.com）：是企业或本地商家目录，按地区、行业或服务类型展示公司资料。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 站外未搜到 站内无搜索功能 无收费引导 | | 2026-09-06 videocatch run: login-required — same FreeListing* platform family as freelistingindia.in; /create-listing redirects to /login?action=create_listing.",
+      "notes": "| 551 | [www.freelistingusa.com](<https://www.freelistingusa.com>) | Free local business listing site USA, online business directory USA（freelistingusa.com）：是企业或本地商家目录，按地区、行业或服务类型展示公司资料。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 站外未搜到 站内无搜索功能 无收费引导 | | 2026-09-06 视频下载工具 run: login-required — same FreeListing* platform family as freelistingindia.in; /create-listing redirects to /login?action=create_listing.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -13638,7 +13638,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "footprint-discover.mjs browser-games-run-2026-09-12",
-      "notes": "vertical=games; keyword=\"browser games inurl:submit\"; fit=crossword-ar,nonogram-jp; discovered=footprint/serper 2026-09-12. 2026-09-12 inspect-page 实测（浏览器）：formIndex=0 是真实提交表单，但含必填字段 aiUse（'ai usage* - how was ai used in creating or playing your game?'）——本站要求提交的是 AI 生成/AI 玩法类游戏，anonymous-http 探测阶段的 open-form 判定只看到字段存在，没能识别这条语义门槛。非 AI 类项目无法如实作答，改为 gate=manual-review，不进 open 队列无差别投放。",
+      "notes": "vertical=games; keyword=\"browser games inurl:submit\"; fit=填字游戏,数织游戏; discovered=footprint/serper 2026-09-12. 2026-09-12 inspect-page 实测（浏览器）：formIndex=0 是真实提交表单，但含必填字段 aiUse（'ai usage* - how was ai used in creating or playing your game?'）——本站要求提交的是 AI 生成/AI 玩法类游戏，anonymous-http 探测阶段的 open-form 判定只看到字段存在，没能识别这条语义门槛。非 AI 类项目无法如实作答，改为 gate=manual-review，不进 open 队列无差别投放。",
       "lastProbedAt": "2026-09-12",
       "evidence": {
         "method": "anonymous-http",
@@ -15007,7 +15007,7 @@
       "priceCheckedAt": null,
       "status": "usable",
       "sourceList": "footprint-run2 (serper + google footprint sweep, human-reviewed)",
-      "notes": "vertical=games; keyword=\"word games / browser games write-for-us\"; fit=crossword-ar,nonogram-jp,intabtools,videocatch,shindan; discovered=footprint/serper 2026-09-12. CORRECTED 2026-09-12: /write-for-us/ (previous route) is a customer-service ticket form, not a real submission path — left as gated/no_safe_submission_form dead end, do not resubmit there. The real usable channel on this domain is the native WordPress comment form on every blog article (e.g. this route), fields Comment*/Name*/Email*/Website + 'Save my name...' checkbox + Post Comment button, no CAPTCHA observed. The form is collapsed behind a '.show-post-comment' accordion toggle (display:none until clicked) — a plain form-census tool that doesn't click UI toggles will misreport 0 qualifying forms; click the toggle first, then the WP fields resolve correctly. Five reviewed comments were submitted on this one article route (2026-09-12), each with a distinct real product's Website-field anchor; all five landed on ?unapproved=<id>&moderation-hash=... i.e. accepted into WordPress moderation, not yet publicly visible — per this Skill's blog-comment verification law, that own-session view does not itself prove public visibility. Re-verify from a cookie-free context before promoting any of these to 'public' in a ledger. This route (and by extension the same theme on other gpadtester.net articles) is reusable per-article, not a one-time route.",
+      "notes": "vertical=games; keyword=\"word games / browser games write-for-us\"; fit=填字游戏,数织游戏,浏览器工具,视频下载工具,测评工具; discovered=footprint/serper 2026-09-12. CORRECTED 2026-09-12: /write-for-us/ (previous route) is a customer-service ticket form, not a real submission path — left as gated/no_safe_submission_form dead end, do not resubmit there. The real usable channel on this domain is the native WordPress comment form on every blog article (e.g. this route), fields Comment*/Name*/Email*/Website + 'Save my name...' checkbox + Post Comment button, no CAPTCHA observed. The form is collapsed behind a '.show-post-comment' accordion toggle (display:none until clicked) — a plain form-census tool that doesn't click UI toggles will misreport 0 qualifying forms; click the toggle first, then the WP fields resolve correctly. Five reviewed comments were submitted on this one article route (2026-09-12), each with a distinct real product's Website-field anchor; all five landed on ?unapproved=<id>&moderation-hash=... i.e. accepted into WordPress moderation, not yet publicly visible — per this Skill's blog-comment verification law, that own-session view does not itself prove public visibility. Re-verify from a cookie-free context before promoting any of these to 'public' in a ledger. This route (and by extension the same theme on other gpadtester.net articles) is reusable per-article, not a one-time route.",
       "lastProbedAt": "2026-09-12",
       "verifiedRoutes": [
         {
@@ -15357,7 +15357,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "footprint-run2 (serper + google footprint sweep, human-reviewed)",
-      "notes": "vertical=video; keyword=\"video downloader inurl:links submit\"; fit=videocatch; discovered=footprint/serper 2026-09-12. 2026-09-12 inspect-page 实测（浏览器）：这不是网站/产品外链提交表单——Guestbook Project 是一家非营利机构，此页是其口述历史/个人故事项目『Submit Your Video』征集表单，必填字段要求真实的 Dropbox/Google Drive/Vimeo 视频文件链接，并要求勾选 Exchanging Stories/Storybites/Documentary 中的一个分类；与'video downloader'工具站完全不是一回事，anonymous-http 阶段按字段名 url/name/description 误判为可用 open-form。kind 改为 unknown、gate 改为 manual-review，不适合任何『提交产品链接』类项目，不建议再作为该垂类目标。",
+      "notes": "vertical=video; keyword=\"video downloader inurl:links submit\"; fit=视频下载工具; discovered=footprint/serper 2026-09-12. 2026-09-12 inspect-page 实测（浏览器）：这不是网站/产品外链提交表单——Guestbook Project 是一家非营利机构，此页是其口述历史/个人故事项目『Submit Your Video』征集表单，必填字段要求真实的 Dropbox/Google Drive/Vimeo 视频文件链接，并要求勾选 Exchanging Stories/Storybites/Documentary 中的一个分类；与'video downloader'工具站完全不是一回事，anonymous-http 阶段按字段名 url/name/description 误判为可用 open-form。kind 改为 unknown、gate 改为 manual-review，不适合任何『提交产品链接』类项目，不建议再作为该垂类目标。",
       "lastProbedAt": "2026-09-12",
       "evidence": {
         "method": "anonymous-http",
@@ -15724,7 +15724,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 99 | [http://hotvsnot.com/Add-Site/Add-Site.aspx](<http://hotvsnot.com/Add-Site/Add-Site.aspx>) | Web Directory Listing Online Directory（hotvsnot.com）：是综合网站或链接目录，按分类收集和展示外部网站。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | 3.12 | 未收录 有收费引导 | | 2026-09-06 videocatch run: form-not-found — page has no real title/URL/description submission field anywhere (only a search box and a category select); likely a decayed ASPX flow.",
+      "notes": "| 99 | [http://hotvsnot.com/Add-Site/Add-Site.aspx](<http://hotvsnot.com/Add-Site/Add-Site.aspx>) | Web Directory Listing Online Directory（hotvsnot.com）：是综合网站或链接目录，按分类收集和展示外部网站。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | 3.12 | 未收录 有收费引导 | | 2026-09-06 视频下载工具 run: form-not-found — page has no real title/URL/description submission field anywhere (only a search box and a category select); likely a decayed ASPX flow.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -17029,7 +17029,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 319 | [internetisbeautiful.com](<https://internetisbeautiful.com>) | Internet Is Beautiful（internetisbeautiful.com）：是文章、博客、新闻或数字出版平台，更适合有独立信息价值的内容投稿。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 站外未搜到 站内无搜索功能 有收费引导 | | 2026-09-06 videocatch run: captcha-blocked — step 3 requires a mandatory 'I'm not a robot' reCAPTCHA even on the free/queued (174-day) path; the $199.99 paid option is separately optional.",
+      "notes": "| 319 | [internetisbeautiful.com](<https://internetisbeautiful.com>) | Internet Is Beautiful（internetisbeautiful.com）：是文章、博客、新闻或数字出版平台，更适合有独立信息价值的内容投稿。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 站外未搜到 站内无搜索功能 有收费引导 | | 2026-09-06 视频下载工具 run: captcha-blocked — step 3 requires a mandatory 'I'm not a robot' reCAPTCHA even on the free/queued (174-day) path; the $199.99 paid option is separately optional.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -17459,7 +17459,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 577 | [https://www.joinly.xyz/(只能提交主页)](<https://www.joinly.xyz/>) | joinly.xyz：公开网站或产品发现渠道；当前页面没有足够信息，具体用途与受众需再次核验。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 videocatch run: form-not-found — form requires a mandatory 'Country' select (no free-text/skip) plus mandatory thumbnail/gallery image uploads; product-profile.json has no founder/company country fact and inventing one is fabrication (forbidden). Skipped rather than guessing.",
+      "notes": "| 577 | [https://www.joinly.xyz/(只能提交主页)](<https://www.joinly.xyz/>) | joinly.xyz：公开网站或产品发现渠道；当前页面没有足够信息，具体用途与受众需再次核验。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 视频下载工具 run: form-not-found — form requires a mandatory 'Country' select (no free-text/skip) plus mandatory thumbnail/gallery image uploads; product-profile.json has no founder/company country fact and inventing one is fabrication (forbidden). Skipped rather than guessing.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -17855,7 +17855,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "web.cafe bounty wlhmhdaoqg",
-      "notes": "B2B business directory; contact form for submissions | 2026-09-06 videocatch run: form-not-found — route resolves to a paid B2B sales-lead contact form (Data Consulting/Digital Marketing/Sales Solutions), not a free business-directory listing form; no self-serve free path found.",
+      "notes": "B2B business directory; contact form for submissions | 2026-09-06 视频下载工具 run: form-not-found — route resolves to a paid B2B sales-lead contact form (Data Consulting/Digital Marketing/Sales Solutions), not a free business-directory listing form; no self-serve free path found.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "browser-dom",
@@ -17891,7 +17891,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 237 | [lachief.io](<https://lachief.io>) | lachief.io：公开网站或产品发现渠道；当前页面没有足够信息，具体用途与受众需再次核验。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 未收录 有收费引导 | | 2026-09-06 videocatch run: form-not-found — legitimate free 'Submit A Tool' Tally form, all text fields filled truthfully, blocked on a required tool-logo image upload — opencli upload could not trigger the native file chooser after two attempts despite a real logo.png being downloaded. Tooling limitation, not a site gate.",
+      "notes": "| 237 | [lachief.io](<https://lachief.io>) | lachief.io：公开网站或产品发现渠道；当前页面没有足够信息，具体用途与受众需再次核验。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 未收录 有收费引导 | | 2026-09-06 视频下载工具 run: form-not-found — legitimate free 'Submit A Tool' Tally form, all text fields filled truthfully, blocked on a required tool-logo image upload — opencli upload could not trigger the native file chooser after two attempts despite a real logo.png being downloaded. Tooling limitation, not a site gate.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -18147,7 +18147,7 @@
       "priceCheckedAt": "2026-08-19",
       "status": "gated",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 57 | [https://www.launchingnext.com/submit/](<https://www.launchingnext.com/submit/>) | Launching Next（launchingnext.com）：是创业产品发布、公司发现或独立开发者资源平台。当前链接指向提交或新增条目入口。 | — | 未收录 推荐公司的网站 | | 257 | [launchingnext.com/](<https://launchingnext.com/>) | Launching Next（launchingnext.com）：是创业产品发布、公司发现或独立开发者资源平 | 2026-09-06 videocatch run: captcha-blocked — SITE CHANGED since prior probe: form now has an anti-bot arithmetic gate ('Quick Check: What is 2+3?'); everything else (free tier, no login, $99 upgrade optional/later) still clean. Good manual-submission candidate.",
+      "notes": "| 57 | [https://www.launchingnext.com/submit/](<https://www.launchingnext.com/submit/>) | Launching Next（launchingnext.com）：是创业产品发布、公司发现或独立开发者资源平台。当前链接指向提交或新增条目入口。 | — | 未收录 推荐公司的网站 | | 257 | [launchingnext.com/](<https://launchingnext.com/>) | Launching Next（launchingnext.com）：是创业产品发布、公司发现或独立开发者资源平 | 2026-09-06 视频下载工具 run: captcha-blocked — SITE CHANGED since prior probe: form now has an anti-bot arithmetic gate ('Quick Check: What is 2+3?'); everything else (free tier, no login, $99 upgrade optional/later) still clean. Good manual-submission candidate.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -18584,7 +18584,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 645 | [https://linkdirectorylistings.org](<https://linkdirectorylistings.org>) | linkdirectorylistings.org 是综合网站或链接目录，按分类收集和展示外部网站。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 videocatch run: captcha-blocked — form fills cleanly but carries a required et_pb_contact_captcha_0 field; staged and stopped at state=staged-captcha.",
+      "notes": "| 645 | [https://linkdirectorylistings.org](<https://linkdirectorylistings.org>) | linkdirectorylistings.org 是综合网站或链接目录，按分类收集和展示外部网站。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 视频下载工具 run: captcha-blocked — form fills cleanly but carries a required et_pb_contact_captcha_0 field; staged and stopped at state=staged-captcha.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -18849,7 +18849,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 308 | [listskit.com](<https://listskit.com>) | listskit.com：公开网站或产品发现渠道；当前页面没有足够信息，具体用途与受众需再次核验。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 付费 站外未搜到 站内无搜索功能 | | 2026-09-06 videocatch run: form-not-found — the linked formUrl (forms.gle/...) resolves to an unrelated internal product survey ('Tailwind version for Lists Kit boilerplate?'), not a tool/site submission form.",
+      "notes": "| 308 | [listskit.com](<https://listskit.com>) | listskit.com：公开网站或产品发现渠道；当前页面没有足够信息，具体用途与受众需再次核验。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 付费 站外未搜到 站内无搜索功能 | | 2026-09-06 视频下载工具 run: form-not-found — the linked formUrl (forms.gle/...) resolves to an unrelated internal product survey ('Tailwind version for Lists Kit boilerplate?'), not a tool/site submission form.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -18976,7 +18976,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "web.cafe bounty wlhmhdaoqg",
-      "notes": "Found \"submit\" in links/text | 2026-09-06 videocatch run: form-not-found — form is fillable (no captcha/login/payment) but outcome unconfirmed: scripted submit and a corrected manual retry both left the form empty with no confirmation text, no URL change, and zero matching network requests — cannot distinguish silent-AJAX success from no-op.",
+      "notes": "Found \"submit\" in links/text | 2026-09-06 视频下载工具 run: form-not-found — form is fillable (no captcha/login/payment) but outcome unconfirmed: scripted submit and a corrected manual retry both left the form empty with no confirmation text, no URL change, and zero matching network requests — cannot distinguish silent-AJAX success from no-op.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "browser-dom",
@@ -19043,7 +19043,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 22 | [http://www.localsites.ca/(页面提交暂停)](<http://www.localsites.ca/>) | Canada Web Directory & Business Listings（localsites.ca）：是企业或本地商家目录，按地区、行业或服务类型展示公司资料。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 未收录 暂停提交了6月18日 | | 2026-09-06 videocatch run: form-not-found — add-site page banner states 'Add Your Website form will be temporarily disabled' and carries zero <form> elements; intake appears switched off site-side, not just hidden behind a step.",
+      "notes": "| 22 | [http://www.localsites.ca/(页面提交暂停)](<http://www.localsites.ca/>) | Canada Web Directory & Business Listings（localsites.ca）：是企业或本地商家目录，按地区、行业或服务类型展示公司资料。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 未收录 暂停提交了6月18日 | | 2026-09-06 视频下载工具 run: form-not-found — add-site page banner states 'Add Your Website form will be temporarily disabled' and carries zero <form> elements; intake appears switched off site-side, not just hidden behind a step.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -20202,7 +20202,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 115 | [https://morefunz.com/submit-url](<https://morefunz.com/submit-url>) | Web Directory, submit URL（morefunz.com）：是综合网站或链接目录，按分类收集和展示外部网站。当前链接指向提交或新增条目入口。 | 3.12 | 未收录 提交通道已关闭 | | 2026-09-06 videocatch run: captcha-blocked — form fields fill cleanly but the confirm step is gated behind a CAPTCHA (state=gated-captcha-on-confirm).",
+      "notes": "| 115 | [https://morefunz.com/submit-url](<https://morefunz.com/submit-url>) | Web Directory, submit URL（morefunz.com）：是综合网站或链接目录，按分类收集和展示外部网站。当前链接指向提交或新增条目入口。 | 3.12 | 未收录 提交通道已关闭 | | 2026-09-06 视频下载工具 run: captcha-blocked — form fields fill cleanly but the confirm step is gated behind a CAPTCHA (state=gated-captcha-on-confirm).",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -20269,7 +20269,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 437 | [https://mrfreetools.com/thanks-for-submitting-a-post/](<https://mrfreetools.com/thanks-for-submitting-a-post/>) | Mr. Free Tools（mrfreetools.com）：是综合网站或链接目录，按分类收集和展示外部网站。当前链接指向提交或新增条目入口。 | 3.18-3.19 | 未收录 提交页面已关闭 | | 2026-09-06 videocatch run: form-not-found — no dedicated submission route exists (/submit is 404; nav/footer has no 'submit a tool' entry). Only form on-site is the general /contact/ form, which itself carries a hidden g-recaptcha-response field.",
+      "notes": "| 437 | [https://mrfreetools.com/thanks-for-submitting-a-post/](<https://mrfreetools.com/thanks-for-submitting-a-post/>) | Mr. Free Tools（mrfreetools.com）：是综合网站或链接目录，按分类收集和展示外部网站。当前链接指向提交或新增条目入口。 | 3.18-3.19 | 未收录 提交页面已关闭 | | 2026-09-06 视频下载工具 run: form-not-found — no dedicated submission route exists (/submit is 404; nav/footer has no 'submit a tool' entry). Only form on-site is the general /contact/ form, which itself carries a hidden g-recaptcha-response field.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -20816,7 +20816,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 384 | [https://nextgentools.me/submit-your-tool](<https://nextgentools.me/submit-your-tool>) | nextgentools.me：提供公开联系、申请或资料提交入口的网站，实际展示位置和受众需再次核验。当前链接指向提交或新增条目入口。 | 3.18-3.19 | 已收录 无收费引导 | | 559 | [https://nextgentools.me/](<https://nextgentools.me/>) | nextgentools.me：公开网站或产品发现渠道；当前页面没有足够信息，具体用途与 | 2026-09-06 videocatch run: form-not-found — a genuine free submission form exists (Tool name/Category/URL/Contact fields) but it is a cross-domain Airtable iframe embed; opencli's `find`/`frames` cannot reach fields inside the iframe — tool capability limit, not a site gate. Paid 'DO-Follow Backlink €75' is an optional upsell, not a precondition.",
+      "notes": "| 384 | [https://nextgentools.me/submit-your-tool](<https://nextgentools.me/submit-your-tool>) | nextgentools.me：提供公开联系、申请或资料提交入口的网站，实际展示位置和受众需再次核验。当前链接指向提交或新增条目入口。 | 3.18-3.19 | 已收录 无收费引导 | | 559 | [https://nextgentools.me/](<https://nextgentools.me/>) | nextgentools.me：公开网站或产品发现渠道；当前页面没有足够信息，具体用途与 | 2026-09-06 视频下载工具 run: form-not-found — a genuine free submission form exists (Tool name/Category/URL/Contact fields) but it is a cross-domain Airtable iframe embed; opencli's `find`/`frames` cannot reach fields inside the iframe — tool capability limit, not a site gate. Paid 'DO-Follow Backlink €75' is an optional upsell, not a precondition.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -21362,7 +21362,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 13 | [https://www.offpagesavvy.com/submit-your-site/](<https://www.offpagesavvy.com/submit-your-site/>) | offpagesavvy.com：SEO 外链方法与资源数据库，主要整理链接建设渠道和工具。当前链接指向提交或新增条目入口。 | — | 网站停服 | | 66 | [https://www.offpagesavvy.com/submit-your-site/](<https://www.offpagesavvy.com/submit-your-site/>) | offpages | 2026-09-06 videocatch run: form-not-found — CF7 form has a required 'Phoneno' number field and no real phone number is available to provide (fabricating one is a red line); category options are also all off-page-SEO types with no fit for a video tool.",
+      "notes": "| 13 | [https://www.offpagesavvy.com/submit-your-site/](<https://www.offpagesavvy.com/submit-your-site/>) | offpagesavvy.com：SEO 外链方法与资源数据库，主要整理链接建设渠道和工具。当前链接指向提交或新增条目入口。 | — | 网站停服 | | 66 | [https://www.offpagesavvy.com/submit-your-site/](<https://www.offpagesavvy.com/submit-your-site/>) | offpages | 2026-09-06 视频下载工具 run: form-not-found — CF7 form has a required 'Phoneno' number field and no real phone number is available to provide (fabricating one is a red line); category options are also all off-page-SEO types with no fit for a video tool.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -21624,7 +21624,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "footprint-discover.mjs browser-games-run-2026-09-12",
-      "notes": "vertical=games; keyword=\"browser games inurl:links submit\"; fit=crossword-ar,nonogram-jp; discovered=footprint/serper 2026-09-12. 2026-09-12 inspect-page 实测（浏览器）：唯一的输入字段是'GitHub repository URL'（placeholder https://github.com/owner/repo）+ 可选 Notes，页面明确写着'Help the directory grow. Submit a GitHub repository for an open-source game'并要求确认'the project is open-source'；唯一可点击控件是'Email Submission'，触发的是 mailto，不是真实表单 POST。这是一个『开源 GitHub 仓库收录目录』，不是通用产品/网站提交表单，对closed-source商业站点不适用，anonymous-http 阶段仅按字段计数误判为 open-form。kind 改为 unknown、gate 改为 manual-review。",
+      "notes": "vertical=games; keyword=\"browser games inurl:links submit\"; fit=填字游戏,数织游戏; discovered=footprint/serper 2026-09-12. 2026-09-12 inspect-page 实测（浏览器）：唯一的输入字段是'GitHub repository URL'（placeholder https://github.com/owner/repo）+ 可选 Notes，页面明确写着'Help the directory grow. Submit a GitHub repository for an open-source game'并要求确认'the project is open-source'；唯一可点击控件是'Email Submission'，触发的是 mailto，不是真实表单 POST。这是一个『开源 GitHub 仓库收录目录』，不是通用产品/网站提交表单，对closed-source商业站点不适用，anonymous-http 阶段仅按字段计数误判为 open-form。kind 改为 unknown、gate 改为 manual-review。",
       "lastProbedAt": "2026-09-12",
       "evidence": {
         "method": "anonymous-http",
@@ -21921,7 +21921,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "footprint-discover.mjs browser-games-run-2026-09-12",
-      "notes": "vertical=games; keyword=\"browser games inurl:links submit\"; fit=crossword-ar,nonogram-jp; discovered=footprint/serper 2026-09-12. 2026-09-12 inspect-page 实测（浏览器）：页面有 3 个 <form>，真正的提交表单(formIndex=1)必填 studio_name/contact_name/contact_email/country(下拉必填)/game_title/status(单选必填)，并有必勾复选框 submission-consent；inspect-page 的启发式因 url 字段有 studio_url 与 game_url 两个候选判为 ambiguous，anonymous-http 阶段更只看到字段计数就判 open-form，两次都没识别出这是一张需要工作室身份信息(studio/country)+人工勾选同意的表单。country 没有可如实申报的值，Skill 规则禁止代填 consent 复选框，故不适合无人值守批量提交。kind 保留 dev-community，gate/cohort 改为 manual-review。",
+      "notes": "vertical=games; keyword=\"browser games inurl:links submit\"; fit=填字游戏,数织游戏; discovered=footprint/serper 2026-09-12. 2026-09-12 inspect-page 实测（浏览器）：页面有 3 个 <form>，真正的提交表单(formIndex=1)必填 studio_name/contact_name/contact_email/country(下拉必填)/game_title/status(单选必填)，并有必勾复选框 submission-consent；inspect-page 的启发式因 url 字段有 studio_url 与 game_url 两个候选判为 ambiguous，anonymous-http 阶段更只看到字段计数就判 open-form，两次都没识别出这是一张需要工作室身份信息(studio/country)+人工勾选同意的表单。country 没有可如实申报的值，Skill 规则禁止代填 consent 复选框，故不适合无人值守批量提交。kind 保留 dev-community，gate/cohort 改为 manual-review。",
       "lastProbedAt": "2026-09-12",
       "evidence": {
         "method": "anonymous-http",
@@ -22167,7 +22167,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "web.cafe bounty wlhmhdaoqg",
-      "notes": "Chinese partnership/business information platform | 2026-09-06 videocatch run: form-not-found — not a business/link directory — a Chinese pay-to-post content-marketing/affiliate blog feed; no site-listing submission form exists at all.",
+      "notes": "Chinese partnership/business information platform | 2026-09-06 视频下载工具 run: form-not-found — not a business/link directory — a Chinese pay-to-post content-marketing/affiliate blog feed; no site-listing submission form exists at all.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "browser-dom",
@@ -22435,7 +22435,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "web.cafe bounty wlhmhdaoqg",
-      "notes": "2026-09-06 videocatch run: form-not-found — only field is websiteUrl (GET form); after submit, page returns to homepage listing with no confirmation. Page shows 'Advertise 13/20 spots left', suggesting this may be a paid-listing lead form rather than a free submission.",
+      "notes": "2026-09-06 视频下载工具 run: form-not-found — only field is websiteUrl (GET form); after submit, page returns to homepage listing with no confirmation. Page shows 'Advertise 13/20 spots left', suggesting this may be a paid-listing lead form rather than a free submission.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -22642,7 +22642,7 @@
       "priceCheckedAt": null,
       "status": "usable",
       "sourceList": "footprint-discover.mjs browser-games-run-2026-09-12",
-      "notes": "vertical=games; keyword=\"word games / browser games inurl:links submit\"; fit=crossword-ar,nonogram-jp; discovered=footprint/serper 2026-09-12",
+      "notes": "vertical=games; keyword=\"word games / browser games inurl:links submit\"; fit=填字游戏,数织游戏; discovered=footprint/serper 2026-09-12",
       "lastProbedAt": "2026-09-12",
       "evidence": {
         "method": "anonymous-http",
@@ -23262,7 +23262,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "footprint-run2 (serper + google footprint sweep, human-reviewed)",
-      "notes": "vertical=tools; keyword=\"ai tools / free online tools / online tools submit your tool\"; fit=intabtools; discovered=footprint/serper 2026-09-12",
+      "notes": "vertical=tools; keyword=\"ai tools / free online tools / online tools submit your tool\"; fit=浏览器工具; discovered=footprint/serper 2026-09-12",
       "lastProbedAt": "2026-09-12",
       "evidence": {
         "method": "anonymous-http",
@@ -23863,7 +23863,7 @@
       "priceCheckedAt": null,
       "status": "usable",
       "sourceList": "web.cafe bounty wlhmhdaoqg",
-      "notes": "2026-09-06 videocatch run: submitted — real entry is /tool-addition (homepage has no form); confirmation {\"success\":true} from /ajax/addition-form. Route field corrected from homepage to actual entry.",
+      "notes": "2026-09-06 视频下载工具 run: submitted — real entry is /tool-addition (homepage has no form); confirmation {\"success\":true} from /ajax/addition-form. Route field corrected from homepage to actual entry.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -24275,7 +24275,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 401 | [reviewai.net](<https://reviewai.net>) | ReviewAI（reviewai.net）：是 AI 工具发现或导航网站，面向用户收集、分类和展示不同用途的 AI 产品。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | 3.18-3.19 | 未收录 无收费引导 | | 458 | [https://reviewai.net/create-places/?step=ui-step-2](<https://reviewai.net/create-places/?step=ui-step-2>) | ReviewAI（reviewai. | 2026-09-06 videocatch run: form-not-found — form uses GET method; after submit, page returns to homepage with the form still present and no confirmation text anywhere — cannot confirm registration, not counted as submitted to avoid a false positive.",
+      "notes": "| 401 | [reviewai.net](<https://reviewai.net>) | ReviewAI（reviewai.net）：是 AI 工具发现或导航网站，面向用户收集、分类和展示不同用途的 AI 产品。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | 3.18-3.19 | 未收录 无收费引导 | | 458 | [https://reviewai.net/create-places/?step=ui-step-2](<https://reviewai.net/create-places/?step=ui-step-2>) | ReviewAI（reviewai. | 2026-09-06 视频下载工具 run: form-not-found — form uses GET method; after submit, page returns to homepage with the form still present and no confirmation text anywhere — cannot confirm registration, not counted as submitted to avoid a false positive.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -24361,7 +24361,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "footprint-run2 (serper + google footprint sweep, human-reviewed)",
-      "notes": "vertical=media; keyword=\"video downloader / youtube downloader / online tools guest post guidelines\"; fit=videocatch,intabtools; discovered=footprint/serper 2026-09-12; 2026-09-12 复核：记录的 route 是教程文章而非投稿入口，需重新搜索 ryrob.com 真正的 write-for-us/guest-post 页面（如果存在）",
+      "notes": "vertical=media; keyword=\"video downloader / youtube downloader / online tools guest post guidelines\"; fit=视频下载工具,浏览器工具; discovered=footprint/serper 2026-09-12; 2026-09-12 复核：记录的 route 是教程文章而非投稿入口，需重新搜索 ryrob.com 真正的 write-for-us/guest-post 页面（如果存在）",
       "lastProbedAt": "2026-09-12",
       "evidence": {
         "method": "anonymous-http",
@@ -24643,7 +24643,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 285 | [saassurf.com](<https://saassurf.com>) | Curating tools for developers, designers, and makers（saassurf.com）：是软件或 SaaS 产品目录、比较或评价平台，帮助用户发现同类工具。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 未收录 收费 | · \"List With Us\" states submissions are free and \"posted within 24 hours\"; a separate paid \"Sponsored Place | 2026-09-06 videocatch run: form-not-found — /submit-a-product has no actual form — the 'Submit Product' button anchors to a paid #sponsored section; the only free route is emailing hello@saassurf.com.",
+      "notes": "| 285 | [saassurf.com](<https://saassurf.com>) | Curating tools for developers, designers, and makers（saassurf.com）：是软件或 SaaS 产品目录、比较或评价平台，帮助用户发现同类工具。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 未收录 收费 | · \"List With Us\" states submissions are free and \"posted within 24 hours\"; a separate paid \"Sponsored Place | 2026-09-06 视频下载工具 run: form-not-found — /submit-a-product has no actual form — the 'Submit Product' button anchors to a paid #sponsored section; the only free route is emailing hello@saassurf.com.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -24882,7 +24882,7 @@
       "priceCheckedAt": "2026-09-06",
       "status": "gated",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 636 | [https://search.ezilon.com(收费)](<https://search.ezilon.com>) | Ezilon USA（search.ezilon.com）：是综合网站或链接目录，按分类收集和展示外部网站。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 videocatch run: paid-only — free inclusion explicitly limited to non-commercial sites (gov/NGO/charity/edu); VideoCatch does not qualify. Paid category-listing form also carries a verification-code field.",
+      "notes": "| 636 | [https://search.ezilon.com(收费)](<https://search.ezilon.com>) | Ezilon USA（search.ezilon.com）：是综合网站或链接目录，按分类收集和展示外部网站。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | — | | 2026-09-06 视频下载工具 run: paid-only — free inclusion explicitly limited to non-commercial sites (gov/NGO/charity/edu); VideoCatch does not qualify. Paid category-listing form also carries a verification-code field.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -25509,7 +25509,7 @@
       "priceCheckedAt": "2026-09-12",
       "status": "gated",
       "sourceList": "footprint-run2 (serper + google footprint sweep, human-reviewed)",
-      "notes": "vertical=tools; keyword=\"online tools submit your tool\"; fit=intabtools; discovered=footprint/serper 2026-09-12",
+      "notes": "vertical=tools; keyword=\"online tools submit your tool\"; fit=浏览器工具; discovered=footprint/serper 2026-09-12",
       "lastProbedAt": "2026-09-12",
       "evidence": {
         "method": "anonymous-http",
@@ -26497,7 +26497,7 @@
       "priceCheckedAt": "2026-08-19",
       "status": "gated",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 105 | [https://somuch.com/submit-links/](<https://somuch.com/submit-links/>) | SoMuch.com — Free Web Link Directory by Topic & Category（somuch.com）：是综合网站或链接目录，按分类收集和展示外部网站。当前链接指向提交或新增条目入口。 | 3.12 | 未收录 有收费引导 | · Basic URL Submission is free and goes into a first-in-first-out review queue that \"cou | 2026-09-06 videocatch run: captcha-blocked — step 2 (/submit-links/submit-link) carries a visible reCAPTCHA v2; also requires email verification within 3 days or the listing is auto-deleted (second gate).",
+      "notes": "| 105 | [https://somuch.com/submit-links/](<https://somuch.com/submit-links/>) | SoMuch.com — Free Web Link Directory by Topic & Category（somuch.com）：是综合网站或链接目录，按分类收集和展示外部网站。当前链接指向提交或新增条目入口。 | 3.12 | 未收录 有收费引导 | · Basic URL Submission is free and goes into a first-in-first-out review queue that \"cou | 2026-09-06 视频下载工具 run: captcha-blocked — step 2 (/submit-links/submit-link) carries a visible reCAPTCHA v2; also requires email verification within 3 days or the listing is auto-deleted (second gate).",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -27082,7 +27082,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 290 | [startup88.com/](<https://startup88.com/>) | startup88.com 是创业产品发布、公司发现或独立开发者资源平台。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 站内搜到 有收费引导 | | 2026-09-06 videocatch run: form-not-found — embedded Typeform fully and truthfully filled up to a required 'City/Country' question with no true company location available in product-profile.json; policy forbids fabricating address/country, stopped there.",
+      "notes": "| 290 | [startup88.com/](<https://startup88.com/>) | startup88.com 是创业产品发布、公司发现或独立开发者资源平台。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 站内搜到 有收费引导 | | 2026-09-06 视频下载工具 run: form-not-found — embedded Typeform fully and truthfully filled up to a required 'City/Country' question with no true company location available in product-profile.json; policy forbids fabricating address/country, stopped there.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -27245,7 +27245,7 @@
       "priceCheckedAt": null,
       "status": "usable",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 56 | [https://startupcollections.com/submit-product/](<https://startupcollections.com/submit-product/>) | startupcollections.com 是创业产品发布、公司发现或独立开发者资源平台。当前链接指向提交或新增条目入口。 | — | 未收录 有收费引导 | | 279 | [startupcollections.com/](<https://startupcollections.com/>) | Startup Collections（startupcollections.c | 2026-09-06 videocatch run: submitted — Google Form at /submit-product/, declined $10 skip-queue upsell; confirmation '您的回复已记录。'",
+      "notes": "| 56 | [https://startupcollections.com/submit-product/](<https://startupcollections.com/submit-product/>) | startupcollections.com 是创业产品发布、公司发现或独立开发者资源平台。当前链接指向提交或新增条目入口。 | — | 未收录 有收费引导 | | 279 | [startupcollections.com/](<https://startupcollections.com/>) | Startup Collections（startupcollections.c | 2026-09-06 视频下载工具 run: submitted — Google Form at /submit-product/, declined $10 skip-queue upsell; confirmation '您的回复已记录。'",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -27343,7 +27343,7 @@
       "priceCheckedAt": "2026-09-06",
       "status": "gated",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 258 | [startupguys.net](<https://startupguys.net>) | startupguys.net 是创业产品发布、公司发现或独立开发者资源平台。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 付费 550 未收录 | | 2026-09-06 videocatch run: paid-only — no free submission path; only route is a PayPal-hosted review-package purchase form. (Confirmed: not a login gate, the blocker is payment.)",
+      "notes": "| 258 | [startupguys.net](<https://startupguys.net>) | startupguys.net 是创业产品发布、公司发现或独立开发者资源平台。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 付费 550 未收录 | | 2026-09-06 视频下载工具 run: paid-only — no free submission path; only route is a PayPal-hosted review-package purchase form. (Confirmed: not a login gate, the blocker is payment.)",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -28124,7 +28124,7 @@
       "priceCheckedAt": null,
       "status": "unverified",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 117 | [https://supertools.therundown.ai/submit](<https://supertools.therundown.ai/submit>) | supertools.therundown.ai：The Rundown AI 是 AI 新闻与工具发现品牌，其工具目录用于展示 AI 产品。当前链接指向提交或新增条目入口。 | 3.12 | 未收录 无收费引导 | | 541 | [https://supertools.therundown.ai/submit](<https://supertools.therundown.ai/submit>) | s | 2026-09-06 videocatch run: form-not-found — SITE CHANGED since prior probe: the Tally embed referenced in existing notes is gone; /submit now only says 'Email support@therundown.ai with your tool's name, URL, category, description' — email-only, no web form. Kept gate open-form is wrong in spirit but no better enum fits an email-only ask that isn't personal-contact-style either; flagged for triage.",
+      "notes": "| 117 | [https://supertools.therundown.ai/submit](<https://supertools.therundown.ai/submit>) | supertools.therundown.ai：The Rundown AI 是 AI 新闻与工具发现品牌，其工具目录用于展示 AI 产品。当前链接指向提交或新增条目入口。 | 3.12 | 未收录 无收费引导 | | 541 | [https://supertools.therundown.ai/submit](<https://supertools.therundown.ai/submit>) | s | 2026-09-06 视频下载工具 run: form-not-found — SITE CHANGED since prior probe: the Tally embed referenced in existing notes is gone; /submit now only says 'Email support@therundown.ai with your tool's name, URL, category, description' — email-only, no web form. Kept gate open-form is wrong in spirit but no better enum fits an email-only ask that isn't personal-contact-style either; flagged for triage.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -28513,7 +28513,7 @@
       "priceCheckedAt": null,
       "status": "usable",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 59 | [https://www.techpluto.com/submit-a-startup/](<https://www.techpluto.com/submit-a-startup/>) | techpluto.com 是创业产品发布、公司发现或独立开发者资源平台。当前链接指向提交或新增条目入口。 | — | 未收录 推荐公司的网站 | | 228 | [techpluto.com](<https://techpluto.com>) | techpluto.com：公开网站或产品发现渠道；当前页面没有足够信息，具体用途与受众需再次核验。当前链接指向网站首页或相关功能页，具体入口需再 | 2026-09-06 videocatch run: submitted — real entry /submit-startup/ embeds a Google Form (not /submit-a-startup/ marketing page); confirmation: 'Please check your mail for an important mail from contact@techpluto.com'",
+      "notes": "| 59 | [https://www.techpluto.com/submit-a-startup/](<https://www.techpluto.com/submit-a-startup/>) | techpluto.com 是创业产品发布、公司发现或独立开发者资源平台。当前链接指向提交或新增条目入口。 | — | 未收录 推荐公司的网站 | | 228 | [techpluto.com](<https://techpluto.com>) | techpluto.com：公开网站或产品发现渠道；当前页面没有足够信息，具体用途与受众需再次核验。当前链接指向网站首页或相关功能页，具体入口需再 | 2026-09-06 视频下载工具 run: submitted — real entry /submit-startup/ embeds a Google Form (not /submit-a-startup/ marketing page); confirmation: 'Please check your mail for an important mail from contact@techpluto.com'",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -28668,7 +28668,7 @@
       "priceCheckedAt": null,
       "status": "usable",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 33 | [https://www.textlinkdirectory.com/](<https://www.textlinkdirectory.com/>) | textlinkdirectory.com 是综合网站或链接目录，按分类收集和展示外部网站。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 网站停服 | | 2026-09-06 videocatch run: submitted — real entry /index.php?go=addpage&catid=30 (Free tier, no reciprocal); confirmation: 'Thank you for your submission. We will review your submission shortly.'",
+      "notes": "| 33 | [https://www.textlinkdirectory.com/](<https://www.textlinkdirectory.com/>) | textlinkdirectory.com 是综合网站或链接目录，按分类收集和展示外部网站。当前链接指向网站首页或相关功能页，具体入口需再次确认。 | — | 网站停服 | | 2026-09-06 视频下载工具 run: submitted — real entry /index.php?go=addpage&catid=30 (Free tier, no reciprocal); confirmation: 'Thank you for your submission. We will review your submission shortly.'",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -28699,7 +28699,7 @@
       "priceCheckedAt": null,
       "status": "dead",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 34 | [https://thalesdirectory.com/submit/](<https://thalesdirectory.com/submit/>) | Scatter Hitam: Simbol Bonus Games Online dengan Kemenangan Besar（thalesdirectory.com）：是综合网站或链接目录，按分类收集和展示外部网站。当前链接指向提交或新增条目入口。 | — | 停服 | | 2026-09-06 videocatch run: dead — domain no longer a directory site — now an Indonesian online-gambling/slot site (OLE777, 'Scatter Hitam...'); hits the red line on gambling content. Confirmed by direct browser load, no interaction attempted.",
+      "notes": "| 34 | [https://thalesdirectory.com/submit/](<https://thalesdirectory.com/submit/>) | Scatter Hitam: Simbol Bonus Games Online dengan Kemenangan Besar（thalesdirectory.com）：是综合网站或链接目录，按分类收集和展示外部网站。当前链接指向提交或新增条目入口。 | — | 停服 | | 2026-09-06 视频下载工具 run: dead — domain no longer a directory site — now an Indonesian online-gambling/slot site (OLE777, 'Scatter Hitam...'); hits the red line on gambling content. Confirmed by direct browser load, no interaction attempted.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -29419,7 +29419,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "user-submitted",
-      "notes": "Curated software directory, ~500+ tools across 19 categories. Submit requires Google sign-in, listings are reviewed before going live. Categories include Developer Tools, AI & ML, Analytics & SEO, Productivity, etc. | 2026-09-06 videocatch run: data-hygiene fix (unrelated to this run) — gates had invalid value google-oauth and cohort account-review didnt match schema; corrected gates to [account, manual-review], gate=account, cohort=account per lib-cohort.mjs.",
+      "notes": "Curated software directory, ~500+ tools across 19 categories. Submit requires Google sign-in, listings are reviewed before going live. Categories include Developer Tools, AI & ML, Analytics & SEO, Productivity, etc. | 2026-09-06 视频下载工具 run: data-hygiene fix (unrelated to this run) — gates had invalid value google-oauth and cohort account-review didnt match schema; corrected gates to [account, manual-review], gate=account, cohort=account per lib-cohort.mjs.",
       "lastProbedAt": "2026-09-03",
       "evidence": {
         "method": "anonymous-http",
@@ -29469,7 +29469,7 @@
       "priceCheckedAt": null,
       "status": "usable",
       "sourceList": "web.cafe bounty wlhmhdaoqg",
-      "notes": "Tiny tools directory via Google Form submission | 2026-09-06 videocatch run: submitted — Google Form filled manually (title/link/description); confirmation: 'Your submission requires manual approval, but will be in the list soon.'",
+      "notes": "Tiny tools directory via Google Form submission | 2026-09-06 视频下载工具 run: submitted — Google Form filled manually (title/link/description); confirmation: 'Your submission requires manual approval, but will be in the list soon.'",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "browser-dom",
@@ -29665,7 +29665,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "web.cafe bounty wlhmhdaoqg",
-      "notes": "2026-09-06 videocatch run: login-required — homepage 'form' field is a hidden honeypot, not real; actual 'Submit Your Tool' links go to /en/dashboard/submit, which redirects unauthenticated visitors to /en/login.",
+      "notes": "2026-09-06 视频下载工具 run: login-required — homepage 'form' field is a hidden honeypot, not real; actual 'Submit Your Tool' links go to /en/dashboard/submit, which redirects unauthenticated visitors to /en/login.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -29756,7 +29756,7 @@
       "priceCheckedAt": null,
       "status": "dead",
       "sourceList": "flaqai/backlink_skills Free-backlink-list.md",
-      "notes": "| 416 | [https://toolerific.ai/submit-a-tool](<https://toolerific.ai/submit-a-tool>) | Toolerific: The Premier Destination for AI Tools.（toolerific.ai）：是 AI 工具发现或导航网站，面向用户收集、分类和展示不同用途的 AI 产品。当前链接指向提交或新增条目入口。 | 3.18-3.19 | 未收录 停服 | | 542 | [https://toolerific.ai/submit-a-tool](<https://toolerific.ai/ | 2026-09-06 videocatch run: dead — dedicated submission route /submit-a-tool returns Cloudflare 502 Bad Gateway on two separate attempts a few seconds apart; homepage itself still loads fine, only the submission backend is down.",
+      "notes": "| 416 | [https://toolerific.ai/submit-a-tool](<https://toolerific.ai/submit-a-tool>) | Toolerific: The Premier Destination for AI Tools.（toolerific.ai）：是 AI 工具发现或导航网站，面向用户收集、分类和展示不同用途的 AI 产品。当前链接指向提交或新增条目入口。 | 3.18-3.19 | 未收录 停服 | | 542 | [https://toolerific.ai/submit-a-tool](<https://toolerific.ai/ | 2026-09-06 视频下载工具 run: dead — dedicated submission route /submit-a-tool returns Cloudflare 502 Bad Gateway on two separate attempts a few seconds apart; homepage itself still loads fine, only the submission backend is down.",
       "lastProbedAt": "2026-09-06",
       "evidence": {
         "method": "anonymous-http",
@@ -30798,7 +30798,7 @@
       "priceCheckedAt": null,
       "status": "usable",
       "sourceList": "footprint-run2 (serper + google footprint sweep, human-reviewed)",
-      "notes": "vertical=games; keyword=\"browser games inurl:links submit\"; fit=crossword-ar,nonogram-jp; discovered=footprint/serper 2026-09-12",
+      "notes": "vertical=games; keyword=\"browser games inurl:links submit\"; fit=填字游戏,数织游戏; discovered=footprint/serper 2026-09-12",
       "lastProbedAt": "2026-09-12",
       "evidence": {
         "method": "anonymous-http",
@@ -32611,7 +32611,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "footprint-run2 (serper + google footprint sweep, human-reviewed)",
-      "notes": "vertical=games; keyword=\"puzzle games write for us\"; fit=crossword-ar,nonogram-jp; discovered=footprint/serper 2026-09-12; 2026-09-12 复核：无需登录，公开可访问的真实 write-for-us 投稿表单（Name/Email/Proposed Article Title/Describe your article idea），无 CAPTCHA、无付费。编辑范围明确限定为 Wordle/Quordle/Nerdle 等文字猜谜类攻略内容，不是通用目录提交。表单无独立 URL 字段（链接需写在正文里），且有一个标准四字段（url/name/email/description）payload 结构之外的必填 'Article Title' 字段，inspect-page/safe-fill.mjs 的机械 qualifies 判据因此判 false（no_safe_submission_form）——已由 AI 现场核实截图后判定可安全填写，用等价于 safe-fill 安全约束（先查 CAPTCHA/login/fingerprint，装提交守卫，绝不越权）的一次性脚本手填。表单 action 是当前页 URL 本身（POST self, no visible AJAX handler class），真实点击提交后页面发生了完整往返导航（performance navigation entry 更新、字段清空），但页面上没有任何 thank-you/success 文案或反馈组件——服务端是否真正处理/转发了内容无法确认，判定 outcome-unknown，未重试（避免造成重复提交）。crossword-ar/nonogram-jp 与站点主题（拼图攻略）高度相关，已实际提交；intabtools/videocatch/shindan 与拼图攻略毫无关联，为避免对同一个小站的联系表单连续投递 5 条几乎全不相关的推介（观感上接近滥用联系表单），本轮判断只投相关的 2 个，另 3 个未提交，已在对应项目 ledger 中记为 rejected 并说明原因。原 form-fields-unverified 标记已解除，实际情况见上。",
+      "notes": "vertical=games; keyword=\"puzzle games write for us\"; fit=填字游戏,数织游戏; discovered=footprint/serper 2026-09-12; 2026-09-12 复核：无需登录，公开可访问的真实 write-for-us 投稿表单（Name/Email/Proposed Article Title/Describe your article idea），无 CAPTCHA、无付费。编辑范围明确限定为 Wordle/Quordle/Nerdle 等文字猜谜类攻略内容，不是通用目录提交。表单无独立 URL 字段（链接需写在正文里），且有一个标准四字段（url/name/email/description）payload 结构之外的必填 'Article Title' 字段，inspect-page/safe-fill.mjs 的机械 qualifies 判据因此判 false（no_safe_submission_form）——已由 AI 现场核实截图后判定可安全填写，用等价于 safe-fill 安全约束（先查 CAPTCHA/login/fingerprint，装提交守卫，绝不越权）的一次性脚本手填。表单 action 是当前页 URL 本身（POST self, no visible AJAX handler class），真实点击提交后页面发生了完整往返导航（performance navigation entry 更新、字段清空），但页面上没有任何 thank-you/success 文案或反馈组件——服务端是否真正处理/转发了内容无法确认，判定 outcome-unknown，未重试（避免造成重复提交）。填字游戏/数织游戏 与站点主题（拼图攻略）高度相关，已实际提交；浏览器工具/视频下载工具/测评工具 与拼图攻略毫无关联，为避免对同一个小站的联系表单连续投递 5 条几乎全不相关的推介（观感上接近滥用联系表单），本轮判断只投相关的 2 个，另 3 个未提交，已在对应项目 ledger 中记为 rejected 并说明原因。原 form-fields-unverified 标记已解除，实际情况见上。",
       "lastProbedAt": "2026-09-12",
       "evidence": {
         "method": "anonymous-http",
@@ -33242,7 +33242,7 @@
       "priceCheckedAt": null,
       "status": "gated",
       "sourceList": "footprint-run2 (serper + google footprint sweep, human-reviewed)",
-      "notes": "vertical=games; keyword=\"browser games inurl:submit\"; fit=crossword-ar,nonogram-jp; discovered=footprint/serper 2026-09-12",
+      "notes": "vertical=games; keyword=\"browser games inurl:submit\"; fit=填字游戏,数织游戏; discovered=footprint/serper 2026-09-12",
       "lastProbedAt": "2026-09-12",
       "evidence": {
         "method": "anonymous-http",

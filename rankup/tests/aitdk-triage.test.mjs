@@ -87,7 +87,7 @@ test('CLI preserves raw, deduplicates inputs, writes small digest and reports co
     const partial = JSON.parse(await readFile(`${out}.json`, 'utf8'));
     assert.equal(partial.pages[1].findings[0].code, 'INPUT_UNREADABLE');
     await assert.rejects(run(process.execPath, [cli, file, '--out', file.slice(0, -5)]), e => e.code === 1);
-    await symlink(dir, path.join(dir, 'alias'));
+    await symlink(dir, path.join(dir, 'alias'), process.platform === 'win32' ? 'junction' : 'dir');
     await assert.rejects(run(process.execPath, [cli, file, '--out', path.join(dir, 'alias/raw')]), e => e.code === 1);
     await link(file, path.join(dir, 'hard.json'));
     await assert.rejects(run(process.execPath, [cli, file, '--out', path.join(dir, 'hard')]), e => e.code === 1);

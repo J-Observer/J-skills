@@ -24,7 +24,7 @@ const skillDir = path.resolve(here, '..');
 const file = process.argv[2] ? path.resolve(process.argv[2]) : path.join(skillDir, 'SKILL.md');
 const root = path.dirname(file);
 
-const raw = fs.readFileSync(file, 'utf8');
+const raw = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
 const problems = [];
 
 // --- frontmatter ------------------------------------------------------------

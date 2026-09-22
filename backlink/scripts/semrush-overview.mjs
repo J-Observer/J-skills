@@ -73,7 +73,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { resolveSession, parseFlags, showHelpIfRequested, printJson, required, opencli, firstJson } from './opencli-core.mjs';
 import { assertToolsShareAvailable, expiryWarning, gotoInTool, launchTool, redactSecrets, routeMismatch } from './lib-tools-share.mjs';
-import { execFile } from 'node:child_process';
+import { execFile } from './lib-opencli-process.mjs';
 import { promisify } from 'node:util';
 import { captureScene, defaultSceneDir } from './lib-evidence-scene.mjs';
 import {

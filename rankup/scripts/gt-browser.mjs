@@ -82,7 +82,7 @@
  * 依赖：opencli（浏览器桥要绿，先跑 opencli doctor）
  */
 
-import { execFileSync } from "node:child_process";
+import { execFileSync } from '../../backlink/scripts/lib-opencli-process.mjs';
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { newEvidenceDir, captureScene, writeManifest, msleep, pollUntil } from "./lib-scene.mjs";

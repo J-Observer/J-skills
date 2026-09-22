@@ -43,11 +43,15 @@ async function fastSleepEnv(root) {
   const shim = path.join(bin, "sleep");
   await writeFile(shim, "#!/bin/sh\nexit 0\n");
   await chmod(shim, 0o755);
-  return { ...process.env, PATH: `${bin}:${process.env.PATH}` };
+  return { ...process.env, PATH: `${bin}${path.delimiter}${process.env.PATH}`, HARVEST_SLEEP_BIN: bashPath(bin) };
+}
+
+function bashPath(value) {
+  return process.platform === 'win32' ? value.replace(/\\/g, '/').replace(/^([A-Za-z]):/, (_, drive) => '/' + drive.toLowerCase()) : value;
 }
 
 function runCollect(expected, dest, downloads, env = process.env) {
-  return spawnSync("bash", [collectScript, String(expected), dest, downloads], {
+  return spawnSync(process.platform === "win32" ? path.join(process.env.ProgramFiles, "Git", "bin", "bash.exe") : "bash", ['-c', 'PATH="${HARVEST_SLEEP_BIN:+$HARVEST_SLEEP_BIN:}$PATH"; source "$@"', 'harvest-test', bashPath(collectScript), String(expected), bashPath(dest), bashPath(downloads)], {
     encoding: "utf8",
     env,
   });
@@ -302,7 +306,7 @@ test("Skill 内容保持项目中立", async () => {
 
   const findings = [];
   for (const absolute of files) {
-    const relative = path.relative(skillRoot, absolute);
+    const relative = path.relative(skillRoot, absolute).split(path.sep).join("/");
     if (leakScanExcludes.has(relative)) continue;
     const text = await readFile(absolute, "utf8");
     for (const [label, pattern] of projectLeakPatterns) {
@@ -317,7 +321,7 @@ test("Skill 内容保持项目中立", async () => {
 
 test("SKILL.md frontmatter 的 name 等于目录名", async () => {
   const text = await readFile(path.join(skillRoot, "SKILL.md"), "utf8");
-  const frontmatter = text.match(/^---\n([\s\S]*?)\n---/);
+  const frontmatter = text.replace(/\r\n/g, "\n").match(/^---\n([\s\S]*?)\n---/);
   assert.ok(frontmatter, "SKILL.md 必须有 frontmatter");
   const name = frontmatter[1].match(/^name:\s*(.+)$/m)?.[1].trim();
   assert.equal(name, path.basename(skillRoot));

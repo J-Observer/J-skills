@@ -86,7 +86,7 @@ import {
   ensureLoggedIn,
 } from "./webcafe-transport.mjs";
 import { propsFromHtml, isLoginPage } from "./webcafe-rsc.mjs";
-import { execFileSync } from "node:child_process";
+import { execFileSync } from '../../backlink/scripts/lib-opencli-process.mjs';
 import { newEvidenceDir, captureScene, writeManifest } from "./lib-scene.mjs";
 
 /* ─────────────────────────────── 参数 ─────────────────────────────── */

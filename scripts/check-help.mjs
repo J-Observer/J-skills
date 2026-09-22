@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { fileURLToPath } from 'node:url';
 /**
  * check-help.mjs —— 全仓脚本的 `--help` 体检：必须退出码 0，且要有输出。
  *
@@ -25,8 +26,8 @@ import { readdirSync, statSync, existsSync, readFileSync } from "node:fs";
 import { join, resolve, basename } from "node:path";
 import { spawnSync } from "node:child_process";
 
-const ROOT = resolve(new URL("..", import.meta.url).pathname);
-const SELF = resolve(new URL(import.meta.url).pathname);
+const ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
+const SELF = resolve(fileURLToPath(new URL(import.meta.url)));
 
 /**
  * 库文件不是可执行入口，`--help` 对它们没有意义。
@@ -50,7 +51,7 @@ function collectScripts(dir, out = []) {
     const p = join(dir, name);
     if (statSync(p).isDirectory()) {
       // tests / evals 不是给人跑的入口
-      if (name === "tests" || name === "evals") continue;
+      if (name === "tests" || name === "test" || name === "evals" || name === "archive") continue;
       collectScripts(p, out);
     } else if (/\.mjs$/.test(name)) {
       // 排除自己：否则它会递归调用自己，表现为整个体检卡死。

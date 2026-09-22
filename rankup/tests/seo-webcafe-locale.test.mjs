@@ -1,3 +1,4 @@
+import { pathToFileURL } from 'node:url';
 // seo-webcafe.mjs 的 kd 口径标注（2026-09-13 隐性缩小范围默认值审计的修复）：
 //
 //   kd 命令按 gl（国家）/hl（语言）分库取难度/搜索量，两者都默认 us/en——和
@@ -15,7 +16,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const wc = await import(path.join(here, '../scripts/seo-webcafe.mjs'));
+const wc = await import(pathToFileURL(path.join(here, '../scripts/seo-webcafe.mjs')).href);
 
 test('TOOLS.kd.query：gl/hl 默认 us/en', () => {
   const q = wc.TOOLS.kd.query({ keyword: 'clipboard history' });

@@ -1,3 +1,4 @@
+import { pathToFileURL } from 'node:url';
 /**
  * 任何驱动 Tools Share 的脚本，把错误文本放进输出前必须过 redactSecrets。
  *
@@ -40,7 +41,7 @@ test('每个驱动 Tools Share 的脚本，输出错误文本前都过了 redact
 });
 
 test('redactSecrets 确实会抹掉 __gmitm 令牌（保留键名，只抹值）', async () => {
-  const { redactSecrets } = await import(join(scriptsDir, 'lib-tools-share.mjs'));
+  const { redactSecrets } = await import(pathToFileURL(join(scriptsDir, 'lib-tools-share.mjs')).href);
   const dirty = 'failed to open https://sem.example/app?__gmitm=SECRETVALUE123&db=us';
   const clean = redactSecrets(dirty);
   assert.ok(!clean.includes('SECRETVALUE123'), '令牌值必须被抹掉');

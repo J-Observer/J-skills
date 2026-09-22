@@ -73,7 +73,7 @@
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execFile } from 'node:child_process';
+import { execFile } from '../../../backlink/scripts/lib-opencli-process.mjs';
 import { promisify } from 'node:util';
 import {
   sessionName, requireBrowserBridge, initEvidence, saveEvidence, recordSource,

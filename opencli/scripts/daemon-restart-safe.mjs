@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { fileURLToPath } from 'node:url';
 /**
  * daemon-restart-safe.mjs — 重启守护进程，并确保浏览器桥真的回来了。
  *
@@ -21,7 +22,7 @@
  *   node daemon-restart-safe.mjs --force          # 照样重启（会打断别人）
  *   node daemon-restart-safe.mjs --busy-pattern 'my-collector'
  */
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from './lib-opencli-process.mjs';
 
 const argv = process.argv.slice(2);
 const has = (f) => argv.includes(f);
@@ -29,7 +30,7 @@ const val = (f, d) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] :
 
 if (has('--help') || has('-h')) {
   console.log(await import('node:fs').then(({ readFileSync }) =>
-    readFileSync(new URL(import.meta.url).pathname, 'utf8')
+    readFileSync(fileURLToPath(new URL(import.meta.url)), 'utf8')
       .match(/\/\*\*([\s\S]*?)\*\//)[1].split('\n').map((l) => l.replace(/^\s*\* ?/, '')).join('\n').trim()));
   process.exit(0);
 }

@@ -81,7 +81,7 @@
  *   两种做法都是为了同一件事：绝不让你以为刷新了数据、实际磁盘上还是旧的那份，
  *   只是移植后改成了「显式报错」而不是「响应体里说了实话但状态码骗人」。
  */
-import { execFile, execFileSync } from "node:child_process"
+import { execFile, execFileSync } from "../../backlink/scripts/lib-opencli-process.mjs"
 import { promisify } from "node:util"
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs"
 import { dirname, join } from "node:path"

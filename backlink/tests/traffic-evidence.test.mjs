@@ -91,10 +91,10 @@ test('similarweb-batch retries incomplete rows: timeout/unstable/legacy-error ar
   ].join('\n') + '\n');
   // 桩 opencli：立即失败，让脚本在 launch 阶段就停。我们只断言续跑账目。
   const stub = mkdtempSync(path.join(tmpdir(), 'opencli-stub-'));
-  writeFileSync(path.join(stub, 'opencli'), '#!/bin/sh\necho stub >&2\nexit 3\n');
+  writeFileSync(path.join(stub, 'opencli'), '#!/usr/bin/env node\nconsole.error("stub"); process.exit(3);\n');
   spawnSync('chmod', ['+x', path.join(stub, 'opencli')]);
   const r = run('similarweb-batch.mjs', ['--domains', 'a.com,b.com,c.com', '--out', out], {
-    env: { ...process.env, PATH: `${stub}:${process.env.PATH}` },
+    env: { ...process.env, PATH: `${stub}${path.delimiter}${process.env.PATH}`, OPENCLI_BIN: path.join(stub, 'opencli') },
   });
   assert.notEqual(r.status, 0);
   assert.match(r.stderr, /0 already done, 3 to go/);

@@ -86,6 +86,10 @@ export async function search(query, scrolls = 0) {
   } finally { await closeSession(session); }
 }
 async function main() {
+  if (process.argv.slice(2).some(arg => arg === '--help' || arg === '-h')) {
+    console.log('Usage: x-research.mjs read POST_URL [--depth 0..3] | search QUERY [--scrolls 0..3]');
+    return;
+  }
   const { values, positionals } = parseArgs({ allowPositionals: true, options: {
     depth: { type: 'string', default: '0' }, scrolls: { type: 'string', default: '0' } } });
   const [mode, input] = positionals;

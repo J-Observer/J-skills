@@ -69,7 +69,7 @@
  * 结论由判读者拿着截图与文本对质——解析器对着改版页面报「找不到」时，
  * 截图是唯一能翻案的证人。
  */
-import { execSync } from "node:child_process"
+import { execFileSync } from "../../backlink/scripts/lib-opencli-process.mjs"
 import { newEvidenceDir, captureScene, writeManifest, sessionSuffix } from "./lib-scene.mjs"
 
 // ── 参数 ──────────────────────────────────────────────────
@@ -156,7 +156,7 @@ const wanted = (k) => {
 // ── OpenCLI 封装 ──────────────────────────────────────────
 function cli(action_, { timeout = 60000 } = {}) {
   try {
-    return execSync(`opencli browser "${session}" --window background ${action_}`,
+    return execFileSync("opencli", ["browser", session, "--window", "background", ...action_],
       { encoding: "utf-8", timeout, stdio: ["pipe", "pipe", "pipe"] }).trim()
   } catch (e) {
     // 报错必须带上真实成因。旧版只回显 stderr，而 Node 会把
@@ -178,8 +178,8 @@ function cli(action_, { timeout = 60000 } = {}) {
   }
 }
 /** eval 的 JS 一律包成 IIFE：本环境 eval 上下文跨调用持续，重复声明会抛错。 */
-function evalJs(js) { return cli(`eval '${`(()=>{${js}})()`.replace(/'/g, "'\\''")}'`) }
-function open(url) { cli(`open "${url}"`) }
+function evalJs(js) { return cli(["eval", `(()=>{${js}})()`]) }
+function open(url) { cli(["open", url]) }
 
 /**
  * `wait time` is broken in opencli 1.8.7: it echoes the seconds back but returns
@@ -207,7 +207,7 @@ function waitFor(js, seconds = 10) {
 
 function settle(seconds) {
   const ms = Math.max(0, Math.round(Number(seconds) * 1000))
-  cli(`eval '(async()=>{await new Promise(r=>setTimeout(r,${ms}));return true})()'`, { timeout: ms + 30000 })
+  cli(["eval", `(async()=>{await new Promise(r=>setTimeout(r,${ms}));return true})()`], { timeout: ms + 30000 })
 }
 
 /** 坑 1：只取文字，且切片。extract 会把内嵌 base64 图片一起吐出来。 */
@@ -231,7 +231,7 @@ function scene(tag, extra) {
   return captureScene({
     dir: evidenceDir(),
     tag,
-    screenshot: (p) => cli(`screenshot "${p}"`, { timeout: 90000 }),
+    screenshot: (p) => cli(["screenshot", p], { timeout: 90000 }),
     pageText: () => pageText(20000),
     extra,
   })
@@ -256,7 +256,7 @@ function bail(stopReason, msg, extra) {
   console.error(msg)
   console.error(`── 当前页面文本摘要（前 500 字符）──\n${stateSummary}`)
   console.error(`现场已落盘：${evidenceDir()}（判读以截图与页面文本为准；--keep-session 可留标签页）`)
-  if (!keepSession) { try { cli("close") } catch { /* ignore */ } }
+  if (!keepSession) { try { cli(["close"]) } catch { /* ignore */ } }
   process.exit(1)
 }
 
@@ -335,7 +335,7 @@ function stampAndClick(texts, { viaJs = false } = {}) {
     // 先取证后死：按钮找不到时页面到底长什么样，只有截图能回答。
     bail("button-not-found", `页面上找不到按钮（试过：${texts.join(" / ")}）。界面语言可能不是 zh/en，改 LABELS 表——是不是这个成因，看截图。`)
   }
-  if (!viaJs) cli(`click '[data-rankup-target="1"]'`)
+  if (!viaJs) cli(['click', '[data-rankup-target="1"]'])
   return r
 }
 
@@ -478,7 +478,7 @@ if (action === "status") {
   if (!listed) {
     console.error(`「解析不到」有两个不可分辨的成因：真的没提交上（填错框/点错按钮），或表格改版让解析器失配。`)
     console.error(`以 ${evidenceDir()} 里 05-after-submit-click 的截图为准。`)
-    if (!keepSession) { try { cli("close") } catch { /* ignore */ } }
+    if (!keepSession) { try { cli(["close"]) } catch { /* ignore */ } }
     process.exit(1)
   }
   console.log(`**在列表里 ≠ 已被抓取**：平台对同一地址的重复提交是幂等的，`)
@@ -487,4 +487,4 @@ if (action === "status") {
   console.log(`本次提交的截图与页面文本在 ${evidenceDir()}。`)
 }
 
-if (!keepSession) { try { cli("close") } catch { /* ignore */ } }
+if (!keepSession) { try { cli(["close"]) } catch { /* ignore */ } }

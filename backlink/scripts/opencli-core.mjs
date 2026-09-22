@@ -1,4 +1,6 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { resolveCommand } from './lib-opencli-process.mjs';
+import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { appendFileSync, mkdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -163,7 +165,7 @@ export function showHelpIfRequested(flags, importMetaUrl) {
   if (!flags.help && !flags.h) return;
   let text = '';
   try {
-    const path = new URL(importMetaUrl).pathname;
+    const path = fileURLToPath(new URL(importMetaUrl));
     const src = readFileSync(path, 'utf8');
     const m = src.match(/\/\*\*([\s\S]*?)\*\//);
     if (m) text = m[1].split('\n').map((l) => l.replace(/^\s*\* ?/, '')).join('\n').trim();
@@ -267,15 +269,7 @@ export async function run(command, args, options = {}) {
   // npm's Windows launcher is a .cmd file, not a directly executable binary.
   // Match LinkOps: invoke the installed JS entry with Node and keep arguments
   // out of cmd.exe so browser-eval expressions retain quotes and metacharacters.
-  if (process.platform === 'win32' && command === 'opencli') {
-    const appData = options.env?.APPDATA ?? process.env.APPDATA;
-    const entry = appData && join(appData, 'npm', 'node_modules', '@jackwener', 'opencli', 'dist', 'src', 'main.js');
-    if (!entry || !existsSync(entry)) {
-      throw new Error('OpenCLI Windows entry not found in APPDATA/npm. Check the existing global OpenCLI installation.');
-    }
-    command = process.execPath;
-    args = [entry, ...args];
-  }
+  [command, args] = resolveCommand(command, args, options);
   return await new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd,

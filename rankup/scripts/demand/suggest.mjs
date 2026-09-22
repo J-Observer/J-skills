@@ -191,8 +191,8 @@ async function main() {
 
   initEvidence('suggest', { dir: args['evidence-dir'] ?? null });
   const result = await collect(root, { engines: chosen, hl, gl, timeout });
-  const manifestFile = writeManifest('completed');
   const summary = sourceStatusSummary();
+  const manifestFile = writeManifest(summary?.failed ? (summary.ok ? 'partial' : 'failed') : 'completed');
   const manifest = {
     evidenceDir: evidenceDir(),
     file: manifestFile,
@@ -219,6 +219,7 @@ async function main() {
     console.log('\n下拉联想是候选串，不是关键词——没有量也没有难度，下一步必须取量。');
   }
   if (manifest.failed) {
+    process.exitCode = 1;
     console.error(`注意：${manifest.failed}/${chosen.length} 个引擎采集失败——null 是「没取到」，不是「没有联想」。`);
     for (const l of manifest.sources) console.error(`  - ${l}`);
   }

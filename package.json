@@ -10,6 +10,7 @@
     "rankup/data/provider-capabilities.json",
     "backlink/scripts/tools-share-evidence.mjs",
     "backlink/scripts/opencli-core.mjs",
-    "backlink/scripts/lib-tools-share.mjs"
+    "backlink/scripts/lib-tools-share.mjs",
+    "backlink/scripts/lib-opencli-process.mjs"
   ]
 }

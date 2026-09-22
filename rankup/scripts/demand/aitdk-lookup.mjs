@@ -49,7 +49,7 @@
  *   4. 批量跑之前先看一眼配额：`node ../seo-webcafe.mjs referring` 会打印档位。
  */
 
-import { execFile } from 'node:child_process';
+import { execFile } from '../../../backlink/scripts/lib-opencli-process.mjs';
 import { promisify } from 'node:util';
 import fs from 'node:fs';
 import path from 'node:path';

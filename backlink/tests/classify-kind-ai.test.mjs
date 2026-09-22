@@ -1,3 +1,4 @@
+import { pathToFileURL } from 'node:url';
 import test from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
@@ -5,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const skillRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const modulePath = path.join(skillRoot, "scripts", "probe-submission-targets.mjs");
-const { classifyKind } = await import(modulePath);
+const { classifyKind } = await import(pathToFileURL(modulePath).href);
 
 // Real escapees from a target-selection run: a batch of 76 submission
 // candidates was supposed to have 22 AI directories stripped out because the

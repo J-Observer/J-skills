@@ -1,3 +1,4 @@
+import { pathToFileURL } from 'node:url';
 // demand/_lib.mjs 的失败留现场契约（2026-08-30 重构第一波）：
 //
 //   1. get 系列失败要把 {url,status,headers,body} 落进证据目录，异常里带落点路径；
@@ -18,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const libPath = path.join(here, '../scripts/demand/_lib.mjs');
-const lib = await import(libPath);
+const lib = await import(pathToFileURL(libPath).href);
 
 test('manifest 落盘：argv 剥敏、sources 逐源、stopReason', () => {
   const dir = mkdtempSync(path.join(os.tmpdir(), 'demand-lib-ev-'));
@@ -67,7 +68,7 @@ test('getJson 失败：{url,status,body} 进证据目录，异常带落点路径
 test('空结果输出：源失败与源成功长得不一样；die() 先落 manifest 再退出', () => {
   const dir = mkdtempSync(path.join(os.tmpdir(), 'demand-lib-ev-'));
   const code = `
-    import { initEvidence, recordSource, printTable, die } from ${JSON.stringify(libPath)};
+    import { initEvidence, recordSource, printTable, die } from ${JSON.stringify(pathToFileURL(libPath).href)};
     initEvidence('unit-test-die', { dir: ${JSON.stringify(dir)}, argv: [] });
     recordSource({ source: 'a', status: 'http_429', rawCount: 0, error: 'HTTP 429' });
     printTable([], [{ key: 'x', label: 'x' }]);
@@ -92,7 +93,7 @@ import { mkdtempSync as mkdtemp2, writeFileSync, chmodSync, existsSync } from 'n
 
 function fakeOpencli(dir, body) {
   const bin = path.join(dir, 'fake-opencli');
-  writeFileSync(bin, `#!/bin/sh\n${body}\n`);
+  writeFileSync(bin, `#!/usr/bin/env node\n${body}\n`);
   chmodSync(bin, 0o755);
   return bin;
 }
@@ -100,13 +101,11 @@ function fakeOpencli(dir, body) {
 test('captureBrowserScene：文本与截图成对落进证据目录', () => {
   const dir = mkdtemp2(path.join(os.tmpdir(), 'demand-lib-scene-'));
   const binDir = mkdtemp2(path.join(os.tmpdir(), 'demand-lib-bin-'));
-  const bin = fakeOpencli(binDir, [
-    'for last; do :; done',
-    'case "$*" in',
-    '  *" eval "*) echo \'{"url":"https://example.test/x","title":"T","readyState":"complete","text":"hello page"}\';;',
-    '  *" screenshot "*) printf PNG > "$last";;',
-    'esac',
-  ].join('\n'));
+  const bin = fakeOpencli(binDir, `
+    const args = process.argv.slice(2);
+    if (args.includes('eval')) console.log(JSON.stringify({url:'https://example.test/x',title:'T',readyState:'complete',text:'hello page'}));
+    if (args.includes('screenshot')) require('node:fs').writeFileSync(args.at(-1), 'PNG');
+  `);
   lib.initEvidence('unit-test-scene', { dir, argv: [] });
   const out = lib.captureBrowserScene('sess-x', 'tag one/兩', { bin });
   assert.ok(out.text, '文本证人应当落盘');
@@ -138,12 +137,11 @@ test('captureBrowserScene：opencli 调不起来也不抛，证人记 null/错�
 test('captureBrowserScene：opencli 在场但截图子命令失败时也记 shotError', () => {
   const dir = mkdtemp2(path.join(os.tmpdir(), 'demand-lib-scene-'));
   const binDir = mkdtemp2(path.join(os.tmpdir(), 'demand-lib-bin-'));
-  const bin = fakeOpencli(binDir, [
-    'case "$*" in',
-    '  *" eval "*) echo \'{"url":"https://example.test/x","title":"T","readyState":"complete","text":"hi"}\';;',
-    '  *" screenshot "*) echo "no active session" 1>&2; exit 4;;',
-    'esac',
-  ].join('\n'));
+  const bin = fakeOpencli(binDir, `
+    const args = process.argv.slice(2);
+    if (args.includes('eval')) console.log(JSON.stringify({url:'https://example.test/x',title:'T',readyState:'complete',text:'hi'}));
+    if (args.includes('screenshot')) { console.error('no active session'); process.exit(4); }
+  `);
   lib.initEvidence('unit-test-scene-shotfail', { dir, argv: [] });
   const out = lib.captureBrowserScene('sess-x', 'shotfail', { bin });
   assert.ok(out.text, '文本证人照常落盘——一个证人失败不该拖垮另一个');

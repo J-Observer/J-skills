@@ -99,7 +99,7 @@
  *     绝对不要跑 `opencli browser cleanup`，会关掉别人的标签页。
  */
 
-import { spawnSync } from "node:child_process";
+import { spawnSync } from '../../../backlink/scripts/lib-opencli-process.mjs';
 import { readFileSync, existsSync, realpathSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";

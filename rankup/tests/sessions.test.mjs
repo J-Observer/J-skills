@@ -14,7 +14,7 @@ function runSessions(home, projectRoot, extra = []) {
   return spawnSync(
     process.execPath,
     [sessionsScript, "--project-root", projectRoot, ...extra],
-    { encoding: "utf8", env: { ...process.env, HOME: home } },
+    { encoding: "utf8", env: { ...process.env, HOME: home, USERPROFILE: home } },
   );
 }
 

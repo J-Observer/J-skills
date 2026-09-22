@@ -50,7 +50,7 @@
  * `resultText === ""` ⇒ 成功 那条断言**——eval 超时读不到页面 ≠ 提交成功，
  * submit-sitemap 现在只报事实 + suggested，判读以截图为准。
  */
-import { execSync } from "node:child_process"
+import { execFileSync } from "../../backlink/scripts/lib-opencli-process.mjs"
 import { newEvidenceDir, captureScene, writeManifest } from "./lib-scene.mjs"
 
 // ── 参数 ──────────────────────────────────────────────────
@@ -105,21 +105,21 @@ const encodedSiteUrl = encodeURIComponent(siteUrl)
 // ── OpenCLI 封装 ──────────────────────────────────────────
 function cli(action_, { timeout = 30000 } = {}) {
   try {
-    return execSync(`opencli browser "${session}" --window background ${action_}`,
+    return execFileSync("opencli", ["browser", session, "--window", "background", ...action_],
       { encoding: "utf-8", timeout, stdio: ["pipe", "pipe", "pipe"] }).trim()
   } catch (e) {
     const err = (e.stderr?.toString() || e.stdout?.toString() || e.message).trim()
     throw new Error(`opencli 失败: ${action_}\n  ${err}`)
   }
 }
-function evalJs(js) { return cli(`eval '${`(()=>{${js}})()`.replace(/'/g, "'\\''")}'`) }
-function open(url) { cli(`open "${url}"`) }
+function evalJs(js) { return cli(["eval", `(()=>{${js}})()`]) }
+function open(url) { cli(["open", url]) }
 function pageText(max = 4000) {
   return evalJs(`return (document.querySelector('main')||document.body).innerText.replace(/\\n{2,}/g,'\\n').slice(0,${max})`)
 }
 /** 页内定时器，替换 execSync("sleep")。 */
 function settle(ms) {
-  cli(`eval '(async()=>{await new Promise(r=>setTimeout(r,${ms}));return true})()'`, { timeout: ms + 30000 })
+  cli(["eval", `(async()=>{await new Promise(r=>setTimeout(r,${ms}));return true})()`], { timeout: ms + 30000 })
 }
 /** 条件轮询：js 返回真值或超时；导航期间 eval 失败按未就绪继续等。 */
 function waitFor(js, seconds = 15) {
@@ -146,7 +146,7 @@ function scene(tag, extra) {
   return captureScene({
     dir: evidenceDir(),
     tag: `${String(sceneN).padStart(2, "0")}-${tag}`,
-    screenshot: (p) => cli(`screenshot "${p}"`, { timeout: 90000 }),
+    screenshot: (p) => cli(["screenshot", p], { timeout: 90000 }),
     pageText: () => { try { return pageText(20000) } catch (e) { return `PAGE_TEXT_FAILED:${e.message}` } },
     extra,
   })
@@ -158,13 +158,13 @@ function bail(stopReason, msg, extra) {
     console.error(`现场已落盘：${evidenceDir()}`)
   } catch (e) { console.error(`（取证失败：${String(e?.message || e).slice(0, 200)}）`) }
   console.error(msg)
-  if (!keepSession) { try { cli("close") } catch { /* ignore */ } }
+  if (!keepSession) { try { cli(["close"]) } catch { /* ignore */ } }
   process.exit(1)
 }
 
 function stampAndClick(js, label) {
   evalJs(`const el=${js};if(!el)throw new Error('找不到: ${label}');el.setAttribute('data-rankup-target','1')`)
-  cli('click "[data-rankup-target=\\"1\\"]"')
+  cli(['click', '[data-rankup-target="1"]'])
   evalJs(`document.querySelector('[data-rankup-target]')?.removeAttribute('data-rankup-target')`)
   scene(`clicked-${label.replace(/[^\w가-힣一-鿿-]/g, "_")}`)
 }
@@ -266,7 +266,7 @@ async function doRegister() {
   // 填写站点 URL —— 先尝试 https://example.com
   const inputSelector = `document.querySelector('input[type="url"],input[type="text"][placeholder*="http"],input[placeholder*="사이트"],input[placeholder*="site"],input[placeholder*="URL"],input[placeholder*="url"]')`
   evalJs(`const el=${inputSelector};if(!el)throw new Error('找不到 URL 输入框');el.focus();el.value='';`)
-  cli(`type "${siteUrl}"`)
+  cli(["type", siteUrl])
   settle(1000)
 
   // 点击确认/提交按钮
@@ -290,7 +290,7 @@ async function doRegister() {
     console.log("⚠️ 可能需要以不同格式注册。尝试不带协议的域名...")
     // 清空重填
     evalJs(`const el=${inputSelector};if(el){el.focus();el.value='';}`)
-    cli(`type "${site}"`)
+    cli(["type", site])
     settle(1000)
     try {
       stampAndClick(
@@ -421,7 +421,7 @@ async function doSubmitSitemap() {
       el.focus(); el.value = '';
     `)
   }
-  cli(`type "${sitemapUrl}"`)
+  cli(["type", sitemapUrl])
   settle(1000)
 
   // 点击「확인」（确认）按钮
@@ -477,6 +477,6 @@ try {
   else if (action === "submit-sitemap") await doSubmitSitemap()
 } finally {
   if (!keepSession) {
-    try { cli("close") } catch {}
+    try { cli(["close"]) } catch {}
   }
 }

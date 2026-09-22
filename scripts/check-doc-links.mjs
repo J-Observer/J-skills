@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { fileURLToPath } from 'node:url';
 /**
  * check-doc-links.mjs —— 全仓 Markdown 相对链接体检。
  *
@@ -24,7 +25,7 @@
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { join, dirname, normalize, resolve } from "node:path";
 
-const ROOT = resolve(new URL("..", import.meta.url).pathname);
+const ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
 
 /**
  * 递归收集要检查的 Markdown。跳过 node_modules 与 .git 之类。

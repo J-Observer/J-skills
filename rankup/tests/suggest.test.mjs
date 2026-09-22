@@ -1,3 +1,4 @@
+import { pathToFileURL } from 'node:url';
 // scripts/demand/suggest.mjs 的离线契约（2026-09-02）：
 //
 //   1. 三种响应形状各能解析：Google/Bing 的 ["q", [...]]、DDG 的 [{phrase}]；
@@ -16,8 +17,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const lib = await import(path.join(here, '../scripts/demand/_lib.mjs'));
-const sg = await import(path.join(here, '../scripts/demand/suggest.mjs'));
+const lib = await import(pathToFileURL(path.join(here, '../scripts/demand/_lib.mjs')).href);
+const sg = await import(pathToFileURL(path.join(here, '../scripts/demand/suggest.mjs')).href);
 
 test('parseGoogle：["q", ["s1","s2"]]', () => {
   const text = JSON.stringify(['clipboard history', ['clipboard history windows', 'clipboard history mac']]);

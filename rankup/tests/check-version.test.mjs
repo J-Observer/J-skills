@@ -544,7 +544,7 @@ test("project state refuses a symlinked .rankup directory", async () => {
     const outside = await mkdtemp(path.join(tmpdir(), "rankup-outside-"));
     try {
       await import("node:fs/promises").then(({ symlink }) =>
-        symlink(outside, path.join(projectRoot, ".rankup")),
+        symlink(outside, path.join(projectRoot, ".rankup"), process.platform === "win32" ? "junction" : "dir"),
       );
       await assert.rejects(
         checkForUpdate({

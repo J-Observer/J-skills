@@ -1,3 +1,4 @@
+import { pathToFileURL } from 'node:url';
 // reviews-mine.mjs 的 country/lang 字段修复（2026-09-13 隐性缩小范围默认值审计）：
 //
 //   之前 appstore 分支把统一输出字段 `lang` 错误赋成 opt.country（应该是语言，
@@ -15,7 +16,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const rm = await import(path.join(here, '../scripts/demand/reviews-mine.mjs'));
+const rm = await import(pathToFileURL(path.join(here, '../scripts/demand/reviews-mine.mjs')).href);
 
 test('mapAppstoreEntry：country 是店面代码，lang 固定 null（RSS 不返回评论语言）', () => {
   const entry = {

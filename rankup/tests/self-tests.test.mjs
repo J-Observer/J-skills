@@ -33,7 +33,7 @@ function walk(dir) {
 
 const scripts = SEARCH_ROOTS
   .flatMap((dir) => walk(path.join(root, dir)))
-  .map((full) => path.relative(root, full))
+  .map((full) => path.relative(root, full).split(path.sep).join('/'))
   .filter((rel) => !EXCLUDED.has(rel))
   // Declaring the flag means parsing it, not merely mentioning it in help text.
   .filter((rel) => /['"]self-test['"]|--self-test/.test(readFileSync(path.join(root, rel), 'utf8')))

@@ -83,7 +83,7 @@ function opencliStub() {
   mkdirSync(path.join(stubDir, 'bin'));
   const bin = path.join(stubDir, 'bin', 'opencli');
   // argv 记一行就退出。非零退出让被测脚本立刻停下——我们只需要它发出的第一条命令。
-  writeFileSync(bin, '#!/bin/sh\nprintf \'%s\\n\' "$*" >> "$OPENCLI_STUB_LOG"\necho "opencli stub" >&2\nexit 3\n');
+  writeFileSync(bin, '#!/usr/bin/env node\nrequire("node:fs").appendFileSync(process.env.OPENCLI_STUB_LOG, process.argv.slice(2).join(" ")+"\\n"); console.error("opencli stub"); process.exit(3);\n');
   chmodSync(bin, 0o755);
   return stubDir;
 }
@@ -109,6 +109,7 @@ function sessionUsedBy(relScript, args) {
     env: {
       ...process.env,
       PATH: `${path.join(root, 'bin')}${path.delimiter}${process.env.PATH}`,
+      OPENCLI_BIN: path.join(root, 'bin', 'opencli'),
       OPENCLI_STUB_LOG: log,
       // 测试不许写进真实的访问日志。桩的 stderr 是 `opencli stub` + 退出码 3，
       // 每跑一轮就往 ~/.opencli/logs/site-access.jsonl 里灌一批「失败」——

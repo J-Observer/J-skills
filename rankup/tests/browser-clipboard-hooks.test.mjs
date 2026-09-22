@@ -296,7 +296,7 @@ test("chatbot uninstall: 注入清单可关闭 —— window.__rk 拿得掉", ()
 function loadSnippet() {
   const md = readFileSync(path.join(root, "rankup/references/integrations.md"), "utf8");
   const block = md
-    .split(/```js\n/)
+    .split(/```js\r?\n/)
     .map((chunk) => chunk.split("```")[0])
     .find((chunk) => chunk.includes("async function captureDownloadedBlob"));
   assert.ok(block, "integrations.md 里找不到 captureDownloadedBlob 范本");

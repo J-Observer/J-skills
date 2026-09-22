@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 // targets-select.mjs 的台账排除层：默认从当前工作目录下的 .backlink/ledger.json
 // 排除 submitted 及之后状态、以及（默认）rejected 的域名，且按域名（去 www）匹配，
 // 不是按 route——同一个域名换个 route 也必须被挡住。
@@ -8,7 +9,7 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-const SCRIPT = resolve(new URL('../scripts/targets-select.mjs', import.meta.url).pathname);
+const SCRIPT = resolve(fileURLToPath(new URL('../scripts/targets-select.mjs', import.meta.url)));
 
 const TARGETS = {
   targets: [

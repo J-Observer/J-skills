@@ -1,3 +1,4 @@
+import { pathToFileURL } from 'node:url';
 // chrome-ext-gap.mjs 的 gl/reviewLang 显式字段（2026-09-13 隐性缩小范围默认值
 // 审计）：Chrome Web Store 分类/搜索/详情请求都带 hl(reviewLang)+gl，之前只
 // 出现在请求 URL 里，产出记录看不出这批数据是哪个地区/语言抓的。
@@ -11,7 +12,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const ceg = await import(path.join(here, '../scripts/demand/chrome-ext-gap.mjs'));
+const ceg = await import(pathToFileURL(path.join(here, '../scripts/demand/chrome-ext-gap.mjs')).href);
 
 test('toRecord：gl/reviewLang 从 opts 透传进记录', () => {
   // a 是位置数组：[0]=id, [2]=name, [3]=rating, [4]=ratingCount, [6]=summary, [7]=website

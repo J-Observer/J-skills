@@ -421,7 +421,7 @@ export function appendUnique(filePath, marker, block, headerIfMissing) {
  * rejected.md（仅闸门 0–5 判杀）。失败直接向上抛错，不在这里吞掉。 */
 export function recordRootTrace(dir, record, revival) {
   const rootDir = resolveRootRankupDir(dir);
-  const relMd = path.relative(rootDir, recordPaths(dir, record.slug).md);
+  const relMd = path.relative(rootDir, recordPaths(dir, record.slug).md).split(path.sep).join('/');
   const marker = `<!-- rankup-selection:${record.slug} -->`;
   const results = {};
 

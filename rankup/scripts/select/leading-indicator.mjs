@@ -199,7 +199,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { spawnSync } from 'node:child_process';
+import { spawnSync } from '../../../backlink/scripts/lib-opencli-process.mjs';
 import { fileURLToPath } from 'node:url';
 import { realpathSync } from 'node:fs';
 import { parseArgs, die, printTable, readToken } from '../demand/_lib.mjs';

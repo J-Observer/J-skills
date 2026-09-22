@@ -38,7 +38,7 @@
  *   4. `--enrich` 每个域名 1 次配额，`--limit 30` 就是 30 次。先想清楚再跑。
  */
 
-import { execFile } from 'node:child_process';
+import { execFile } from '../../../backlink/scripts/lib-opencli-process.mjs';
 import { promisify } from 'node:util';
 import fs from 'node:fs';
 import { parseArgs, emit, die, sleep, requireBrowserBridge, sessionName } from './_lib.mjs';

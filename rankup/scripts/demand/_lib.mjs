@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 /**
  * 用途：demand/ 下各脚本共用的小工具（参数解析、token 读取、输出、表格打印、
  *       失败留现场：证据目录 + 运行 manifest）。
@@ -16,8 +17,9 @@
  */
 
 import fs from 'node:fs';
+import { configureNetwork } from '../lib-network.mjs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawnSync } from '../../../backlink/scripts/lib-opencli-process.mjs';
 
 /** 解析 argv：--key value / --key=value / --flag / 位置参数 */
 export function parseArgs(argv = process.argv.slice(2)) {
@@ -46,7 +48,7 @@ export const asList = (v) => (v === undefined ? [] : Array.isArray(v) ? v : [v])
  */
 export function readToken(...names) {
   for (const n of names) if (process.env[n]) return process.env[n];
-  const envFile = path.resolve(new URL('../../.env', import.meta.url).pathname);
+  const envFile = path.resolve(fileURLToPath(new URL('../../.env', import.meta.url)));
   try {
     const txt = fs.readFileSync(envFile, 'utf8');
     for (const line of txt.split('\n')) {
@@ -230,6 +232,7 @@ const DEFAULT_UA =
 
 /** 带重试与超时的 fetch；默认带浏览器 UA（多数公开榜单会挡默认 UA） */
 export async function get(url, { headers = {}, retries = 2, timeout = 25000, ua = DEFAULT_UA } = {}) {
+  configureNetwork();
   let lastErr;
   for (let i = 0; i <= retries; i++) {
     const ctl = new AbortController();

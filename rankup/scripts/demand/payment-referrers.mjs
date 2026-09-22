@@ -57,7 +57,7 @@
  *      SERP 天然看不到它们；这种时候只有 similarweb 那条路。
  */
 
-import { execFile } from 'node:child_process';
+import { execFile } from '../../../backlink/scripts/lib-opencli-process.mjs';
 import { promisify } from 'node:util';
 import {
   parseArgs, emit, die, sleep, printTable, requireBrowserBridge, sessionName,

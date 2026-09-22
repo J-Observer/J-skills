@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -18,6 +19,15 @@ sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
 
 
+def directory_link(link: Path, target) -> None:
+    target = Path(target)
+    if os.name == "nt":
+        resolved = target if target.is_absolute() else link.parent / target
+        subprocess.run(["cmd.exe", "/d", "/c", "mklink", "/J", str(link), str(resolved.resolve())], check=True, capture_output=True)
+    else:
+        link.symlink_to(target, target_is_directory=True)
+
+
 class SkillLinkCheckTests(unittest.TestCase):
     def test_parent_symlink_layout_is_clean(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -26,7 +36,7 @@ class SkillLinkCheckTests(unittest.TestCase):
             agents.mkdir(parents=True)
             (agents / "demo").mkdir()
             (root / ".claude").mkdir()
-            (root / ".claude" / "skills").symlink_to(agents)
+            directory_link(root / ".claude" / "skills", agents)
 
             result = MODULE.audit_scope("Project", root)
 
@@ -45,10 +55,10 @@ class SkillLinkCheckTests(unittest.TestCase):
                 (agents / name).mkdir()
             (claude / "duplicate").mkdir()
             (claude / "orphan").mkdir()
-            (claude / "broken").symlink_to("../../.agents/skills/nope")
+            directory_link(claude / "broken", "../../.agents/skills/nope")
             outside = root / "outside"
             outside.mkdir()
-            (claude / "wrong").symlink_to(outside)
+            directory_link(claude / "wrong", outside)
 
             result = MODULE.audit_scope("Project", root)
             kinds = {issue.kind for issue in result.issues}
@@ -62,7 +72,7 @@ class SkillLinkCheckTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / ".claude").mkdir()
-            (root / ".claude" / "skills").symlink_to("../missing-skills")
+            directory_link(root / ".claude" / "skills", "../missing-skills")
 
             result = MODULE.audit_scope("Project", root)
 

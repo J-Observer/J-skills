@@ -55,7 +55,7 @@
  * ——create 只报告「流程分支走完了」这个事实，成没成以最后一张截图为准。
  * 会话名不再用 pid（Bash tool 里每次调用都是新进程）。
  */
-import { execSync } from "node:child_process"
+import { execFileSync } from "../../backlink/scripts/lib-opencli-process.mjs"
 import { newEvidenceDir, captureScene, writeManifest, sessionSuffix } from "./lib-scene.mjs"
 
 // ── 参数 ──────────────────────────────────────────────────
@@ -94,21 +94,21 @@ if (action === "create" && !name) name = site.split(".")[0]
 // ── OpenCLI 封装 ──────────────────────────────────────────
 function cli(action_, { timeout = 30000 } = {}) {
   try {
-    return execSync(`opencli browser "${session}" --window background ${action_}`,
+    return execFileSync("opencli", ["browser", session, "--window", "background", ...action_],
       { encoding: "utf-8", timeout, stdio: ["pipe", "pipe", "pipe"] }).trim()
   } catch (e) {
     const err = (e.stderr?.toString() || e.stdout?.toString() || e.message).trim()
     throw new Error(`opencli 失败: ${action_}\n  ${err}`)
   }
 }
-function evalJs(js) { return cli(`eval '${`(()=>{${js}})()`.replace(/'/g, "'\\''")}'`) }
-function open(url) { cli(`open "${url}"`) }
+function evalJs(js) { return cli(["eval", `(()=>{${js}})()`]) }
+function open(url) { cli(["open", url]) }
 function pageText(max = 4000) {
   return evalJs(`return (document.querySelector('main')||document.body).innerText.replace(/\\n{2,}/g,'\\n').slice(0,${max})`)
 }
 /** 页内定时器，替换 execSync("sleep")：那是壳层硬睡，页面快时白等、慢时不够。 */
 function settle(ms) {
-  cli(`eval '(async()=>{await new Promise(r=>setTimeout(r,${ms}));return true})()'`, { timeout: ms + 30000 })
+  cli(["eval", `(async()=>{await new Promise(r=>setTimeout(r,${ms}));return true})()`], { timeout: ms + 30000 })
 }
 /** 条件轮询：js 返回真值或超时。页面导航期间 eval 失败按「还没就绪」继续等。 */
 function waitFor(js, seconds = 15) {
@@ -136,7 +136,7 @@ function scene(tag, extra) {
   return captureScene({
     dir: evidenceDir(),
     tag: `${String(sceneN).padStart(2, "0")}-${tag}`,
-    screenshot: (p) => cli(`screenshot "${p}"`, { timeout: 90000 }),
+    screenshot: (p) => cli(["screenshot", p], { timeout: 90000 }),
     pageText: () => pageText(20000),
     extra,
   })
@@ -149,13 +149,13 @@ function bail(stopReason, msg, extra) {
     console.error(`现场已落盘：${evidenceDir()}`)
   } catch (e) { console.error(`（取证失败：${String(e?.message || e).slice(0, 200)}）`) }
   console.error(msg)
-  if (!keepSession) { try { cli("close") } catch { /* ignore */ } }
+  if (!keepSession) { try { cli(["close"]) } catch { /* ignore */ } }
   process.exit(1)
 }
 
 function stampAndClick(js, label) {
   evalJs(`const el=${js};if(!el)throw new Error('找不到: ${label}');el.setAttribute('data-rankup-target','1')`)
-  cli('click "[data-rankup-target=\\"1\\"]"')
+  cli(['click', '[data-rankup-target="1"]'])
   evalJs(`document.querySelector('[data-rankup-target]')?.removeAttribute('data-rankup-target')`)
   scene(`clicked-${label.replace(/[^\w一-鿿-]/g, "_")}`)
 }
@@ -165,7 +165,7 @@ function stampAndClick(js, label) {
  *  再用该属性做 CSS 选择器传给 opencli type <target> <text>。 */
 function stampAndType(js, text, label) {
   evalJs(`const el=${js};if(!el)throw new Error('找不到: ${label}');el.setAttribute('data-rankup-target','1')`)
-  cli(`type "[data-rankup-target=\\"1\\"]" "${text}"`)
+  cli(["type", '[data-rankup-target="1"]', text])
   evalJs(`document.querySelector('[data-rankup-target]')?.removeAttribute('data-rankup-target')`)
   scene(`typed-${label.replace(/[^\w一-鿿-]/g, "_")}`)
 }
@@ -501,6 +501,6 @@ try {
   else await doCreate()
 } finally {
   if (!keepSession) {
-    try { cli("close") } catch {}
+    try { cli(["close"]) } catch {}
   }
 }

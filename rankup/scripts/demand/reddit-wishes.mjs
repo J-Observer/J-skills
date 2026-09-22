@@ -56,7 +56,7 @@
  *   - 别把并发拉满，Reddit 会按 IP 封一段时间。
  */
 
-import { execFile } from 'node:child_process';
+import { execFile } from '../../../backlink/scripts/lib-opencli-process.mjs';
 import { promisify } from 'node:util';
 import { parseArgs, get, getJson, emit, die, sleep, readToken, asList, probeBrowserBridge, initEvidence, recordSource } from './_lib.mjs';
 

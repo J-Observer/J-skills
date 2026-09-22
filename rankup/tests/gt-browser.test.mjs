@@ -171,7 +171,7 @@ await chmod(fakeOpencli, 0o755);
 function run(args, extraEnv = {}) {
   return spawnSync("python3", [gt, ...args], {
     encoding: "utf8",
-    env: { ...process.env, GT_OPENCLI: fakeOpencli, GT_FAKE_LOG: log, ...extraEnv },
+    env: { ...process.env, PYTHONIOENCODING: "utf-8", GT_OPENCLI: fakeOpencli, GT_FAKE_LOG: log, ...extraEnv },
   });
 }
 
@@ -228,7 +228,7 @@ try {
 
   const pytrends = run(["compare", "demo", "--via", "pytrends"]);
   assert.notEqual(pytrends.status, 0, "新版主用脚本不应静默接受 --via pytrends");
-  assert.match(pytrends.stderr, /archive\/gt-v1/, "报错应指向归档版而不是静默失败");
+  assert.match(pytrends.stderr, /archive[\\/]gt-v1/, "报错应指向归档版而不是静默失败");
 
   const close = run(["close", "--session", "gt-browser-test"]);
   assert.equal(close.status, 0, close.stderr);

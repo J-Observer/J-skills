@@ -102,7 +102,7 @@
  *     拿某条问题的逐 URL 清单（filterId 是动态的，登记不进 ROUTES）。在 4 类问题上跑通。
  */
 
-import { execFileSync } from "node:child_process";
+import { execFileSync } from '../../backlink/scripts/lib-opencli-process.mjs';
 import { dirname, resolve as resolvePath } from "node:path";
 import { realpath } from "node:fs/promises";
 import { pathToFileURL } from "node:url";

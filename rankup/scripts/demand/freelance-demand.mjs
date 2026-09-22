@@ -62,7 +62,7 @@
  *     DOM 结构（a[href*="item?id="]、¥价格、「N人想要」）已实测可解析，登录后即可用。
  *   - 闲鱼搜索结果是异步渲染，open 之后至少要等 10-15 秒。
  */
-import { execFileSync } from "node:child_process"
+import { execFileSync } from "../../../backlink/scripts/lib-opencli-process.mjs"
 import { writeFileSync } from "node:fs"
 import { requireBrowserBridge, initEvidence, recordSource, writeManifest, saveEvidence, sourceStatusSummary, captureBrowserScene } from "./_lib.mjs"
 

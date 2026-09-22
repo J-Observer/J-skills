@@ -167,7 +167,7 @@
  *       可见性驱动（含兜底），退回旧的「人守在电脑前」用法。
  */
 
-import { execFileSync } from "node:child_process";
+import { execFileSync } from '../../backlink/scripts/lib-opencli-process.mjs';
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { newEvidenceDir, captureScene, writeManifest, msleep } from "./lib-scene.mjs";

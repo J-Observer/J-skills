@@ -6,7 +6,7 @@
  * Missing navigation or send evidence is needs-verification (exit 2), never pass.
  * Uses existing OpenCLI and lib-scene; does not inject or replay analytics requests.
  */
-import { execFileSync } from "node:child_process";
+import { execFileSync } from '../../backlink/scripts/lib-opencli-process.mjs';
 import { resolve as resolvePath } from "node:path";
 import { realpath } from "node:fs/promises";
 import { pathToFileURL } from "node:url";

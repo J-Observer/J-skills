@@ -50,7 +50,7 @@
 import { writeFileSync, mkdirSync, readFileSync, realpathSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { execFileSync } from "node:child_process";
+import { execFileSync } from '../../backlink/scripts/lib-opencli-process.mjs';
 import { newEvidenceDir, writeManifest } from "./lib-scene.mjs";
 
 const BASE = "https://seo.web.cafe";
@@ -472,7 +472,7 @@ function warnGuestFallback(reason) {
 // 只装一次就一直能用。合并后若只认环境变量,等于要求用户每次 export,
 // 是无声的体验倒退,所以这里保留 .env 兜底,两个键名都认。
 function officialToken() {
-  const fromEnv = process.env.SEO_WEBCAFE_TOKEN || process.env.KD_TOKEN;
+  const fromEnv = process.env.SEO_WEBCAFE_TOKEN || process.env.KD_TOKEN || process.env.KD_GEFEI_MCP_TOKEN;
   if (fromEnv) return fromEnv.trim();
   const envFile = join(dirname(dirname(fileURLToPath(import.meta.url))), ".env");
   try {
@@ -1217,6 +1217,8 @@ async function officialQuotaPreflight(a = {}) {
 }
 
 async function main() {
+  const { configureNetwork } = await import('./lib-network.mjs');
+  configureNetwork();
   const argv = process.argv.slice(2);
   if (!argv.length || argv.includes("--help")) { console.log(HELP); return; }
   const { cmd, a } = parseArgs(argv);

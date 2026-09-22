@@ -75,7 +75,7 @@
  *   - Capterra 的 ld+json 里 reviewBody 只有标题那一句，完整 Pros/Cons 在 DOM 里，
  *     脚本两边都取，DOM 优先。
  */
-import { execFileSync } from "node:child_process"
+import { execFileSync } from "../../../backlink/scripts/lib-opencli-process.mjs"
 import { writeFileSync, realpathSync } from "node:fs"
 import { pathToFileURL } from "node:url"
 import { requireBrowserBridge, initEvidence, recordSource, writeManifest, saveEvidence, sourceStatusSummary, captureBrowserScene } from "./_lib.mjs"

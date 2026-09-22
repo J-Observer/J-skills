@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
@@ -11,7 +12,7 @@ assert.equal(isReusableToolCapture({ url: 'https://sem.3ue.co/analytics/overview
 assert.equal(isReusableToolCapture({ url: 'https://dash.3ue.co/zh-Hans/', len: 200 }, 'sem.3ue.co'), false);
 assert.equal(isReusableToolCapture({ url: 'https://sem.3ue.co/analytics/overview/', len: 20 }, 'sem.3ue.co'), false);
 
-const root = resolve(new URL('.', import.meta.url).pathname);
+const root = resolve(fileURLToPath(new URL('.', import.meta.url)));
 const temporary = await mkdtemp(join(tmpdir(), 'backlink-skill-test-'));
 const scanPath = join(temporary, 'scan.json');
 const payloadPath = join(temporary, 'payload.json');

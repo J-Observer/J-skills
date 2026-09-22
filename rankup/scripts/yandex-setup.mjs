@@ -70,7 +70,7 @@
  * 操作——写操作的等价性由上面记录的 DOM 结构与网络判据保证，下次真正用到
  * add-site/verify 时如页面结构有出入，按 discipline.md 十五分诊后回写这里）。
  */
-import { execSync, execFileSync } from "node:child_process"
+import { execFileSync } from "../../backlink/scripts/lib-opencli-process.mjs"
 import { dirname, join, resolve as resolvePath } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import { realpath } from "node:fs/promises"
@@ -229,21 +229,21 @@ async function ensureCloudflareTxt(domain, content) {
 /* ── OpenCLI 封装（execSync + eval + stampAndClick，风格同 naver/clarity-setup.mjs） ── */
 function cli(action_, { timeout = 30000 } = {}) {
   try {
-    return execSync(`opencli browser "${session}" --window background ${action_}`,
+    return execFileSync("opencli", ["browser", session, "--window", "background", ...action_],
       { encoding: "utf-8", timeout, stdio: ["pipe", "pipe", "pipe"] }).trim()
   } catch (e) {
     const err = (e.stderr?.toString() || e.stdout?.toString() || e.message).trim()
     throw new Error(`opencli 失败: ${action_}\n  ${err}`)
   }
 }
-function evalJs(js) { return cli(`eval '${`(()=>{${js}})()`.replace(/'/g, "'\\''")}'`) }
-function open(url) { cli(`open "${url}"`) }
+function evalJs(js) { return cli(["eval", `(()=>{${js}})()`]) }
+function open(url) { cli(["open", url]) }
 function pageText(max = 4000) {
   return evalJs(`return (document.querySelector('main')||document.body).innerText.replace(/\\n{2,}/g,'\\n').slice(0,${max})`)
 }
 function currentUrl() { return evalJs(`return location.href`) }
 function settle(ms) {
-  cli(`eval '(async()=>{await new Promise(r=>setTimeout(r,${ms}));return true})()'`, { timeout: ms + 30000 })
+  cli(["eval", `(async()=>{await new Promise(r=>setTimeout(r,${ms}));return true})()`], { timeout: ms + 30000 })
 }
 function waitFor(js, seconds = 15) {
   const deadline = Date.now() + seconds * 1000
@@ -258,7 +258,7 @@ function waitPageReady(seconds = 20) {
 }
 /** opencli browser network，JSON 输出。第 6 条坑：判据是网络请求，不是页面文案。 */
 function networkSince(seconds) {
-  const raw = cli(`network --since ${seconds}s`, { timeout: 15000 })
+  const raw = cli(["network", "--since", `${seconds}s`], { timeout: 15000 })
   try { return JSON.parse(raw) } catch { return { entries: [] } }
 }
 
@@ -274,7 +274,7 @@ function scene(tag, extra) {
   return captureScene({
     dir: evidenceDir(),
     tag: `${String(sceneN).padStart(2, "0")}-${tag}`,
-    screenshot: (p) => cli(`screenshot "${p}"`, { timeout: 90000 }),
+    screenshot: (p) => cli(["screenshot", p], { timeout: 90000 }),
     pageText: () => { try { return pageText(20000) } catch (e) { return `PAGE_TEXT_FAILED:${e.message}` } },
     extra,
   })
@@ -286,13 +286,13 @@ function bail(stopReason, msg, extra) {
     console.error(`现场已落盘：${evidenceDir()}`)
   } catch (e) { console.error(`（取证失败：${String(e?.message || e).slice(0, 200)}）`) }
   console.error(msg)
-  if (!keepSession) { try { cli("close") } catch { /* ignore */ } }
+  if (!keepSession) { try { cli(["close"]) } catch { /* ignore */ } }
   process.exit(1)
 }
 
 function stampAndClick(js, label) {
   evalJs(`const el=${js};if(!el)throw new Error('找不到: ${label}');el.setAttribute('data-rankup-target','1')`)
-  cli('click "[data-rankup-target=\\"1\\"]"')
+  cli(['click', '[data-rankup-target="1"]'])
   evalJs(`document.querySelector('[data-rankup-target]')?.removeAttribute('data-rankup-target')`)
   scene(`clicked-${label.replace(/[^\w一-鿿-]/g, "_")}`)
 }
@@ -346,7 +346,7 @@ async function doAddSite() {
 
     const inputJs = `document.querySelector('input[placeholder="Enter the site URL"],input[placeholder*="site URL" i]')`
     evalJs(`const el=${inputJs};if(!el)throw new Error('找不到站点 URL 输入框');el.focus();el.value='';`)
-    cli(`type "${site}"`)
+    cli(["type", site])
     settle(500)
     scene("filled-site-url", { site })
 
@@ -463,7 +463,7 @@ async function main() {
     else if (action === "verify") await doVerify()
   } finally {
     if (!keepSession) {
-      try { cli("close") } catch { /* ignore */ }
+      try { cli(["close"]) } catch { /* ignore */ }
     }
   }
 }

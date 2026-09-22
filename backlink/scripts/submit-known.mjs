@@ -79,7 +79,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execFile } from 'node:child_process';
+import { execFile } from './lib-opencli-process.mjs';
 import { promisify } from 'node:util';
 import {
   opencli, openAndEval, parseFlags, printJson, required, showHelpIfRequested, validateSession,

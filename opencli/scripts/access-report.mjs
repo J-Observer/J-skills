@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { fileURLToPath } from 'node:url';
 /**
  * access-report.mjs — 读 ~/.opencli/logs/site-access.jsonl，回答复盘时最常问的问题。
  *
@@ -33,7 +34,7 @@ function parseFlags(argv) {
 
 const flags = parseFlags(process.argv.slice(2));
 if (flags.help) {
-  console.log(readFileSync(new URL(import.meta.url).pathname, 'utf8').match(/\/\*\*([\s\S]*?)\*\//)[1]
+  console.log(readFileSync(fileURLToPath(new URL(import.meta.url)), 'utf8').match(/\/\*\*([\s\S]*?)\*\//)[1]
     .split('\n').map((l) => l.replace(/^\s*\* ?/, '')).join('\n').trim());
   process.exit(0);
 }

@@ -1,3 +1,4 @@
+import { pathToFileURL } from 'node:url';
 // scripts/demand/boards.mjs toolify 分支的离线契约（2026-09-13）：
 //
 //   1. 带 website 的榜单（revenue / new）照旧解析，domain 取外链；
@@ -15,7 +16,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const boards = await import(path.join(here, '../scripts/demand/boards.mjs'));
+const boards = await import(pathToFileURL(path.join(here, '../scripts/demand/boards.mjs')).href);
 
 function runExtract(nuxt) {
   const context = vm.createContext({

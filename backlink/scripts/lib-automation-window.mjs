@@ -62,7 +62,7 @@
  * 纯逻辑（屏幕换算、匹配、判定、窗口模式解析）与副作用（osascript / opencli）分离；
  * 副作用全部经 `deps` 注入，离线测试见 tests/automation-window.test.mjs。
  */
-import { execFile } from 'node:child_process';
+import { execFile } from './lib-opencli-process.mjs';
 import { promisify } from 'node:util';
 import {
   firstJson, normalizeWindowMode, opencli, run,

@@ -43,7 +43,7 @@
  */
 
 import { writeFileSync } from 'node:fs';
-import { execFile } from 'node:child_process';
+import { execFile } from '../../../backlink/scripts/lib-opencli-process.mjs';
 import { promisify } from 'node:util';
 import {
   sessionName, requireBrowserBridge, initEvidence, saveEvidence, recordSource,

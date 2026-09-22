@@ -48,7 +48,7 @@
  *   - **必须显式带 User-Agent**：不带 UA 的请求会被挡（和 seo-webcafe.mjs 同源的坑）。
  */
 
-import { execFile } from "node:child_process";
+import { execFile } from '../../backlink/scripts/lib-opencli-process.mjs';
 import { promisify } from "node:util";
 
 const pExecFile = promisify(execFile);

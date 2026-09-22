@@ -263,7 +263,7 @@ async function assertRegistryUntracked(errors) {
 }
 
 async function read(relativePath) {
-  return readFile(path.join(skillRoot, relativePath), "utf8");
+  return (await readFile(path.join(skillRoot, relativePath), "utf8")).replace(/\r\n/g, "\n");
 }
 
 async function collectTextFiles(directory = skillRoot) {
@@ -390,7 +390,7 @@ async function validate() {
   const dynamicLeakPatterns = await buildDynamicProjectLeakPatterns();
   const allLeakPatterns = [...projectLeakPatterns, ...dynamicLeakPatterns];
   for (const { file, text } of contents) {
-    const relativePath = path.relative(skillRoot, file);
+    const relativePath = path.relative(skillRoot, file).split(path.sep).join("/");
     for (const [label, pattern] of secretPatterns) {
       pattern.lastIndex = 0;
       if (pattern.test(text)) {
