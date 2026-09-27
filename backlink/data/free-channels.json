@@ -222,7 +222,7 @@
       "anchorRendered": false,
       "robotsObserved": "noindex,follow",
       "indexable": false,
-      "howToPublish": "N/A",
+      "howToPublish": "Do not submit: the generated page has no outbound anchor and is marked noindex.",
       "traps": [
         "Representative of most of this family: the page generates fine and looks like a win, but it is noindex. Checking only that the URL loads passes a pile of worthless pages."
       ],
@@ -425,7 +425,7 @@
       "anchorRendered": true,
       "robotsObserved": null,
       "indexable": true,
-      "howToPublish": "同上",
+      "howToPublish": "Use the submission form; verify the published listing before counting a link.",
       "traps": [
         "Reviewed listing, so submitting is not publishing — verify the live listing before recording any rel."
       ],
@@ -542,7 +542,6 @@
       "lastVerifiedAt": "2026-08-18",
       "evidence": {
         "method": "browser-dom",
-        "url": "https://www.openpr.com/news/4606409/middle-east-data-center-construction-investment-to-reach-usd",
         "what": "Ran document.querySelectorAll on the rendered page: 127 anchors total, outbound anchor hosts were only twitter/facebook/linkedin/google (all rel=nofollow), consentmanager.net and einbock.com (both no rel). The author domain arizton.com appeared four times in document.body.innerText and zero times in any href. Cross-checked against a second unrelated release (/news/4606405) which carried the same einbock.com anchor, confirming it is a sitewide advertiser rather than an author link."
       },
       "notes": "captcha=interactive confirmed by this record's own evidence (browser-dom), not derived from submission-targets gates — 2026-09-07 audit"
@@ -564,7 +563,6 @@
       ],
       "evidence": {
         "method": "browser-dom",
-        "url": "https://blogengage.com/",
         "what": "Navigating to blogengage.com in a browser lands on https://gomining.com with the title \"Bitcoin superapp - mining, earning and using BTC | GoMining\". There is no blog directory left at this domain — the site was resold, not merely rebranded."
       },
       "notes": "captcha unknown — not probed 2026-09-07"
@@ -788,8 +786,7 @@
       "lastVerifiedAt": "2026-08-22",
       "evidence": {
         "method": "anonymous-http",
-        "what": "Fetched the public repo page and read the rel attribute off every anchor pointing at the linked site. 46 anchors total, all carrying nofollow.",
-        "observedAt": "2026-08-22"
+        "what": "Fetched the public repo page and read the rel attribute off every anchor pointing at the linked site. 46 anchors total, all carrying nofollow."
       },
       "notes": "captcha=none confirmed by this record's own evidence (anonymous-http), not derived from submission-targets gates — 2026-09-07 audit"
     }

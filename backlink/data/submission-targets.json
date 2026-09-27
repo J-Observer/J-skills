@@ -391,7 +391,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "Homepage is a social bookmarking directory with visible Log In / Sign Up / Register links and an 'Add link' action, so posting a bookmark requires creating an account first.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "http://www.4mark.net/",
         "title": "4mark Social Bookmarking Tool"
       },
@@ -986,7 +986,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "The post/classified-ad submission URL returns HTTP 403 with a Cloudflare 'Just a moment...' automated challenge page (cf_chl / challenge-platform markers in the HTML) even when fetched with a normal browser User-Agent, blocking the actual ad-posting form.",
-        "httpStatus": "403",
+        "httpStatus": 403,
         "finalUrl": "https://www.adslov.com/index.php?view=post&cityid=513&lang=en&catid=1&subcatid=1&shortcutregion=0&",
         "title": "Just a moment..."
       },
@@ -1123,7 +1123,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "Homepage of this affiliate-marketing forum returns HTTP 403 with a Cloudflare 'Just a moment...' challenge page, blocking any view of the forum/registration flow.",
-        "httpStatus": "403",
+        "httpStatus": 403,
         "finalUrl": "https://www.affiliatefix.com/",
         "title": "Just a moment..."
       },
@@ -2387,7 +2387,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "Landing page (Spanish) explicitly offers a free listing ('Publica tu IA en AIFINDY Gratis' with fields Description/Link/Price/Tags) plus optional paid tiers (Basic 49€/mes or 199€/año, Business 149€/mes or 999€/año); no CAPTCHA, login, or password field found in the raw HTML, though the actual input form appears to be client-rendered rather than a plain <form> tag.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://aifindy.com/contacto/publica-tu-ia-en-aifindy",
         "title": "Publica tu IA en AIFINDY"
       },
@@ -3010,7 +3010,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "URL is a live Airtable-hosted interface form (title 'Interface Form - Airtable', ~103KB app shell); the actual fields render client-side via JS so exact field names couldn't be read from raw HTML, but no login wall, password field, or CAPTCHA marker appears in the page source.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://airtable.com/appCOqCKunkcAjSBL/pagtEVkuvuiQw6CuX/form",
         "title": "Interface Form - Airtable"
       },
@@ -3261,7 +3261,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "aitoolhub.net's own submit link forwards to gptdemo.net's paid submission form (Website URL / Email / Tool Title / Description / Category fields, $19.9 one-time for 24 dofollow backlinks across gptdemo.net and aitoolhub.net, manual review 24-48h); form is open to fill without login, no CAPTCHA markers found, but there is no free tier — payment is required.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://www.gptdemo.net/gpt/add-tool?lg=en",
         "title": "Submit AI Tool - Premium Service - https://www.gptdemo.net/"
       },
@@ -4666,7 +4666,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "The /manage-item/ submission page returns HTTP 403 with Cloudflare's 'Just a moment...' automated challenge, blocking access to AlternativeTo's item-submission form.",
-        "httpStatus": "403",
+        "httpStatus": 403,
         "finalUrl": "https://alternativeto.net/manage-item/",
         "title": "Just a moment..."
       },
@@ -4708,7 +4708,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "Homepage is the Ameba blogging platform's landing page, showing 新規登録/Register and ログイン/Login links — publishing a blog post here requires creating an Ameba account first.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://ameblo.jp/",
         "title": "アメーバブログ（アメブロ）｜Amebaで無料ブログを始めよう"
       },
@@ -6488,7 +6488,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "betapage.co now redirects to pitchwall.co, a product-launch platform offering a free listing plan ('Free Launch', 1-day visibility, 30-day wait, do-follow DR70 backlink) alongside paid Premium ($99) and Pro ($49) plans; no CAPTCHA or login markers found in the page source.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://pitchwall.co/submit",
         "title": "PitchWall - Submit Product"
       },
@@ -7150,7 +7150,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "Homepage returns HTTP 403 with Cloudflare's 'Attention Required!' block page even with a browser User-Agent, preventing any view of Bloglovin's blog-follow/publish flow.",
-        "httpStatus": "403",
+        "httpStatus": 403,
         "finalUrl": "https://bloglovin.com/",
         "title": "Attention Required! | Cloudflare"
       },
@@ -7868,7 +7868,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "buzzmatic.net redirects to buzzmatic.com, a Berlin SEO/GEO marketing agency's own Next.js marketing site, not a directory; the only route in is its generic business contact form, i.e. reaching a human rather than a self-serve listing form.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://buzzmatic.com/",
         "title": "Buzzmatic — SEO, GEO & KI-Agentur aus Berlin"
       },
@@ -8096,7 +8096,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "Homepage returns HTTP 403 with Cloudflare's 'Attention Required!' block page even with a browser User-Agent, blocking access to Capterra's vendor-listing signup flow.",
-        "httpStatus": "403",
+        "httpStatus": 403,
         "finalUrl": "https://www.capterra.com/",
         "title": "Attention Required! | Cloudflare"
       },
@@ -8483,7 +8483,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "The classified-ad post URL returns HTTP 403 with a Cloudflare 'Just a moment...' automated challenge, blocking the ad-posting form (same platform/pattern as adslov.com).",
-        "httpStatus": "403",
+        "httpStatus": 403,
         "finalUrl": "https://classified4u.biz/index.php?view=post&cityid=504&lang=en&catid=1&subcatid=1&shortcutregion=0&",
         "title": "Just a moment..."
       },
@@ -8539,7 +8539,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "The classified-ad post URL returns HTTP 403 with a Cloudflare 'Just a moment...' automated challenge, blocking the ad-posting form (same platform/pattern as adslov.com).",
-        "httpStatus": "403",
+        "httpStatus": 403,
         "finalUrl": "https://classifiedonlineads.net/index.php?view=post&cityid=57&lang=en&catid=1&subcatid=1&shortcutregion=0&",
         "title": "Just a moment..."
       },
@@ -10255,7 +10255,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "Homepage is the DEV Community developer-blogging platform; publishing an article requires creating a DEV account (sign-in is the standard flow, no anonymous posting), so it is gated rather than an open form. A link-crawl from the homepage also surfaced /advertise, a paid sponsorship page unrelated to article publishing.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://dev.to/",
         "title": "DEV Community"
       },
@@ -11077,7 +11077,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "Homepage of this home-improvement community/forum returns HTTP 403 with a Cloudflare 'Just a moment...' challenge, blocking any view of its forum/registration flow.",
-        "httpStatus": "403",
+        "httpStatus": 403,
         "finalUrl": "https://www.doityourself.com/",
         "title": "Just a moment..."
       },
@@ -13015,7 +13015,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "The classified-ad post URL returns HTTP 403 with a Cloudflare 'Just a moment...' automated challenge, blocking the ad-posting form (same platform/pattern as adslov.com).",
-        "httpStatus": "403",
+        "httpStatus": 403,
         "finalUrl": "https://foldads.com/index.php?view=post&cityid=562&lang=en&catid=1&subcatid=1&shortcutregion=0&",
         "title": "Just a moment..."
       },
@@ -13439,7 +13439,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "Submit Request page has a real WordPress form (Tool Name / Site URL / Description / Image upload) with a Google reCAPTCHA widget (sitekey present in HTML); the site markets itself as a free directory, no payment fields seen.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://free-ai-tools-directory.com/submit-request/",
         "title": "Submit Request - Free AI Tools Directory"
       }
@@ -13520,7 +13520,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "The classified-ad post URL returns HTTP 403 with a Cloudflare 'Just a moment...' automated challenge, blocking the ad-posting form (same platform/pattern as adslov.com).",
-        "httpStatus": "403",
+        "httpStatus": 403,
         "finalUrl": "https://freeadsonline.biz/index.php?view=post&cityid=389&lang=en&catid=1&subcatid=1&shortcutregion=0&",
         "title": "Just a moment..."
       },
@@ -13810,7 +13810,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "The classified-ad post URL returns HTTP 403 with a Cloudflare 'Just a moment...' automated challenge, blocking the ad-posting form (same platform/pattern as adslov.com).",
-        "httpStatus": "403",
+        "httpStatus": 403,
         "finalUrl": "https://freewebads.us/index.php?view=post&cityid=11&lang=en&catid=1&subcatid=1&shortcutregion=0&",
         "title": "Just a moment..."
       },
@@ -14080,7 +14080,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "Real submission form (Name/Tool Name/URL/Description/Category/Pricing/Email) is present with the page text 'Loading CAPTCHA...' confirming a lazy-loaded CAPTCHA widget gates submission; free to submit, no cost fields shown.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://futuretools.io/submit-a-tool",
         "title": "Future Tools - Submit a Tool"
       },
@@ -15009,25 +15009,12 @@
       "sourceList": "footprint-run2 (serper + google footprint sweep, human-reviewed)",
       "notes": "vertical=games; keyword=\"word games / browser games write-for-us\"; fit=crossword-ar,nonogram-jp,intabtools,videocatch,shindan; discovered=footprint/serper 2026-09-12. CORRECTED 2026-09-12: /write-for-us/ (previous route) is a customer-service ticket form, not a real submission path — left as gated/no_safe_submission_form dead end, do not resubmit there. The real usable channel on this domain is the native WordPress comment form on every blog article (e.g. this route), fields Comment*/Name*/Email*/Website + 'Save my name...' checkbox + Post Comment button, no CAPTCHA observed. The form is collapsed behind a '.show-post-comment' accordion toggle (display:none until clicked) — a plain form-census tool that doesn't click UI toggles will misreport 0 qualifying forms; click the toggle first, then the WP fields resolve correctly. Five reviewed comments were submitted on this one article route (2026-09-12), each with a distinct real product's Website-field anchor; all five landed on ?unapproved=<id>&moderation-hash=... i.e. accepted into WordPress moderation, not yet publicly visible — per this Skill's blog-comment verification law, that own-session view does not itself prove public visibility. Re-verify from a cookie-free context before promoting any of these to 'public' in a ledger. This route (and by extension the same theme on other gpadtester.net articles) is reusable per-article, not a one-time route.",
       "lastProbedAt": "2026-09-12",
-      "verifiedRoutes": [
-        {
-          "url": "https://gpadtester.net/playstation-6/",
-          "outcome": "submitted-awaiting-moderation",
-          "comments": 5
-        }
-      ],
       "evidence": {
         "method": "browser-dom",
         "what": "inspect-page.mjs's default census under-counts this form (checkbox consent label text collides with all four field-kind regexes, and the form starts display:none behind an accordion toggle); after clicking '.show-post-comment' and scoping field classification to real data-entry controls only, the WP default comment form resolves cleanly to comment/author/email/url. Five reviewed real submissions were accepted into moderation (?unapproved=11466..11470).",
         "httpStatus": 200,
         "finalUrl": "https://gpadtester.net/playstation-6/",
-        "title": "PlayStation 6 Could Arrive Sooner Than You Think",
-        "priorRoute": {
-          "route": "https://gpadtester.net/write-for-us/",
-          "what": "reachable 200, but this is a customer-service ticket form (no real submission capability) — gate=account, status=gated, no_safe_submission_form. Kept for the record; not usable.",
-          "httpStatus": 200,
-          "rawHtml": "probe.json.evidence/gpadtester.net.html"
-        }
+        "title": "PlayStation 6 Could Arrive Sooner Than You Think"
       },
       "traffic": {
         "monthlyVisits": 242793,
@@ -15470,7 +15457,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "Original route was an unrelated published article; the site's actual contribution path is /writers, which shows 'Signup' and 'Write' actions to become a HackerNoon writer — publishing requires creating an account.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://hackernoon.com/writers",
         "title": "Internet's Top Technology Writers via HackerNoon"
       },
@@ -16849,7 +16836,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "Page contains a real Elementor form (name='Submit tools') with Message/Link/Tag fields and a submit button; no CAPTCHA or login markers found in the HTML.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://www.insidr.ai/submit-tools/",
         "title": "Submit AI Tools - Insidr.ai"
       },
@@ -17142,7 +17129,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "Homepage shows 'Log in' / 'Sign up' actions; publishing a flipbook/document on Issuu requires creating an account. /publisher-space (a likely dedicated publisher onboarding path) 404s.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://issuu.com/",
         "title": "Issuu | Create Interactive Flipbooks on our Digital Publishing Platform"
       },
@@ -18131,7 +18118,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "Site has an expired TLS cert (needs -k to fetch) but is live; /newsubmission shows an eligibility checklist ('I'M GOOD, LET'S PROCEED') leading into the submission flow, with no CAPTCHA or password field found in the HTML. Review takes up to 24 hours.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://launched.io/newsubmission",
         "title": "Launched! - New submission"
       },
@@ -18438,11 +18425,6 @@
         "monthlyVisits": 2789,
         "checkedAt": "2026-08-27T03:44:01.315+08:00",
         "source": "Similarweb total visits via authenticated Tools Share browser session"
-      },
-      "authority": {
-        "score": 19,
-        "metric": "Semrush Authority Score",
-        "checkedAt": "2026-08-27T03:50:47.082+08:00"
       }
     },
     {
@@ -19158,7 +19140,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "Homepage of this classifieds site returns HTTP 403 with an automated 'One moment please...' bot-check interstitial even with a browser User-Agent, blocking any view of the ad-posting flow.",
-        "httpStatus": "403",
+        "httpStatus": 403,
         "finalUrl": "https://www.locanto.me/",
         "title": "One moment please..."
       },
@@ -19872,16 +19854,6 @@
       "status": "usable",
       "sourceList": "BHW-style recursive article search",
       "notes": "Two article routes were browser-verified with native Website comment forms, and one reviewed submission on each route was accepted into moderation. Both reviewer-only author anchors used ugc external nofollow; anonymous public verification is pending.",
-      "verifiedRoutes": [
-        {
-          "url": "https://megafreetools.com/blogs/best-color-picker-tools-for-web-designers/",
-          "outcome": "submitted-awaiting-moderation"
-        },
-        {
-          "url": "https://megafreetools.com/blogs/best-image-resizer-tools-website-social-media/",
-          "outcome": "submitted-awaiting-moderation"
-        }
-      ],
       "lastProbedAt": "2026-08-27",
       "evidence": {
         "method": "browser-dom",
@@ -19894,11 +19866,6 @@
         "monthlyVisits": 3353,
         "checkedAt": "2026-08-27T03:40:08.893+08:00",
         "source": "Similarweb total visits via authenticated Tools Share browser session"
-      },
-      "authority": {
-        "score": 9,
-        "metric": "Semrush Authority Score",
-        "checkedAt": "2026-08-27T02:57:26.026+08:00"
       }
     },
     {
@@ -20042,7 +20009,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "This social network's own /register page is the only route to post content, confirming an account is required before anything can be published.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://www.minds.com/register",
         "title": "Join Minds, and Elevate the Conversation"
       },
@@ -20419,7 +20386,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "The /tools listing page returns HTTP 403 with a Cloudflare 'Just a moment...' challenge, blocking access to Clutch's vendor/tool listing signup flow.",
-        "httpStatus": "403",
+        "httpStatus": 403,
         "finalUrl": "https://clutch.co/tools",
         "title": "Just a moment..."
       },
@@ -21221,7 +21188,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "Real HTML form (Tool name/Description/URL/Category, plus a hidden 'Backlink URL (exchange only)' field) is present. Paid listing is $19.9 one-time for a 24-48h fast review; the free path is on a waitlist until October 2026 and additionally requires placing a backlink badge on your own site first (reciprocal-link condition) before being queued.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://novatools.ai/submit/",
         "title": "Submit Your Tool | NovaTools"
       },
@@ -21301,7 +21268,6 @@
     {
       "domain": "nxgntools.com",
       "route": "https://nxgntools.com/",
-      "name": null,
       "kind": "unknown",
       "gate": "unknown",
       "gates": [
@@ -21396,7 +21362,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "OECD.AI's official tool-submission page has a real Angular form gated by Google reCAPTCHA (recaptcha markers present); no password/login field found (the 'login' text match was part of unrelated catalogue-entry data, not a site login wall).",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://oecd.ai/en/catalogue/tools/submit",
         "title": "Submit an AI Tool to the Catalogue of Tools & Metrics for Trustworthy AI - OECD.AI"
       }
@@ -21485,11 +21451,6 @@
         "monthlyVisits": 1931,
         "checkedAt": "2026-08-27T03:05:01.064+08:00",
         "source": "Similarweb total visits via authenticated Tools Share browser session"
-      },
-      "authority": {
-        "score": 17,
-        "metric": "Semrush Authority Score",
-        "checkedAt": "2026-08-27T03:03:30.565+08:00"
       }
     },
     {
@@ -22452,7 +22413,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "The classified-ad post URL returns HTTP 403 with a Cloudflare 'Just a moment...' automated challenge, blocking the ad-posting form (same platform/pattern as adslov.com).",
-        "httpStatus": "403",
+        "httpStatus": 403,
         "finalUrl": "https://www.petadshub.com/index.php?view=post&cityid=61&lang=en&catid=10&subcatid=163&shortcutregion=0&",
         "title": "Just a moment..."
       },
@@ -22700,7 +22661,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "The classified-ad post URL returns HTTP 403 with a Cloudflare 'Just a moment...' automated challenge, blocking the ad-posting form (same platform/pattern as adslov.com).",
-        "httpStatus": "403",
+        "httpStatus": 403,
         "finalUrl": "https://pixolinks.com/index.php?view=post&cityid=482&lang=en&catid=1&subcatid=1&shortcutregion=0&",
         "title": "Just a moment..."
       }
@@ -23144,7 +23105,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "Homepage returns HTTP 403 with a Cloudflare 'Just a moment...' challenge even with a browser User-Agent, blocking any view of the product-submission flow.",
-        "httpStatus": "403",
+        "httpStatus": 403,
         "finalUrl": "https://www.producthunt.com/",
         "title": "Just a moment..."
       },
@@ -24297,7 +24258,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "retailads.net is a performance/affiliate ad network for publishers; the page found is a free publisher-registration page ('Jetzt hier kostenlos als Publisher registrieren') — joining requires creating a publisher account, not a one-off form submission.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://retailads.net/de-de/publisher/registrierung/",
         "title": "Jetzt hier kostenlos als Publisher registrieren | retailAds"
       }
@@ -24814,11 +24775,6 @@
         "source": "semrush",
         "db": null,
         "globalRank": null
-      },
-      "authority": {
-        "score": 14,
-        "metric": "Semrush Authority Score",
-        "checkedAt": "2026-08-27T02:52:26.925+08:00"
       }
     },
     {
@@ -25413,7 +25369,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "The /submit page's own text says 'Please log in or sign up first' before a link can be submitted to this daily design-links newsletter/site.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://sidebar.io/submit",
         "title": "Sidebar | Submit a Link"
       }
@@ -27001,7 +26957,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "The /submit/ page returns HTTP 429 with a 'Vercel Security Checkpoint' bot-protection interstitial even with a browser User-Agent, blocking access to StackShare's tool-submission form.",
-        "httpStatus": "429",
+        "httpStatus": 429,
         "finalUrl": "https://stackshare.io/submit/",
         "title": "Vercel Security Checkpoint"
       },
@@ -27293,7 +27249,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "The /site/submit page returns HTTP 403 with a Cloudflare 'Just a moment...' challenge even with a browser User-Agent, blocking the startup-submission form.",
-        "httpStatus": "403",
+        "httpStatus": 403,
         "finalUrl": "https://startupbuffer.com/site/submit",
         "title": "Just a moment..."
       },
@@ -28808,7 +28764,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "A real multi-step submission wizard (Details -> Additional Information -> Pricing Plans -> Finish) with Name/Website URL/Category fields is present; 'Pricing Plans' is a step describing the tool's own pricing model, not a listing fee. No CAPTCHA, login, or password field found.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://thataicollection.com/submit/details/",
         "title": "That AI Collection"
       },
@@ -29614,7 +29570,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "Page explicitly offers a 'Free Listing' tier (get listed in the directory, do-follow backlink) alongside a paid $49 tier for faster/more prominent placement, with separate /submit-free and /submit/paid routes; no CAPTCHA or login markers found.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://www.tipseason.com/ai-tools/submit",
         "title": "Submit Your AI Tool | Pricing Plans"
       },
@@ -31369,7 +31325,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "The classified-ad post URL returns HTTP 403 with a Cloudflare 'Just a moment...' automated challenge, blocking the ad-posting form (same platform/pattern as adslov.com).",
-        "httpStatus": "403",
+        "httpStatus": 403,
         "finalUrl": "https://uycart.com/index.php?view=post&cityid=476&lang=en&catid=1&subcatid=1&shortcutregion=0&",
         "title": "Just a moment..."
       },
@@ -31543,7 +31499,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "Page shows a company-submission flow with an email field, free review ('reviewed within 21 days') or a paid 'Fast Track' Premium Profile at $75 (50% lifetime discount) for immediate approval; a login/password field also appears on the page (for existing accounts) but is not required to start a new submission.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://www.ventureradar.com/submitcompany?utm_source=VR&utm_medium=Website&utm_content=Landing",
         "title": "VentureRadar"
       },
@@ -32799,7 +32755,7 @@
       "evidence": {
         "method": "anonymous-http",
         "what": "The original /add.php route 404s, but the homepage links to biz.worldweb-directory.com/add-a-business (needs -k due to a certificate issue), which loads (title 'Add a business') with no CAPTCHA or password field detected in the HTML.",
-        "httpStatus": "200",
+        "httpStatus": 200,
         "finalUrl": "https://biz.worldweb-directory.com/add-a-business",
         "title": "Add a business"
       },
@@ -32838,11 +32794,6 @@
         "monthlyVisits": 27770,
         "checkedAt": "2026-08-27T03:17:57.794+08:00",
         "source": "Similarweb total visits via authenticated Tools Share browser session"
-      },
-      "authority": {
-        "score": 32,
-        "metric": "Semrush Authority Score",
-        "checkedAt": "2026-08-27T03:01:07.039+08:00"
       }
     },
     {
