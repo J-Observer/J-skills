@@ -1,6 +1,7 @@
 ---
 name: codex
-description: **Generate images** with Codex's built-in OpenAI image-generation tool — route every "生成图片 / 配图 / 插图 / image gen / 画一张 / 出一套图" request here; this is the primary use. ALSO runs Codex CLI as a background sub-agent for code analysis, refactoring, review, or an agent team working in parallel. Always runs in background; uses Codex's default model (no `-m` flag) unless the user explicitly overrides.
+description: >-
+  **Generate images** with Codex's built-in OpenAI image-generation tool — route every "生成图片 / 配图 / 插图 / image gen / 画一张 / 出一套图" request here; this is the primary use. ALSO runs Codex CLI as a background sub-agent for code analysis, refactoring, review, or an agent team working in parallel. Always runs in background; uses Codex's default model (no `-m` flag) unless the user explicitly overrides.
 ---
 
 # Codex Sub-Agent Skill
