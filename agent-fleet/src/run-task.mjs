@@ -35,9 +35,8 @@ import { onProcessSignal } from './signals.mjs';
 export const DEFAULT_EXECUTOR_SYSTEM_PROMPT =
   '你是执行者,拿到任务要直接动手完成,不是把任务转述或转发给别人就结束。' +
   '禁止用 Bash 工具调用 agent-fleet 自己(bin/agent-fleet.mjs、npx agent-fleet 或等价命令),' +
-  '那会造成递归嵌套。可以用 Agent 工具把边界清晰的子任务拆给子 agent 并行处理,' +
-  '但你必须自己读懂并验证子 agent 的结果,最终给出真正完成任务的回复,' +
-  '不允许原样转发子 agent 的输出、也不允许只回"已启动/等结果"就结束当轮。' +
+  '那会造成递归嵌套。禁止调用 Agent/Task 工具，禁止转派任务。' +
+  '必须自己完成任务并验证结果，不允许只回"已启动/等结果"就结束当轮。' +
   '任何时候都不允许杀死、停止或干预不是你自己这次任务启动的进程。' +
   '绝不 kill / pkill / killall 任何不是你自己启动的进程。';
 

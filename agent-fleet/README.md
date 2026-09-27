@@ -1,5 +1,16 @@
 # agent-fleet — 通用多模型子任务执行工具
 
+## 快速开始
+
+```bash
+ln -sf /Users/kcsx/Project/kcsx/macmini/yan-skills/agent-fleet/bin/fleet ~/.local/bin/fleet
+fleet copy brief.md --cwd /path/to/project
+fleet code brief.md --cwd /path/to/project
+fleet judge state.txt questions.json
+```
+
+`brief.md` 也可以直接写成任务文本；默认当前目录、500 轮、安静模式。`--verbose` 显示进度。短命令和模型对应关系见 [skill](skill/SKILL.md)。
+
 给它一个任务描述 + 一个模型,它就用 [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-typescript)
 驱动一个完整的自主 Agent(能读写文件、跑 bash、多轮工具调用直到任务完成)去执行,权限模式固定
 `bypassPermissions`(不需要人工逐步确认每一步),跑完把结果返回。
@@ -98,7 +109,7 @@ node bin/agent-fleet.mjs judge --model jev --state-file state.txt --questions-fi
 
 | 任务类型 | 推荐模型 / 友好名字 | 理由 |
 |---|---|---|
-| 写代码 / 修 bug / 补测试 | 本机 Codex CLI 的 `gpt-6-sol`，默认 `medium`，简单任务 `low` | 后台执行；不可用时 GPT 托管别名，再回退 Grok 4.7；GLM 不作为编程默认 |
+| 写代码 / 修 bug / 补测试 | 本机 Codex CLI 的 `gpt-6-sol`，默认 `medium`，简单任务 `low` | `fleet code` 在 Codex 缺失、登录失效或模型明确不支持时回退 GPT 托管别名；GLM 不作为编程默认 |
 | 写作 / 翻译 / 调研 / 母语校对（写文档、写报告、核实资料） | `kollab-gateway-copy`(`gemini-3.8-flash`)或 `kollab-gateway`(默认同款) | 响应迅速、成本低，即用免第三方审批。长报告换 `gemini-3.1-pro`。**注意：实测 `gemini-3.8-flash` 做多文件代码改动容易跑满轮数零产出，绝对不要派它写代码** |
 | 批量翻译 / 格式转换 | `deepseek-v4.1-flash`(需配 `DEEPSEEK_API_KEY`)或 `kollab-gateway-bulk`(`gemini-3.5-flash-lite`,即用免配置) | 官方 Flash 档更便宜;没有 DeepSeek key 时 `kollab-gateway-bulk` 是免第三方审批的平替 |
 | 简单调研摘要 | `kimi`(需配 `MOONSHOT_API_KEY`,自带联网搜索)或 `kollab-gateway-research`(`grok-4.7`,即用免配置) | Kimi 官方端点自带联网检索能力,适合真正需要查资料的调研;不想等 key 审批时用 `kollab-gateway-research` 顶上 |
@@ -207,7 +218,8 @@ agent-fleet resume <run-id> "接着把剩下的做完"
 
 ### 常用选项
 
-- `--max-turns <n>`:限制最大工具调用轮数,避免任务跑飞
+- `--max-turns <n>`:限制最大工具调用轮数,默认 500
+- `--verbose`:恢复 stderr 实时进度；默认安静写日志
 - `--system-prompt <text>`:追加系统提示。会接在下面「默认执行者系统提示」之后,两者都保留,
   不是二选一(见「子 agent 模型映射」一节下方的说明)
 - `--models-config <path>`:临时换一份配置文件(默认用包目录下的 `models.config.json`)
@@ -289,8 +301,7 @@ ANTHROPIC_DEFAULT_SONNET_MODEL=<subagentModel 的值>
 **默认执行者系统提示**:每次 `run`/`run-many` 都会用 SDK 的
 `systemPrompt: { type: 'preset', preset: 'claude_code', append: '...' }` 写法追加一段默认提示
 (见 `src/run-task.mjs` 的 `DEFAULT_EXECUTOR_SYSTEM_PROMPT`):你是执行者,要直接动手完成任务、
-不能只转发或转述;禁止用 Bash 反过来调用 agent-fleet 自己(会造成递归嵌套);可以用 Agent 工具
-拆子任务但必须自己验证并汇总结果;不允许杀死不是自己启动的进程。用 `preset+append` 而不是替换,
+不能只转发或转述;禁止用 Bash 反过来调用 agent-fleet 自己(会造成递归嵌套);禁止调用 Agent/Task 工具或转派任务；不允许杀死不是自己启动的进程。用 `preset+append` 而不是替换,
 是为了保留 Claude Code 自带的默认系统提示(工具定义等)——`--system-prompt` 传入的文本接在这段
 默认提示之后,两者都保留,不是二选一。
 

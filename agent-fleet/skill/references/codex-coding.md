@@ -1,38 +1,22 @@
-# Codex 后台编程与精简 review
+# Codex 编程与 review
 
-## 选择与前置检查
-
-本机已装 Codex 时，优先 `gpt-6-sol`：常规编程 `medium`，单文件、边界明确且已有测试的简单修改 `low`。不要默认升到更高思考程度。文案仍交给 Gemini；GPT 用于编程和较大任务的结果 review。
-
-先运行 `command -v codex`、`codex --version` 和 `codex login status`，不读取/打印 auth 文件。模型缓存、菜单或配置中的名字仅是候选，真实成功返回和测试通过才证明可用。若明确报模型不支持，检查 CLI 版本与账号能力；有版本兼容依据才升级，诊断后至多重试一次，仍拒绝就走回退，不要求额外供应商 key、不自动购买套餐。
-
-回退顺序：Codex GPT-6 Sol → 已配置托管 `kollab-gateway-gpt-sol` → Grok 4.7 `kollab-gateway-research`。网关只走 Kollab → LiteLLM；网关单次文本验证不等于 SDK 多轮编程验证。遇到失败先核对任务是否已写入文件，保留产物；不能另开一份重复执行。
-
-## 后台执行
-
-沿用本机 codex/imagegen skill 的 `codex exec`、stdin 提示词文件、`-C` 和 `-o` 方式。本规则明确指定模型，覆盖 codex skill 的“不传 -m”默认；不修改用户全局模型、登录或权限设置。
-
-先准备独立工作目录和提示词文件。在 brief 里明确：你就是执行者，不调用 agent-fleet、不转派；任务目标；允许读/写的绝对路径；禁止改的文件；必须通过的检查；不要擅自提交/发布。执行者不是唯一写入者，必须保留别人的修改。
+## 执行
 
 ```bash
-codex exec --skip-git-repo-check \
-  -m gpt-6-sol -c model_reasoning_effort=medium \
-  --sandbox workspace-write -C <独立任务目录> \
-  -o <任务目录外的结果文件> - < <提示词文件> \
-  > <任务目录外的日志文件> 2>&1
+fleet code brief.md --cwd <项目目录>
+fleet code brief.md --low --cwd <项目目录>
+fleet code brief.md --review --cwd <项目目录>
 ```
 
-通过当前宿主工具的后台执行能力启动（例如 Bash `run_in_background`，或 exec 返回 session ID）；记录任务、模型、effort、目录、session ID、结果文件。不要长时间前台 watch，不用紧密轮询。用户问状态时单次读取即可。完成后取最终短报告，自己检查 diff 和运行针对性测试；退出码 0 或模型说完成不够。不要把完整思考日志搬到主线程。
+默认本机 `gpt-6-sol`、medium、`workspace-write`；`--low` 改为 low，`--review` 改为只读并在 brief 前加入下方审查模板。`brief.md` 可换成直接输入的任务文本。结果和日志写入 `~/.agent-fleet/runs/`，结束后核对 diff、产物及相关测试；退出码 0 不等于验收通过。
 
-简单任务将 `medium` 改为 `low`；review 改为 `--sandbox read-only`。需要网络或沙箱限制确实阻碍授权操作时再选择 `danger-full-access` 并说明，不要默认为所有任务关闭沙箱。先完成 executor，再启动 reviewer，不允许两者并行写同一批文件。独立目录或工作树的创建遵循宿主项目规则。
+Codex 不存在、登录失效或模型明确不支持时，自动回退到 `kollab-gateway-gpt-sol`。其他失败保留日志，不自动重试。不要把登录文件或密钥打印出来。
 
 ## 哪些任务需要额外 review
 
 - 需要：跨模块或较大重构；数据迁移；权限、计费、删除或外部写入；执行结果不明确；目标项目强制要求独立 review。
-- 通常不需要：文案、排版、简单配置或有明确测试的单点修复。执行者必须检查产物和跑相关测试，但不为这些任务额外派一个模型。
-- 用户/项目要求 review 时必须执行；这份节省规则不能跳过强制检查。
-
-用独立的只读 GPT-6 Sol `medium` 审查范围内最终 diff、实际产物与测试结果。必要时 `codex exec review`/`codex review` 可以用于 Git diff；先看当前 `--help`，不能假定选定 diff 标志可以和自定义 prompt 组合。需要严格控制报告格式时，使用上方普通 `exec` 配合如下提示词即可。
+- 通常不需要：文案、排版、简单配置或有明确测试的单点修复。执行者仍须检查产物和跑相关测试。
+- 用户或项目要求 review 时执行；审查发现问题后修复并重跑受影响检查。
 
 ## 可直接使用的 review 提示词
 
@@ -50,14 +34,6 @@ codex exec --skip-git-repo-check \
 没有实际问题就只回复“通过：未发现需要修复的实际问题。”，不凑建议。
 ```
 
-主代理核实发现，修复真实问题，重跑受影响检查；只在修改范围或未解决发现需要时再 review，不做无限全量审查。最终对用户最多三行说结果，不倾倒审计报告。
-
 ## 本机验证记录
 
-2026-09-27，本机 Homebrew Codex CLI 从 0.153.4 更新至 0.157.1（旧版 ChatGPT 登录拒绝 `gpt-6-sol`，按安装来源升级后成功；不改变登录、全局模型或套餐）：
-
-- `gpt-6-sol` + `medium` + `workspace-write`：后台实现 Python 时长解析，四种合法输入和六种非法输入均通过；主代理重跑通过，原测试未修改。
-- `gpt-6-sol` + `low` + `workspace-write`：后台修复单文件 clamp 的反向上下界，正常路径和非法边界通过；主代理重跑通过，原测试未修改。
-- `gpt-6-sol` + `medium` + `read-only`：发现满 50 免运费代码把 `>=` 写成 `>` 的实际错误，仅三行给位置、输入、影响及最小修复，没有额外安全/架构建议。
-
-以上证明本机当前账号的 native Codex 编程与简短 review 可用，不代表其他电脑的账号权限；升级版本本身也不保证可用。官方参数说明见 [Codex 模型选择](https://learn.chatgpt.com/docs/models#choose-a-model)，实际权限以调用结果为准。
+2026-09-27，本机 Codex CLI 0.157.1：`gpt-6-sol` 的 medium/low 编码及 medium 只读审查曾通过独立样例验证。历史结果只说明当时账号可用；当前以实际运行和测试为准。

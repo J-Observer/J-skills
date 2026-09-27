@@ -30,73 +30,25 @@ import { tailLatestLog } from '../src/tail-log.mjs';
 import { DEFAULT_BRIEF_LINES, renderManyOutput, renderRunOutput } from '../src/brief.mjs';
 import { collectStatus, deliverSay, formatStatusHuman, requestStop } from '../src/control.mjs';
 import { readPidRecord, resolveRunId } from '../src/pid.mjs';
+import { shortRunOptions, splitShortArgs, resolveBrief } from '../src/shortcuts.mjs';
+import { runCode } from '../src/code-runner.mjs';
 
 const PKG_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const PKG_VERSION = JSON.parse(readFileSync(join(PKG_ROOT, 'package.json'), 'utf8')).version;
 
-const HELP_TEXT = `agent-fleet ${PKG_VERSION} — 通用多模型子任务执行工具
+const HELP_TEXT = `fleet ${PKG_VERSION} — 简短任务入口
 
-用法:
-  agent-fleet run --model <友好名字> --prompt "<任务描述>" [选项]
-  agent-fleet run-many --config <batch.json> [选项]
-  agent-fleet judge --model <友好名字> --state-file <path> --questions-file <path> [选项]
-  agent-fleet status [--cwd <dir>]
-  agent-fleet say <run-id|latest> "<消息>" [--cwd <dir>]
-  agent-fleet stop <run-id|latest> [--grace 60] [--cwd <dir>]
-  agent-fleet resume <run-id|latest> ["追加指令"] [选项]
-  agent-fleet tail [--follow]
-  agent-fleet list-models
-  agent-fleet --help | --version
+  fleet copy|grok|bulk|gpt <brief文件或文本> [--cwd dir] [--verbose]
+  fleet code <brief文件或文本> [--low] [--review] [--cwd dir]
+  fleet judge <state文件> <questions文件> [--json]
+  fleet run --model name --prompt "任务" [--cwd dir] [--max-turns 500]
+  fleet run-many --config batch.json | status | tail [--follow]
+  fleet say <id|latest> "消息" | stop <id|latest> | resume <id|latest>
+  fleet list-models | help | --version
 
-run 选项:
-  --model <name>          必填。models.config.json 里的友好名字(如 deepseek-v4.1-flash)
-  --prompt <text>          必填。任务描述
-  --cwd <dir>               Agent 读写文件/跑 bash 的工作目录,默认当前目录
-  --max-turns <n>           限制最大工具调用轮数
-  --system-prompt <text>    追加的系统提示
-  --json                    stdout 只输出一个合法 JSON(默认是简报对象);进度一律走 stderr
-  --quiet                   进度不输出到 stderr,只写入日志文件
-                            (~/.agent-fleet/runs/<ISO时间>-<模型名>.log,可用 tail 查看)
-  --full                    恢复旧版完整最终回复到 stdout(默认把全文写进 .result.md,stdout 只给简报)
-  --brief-lines <n>         简报里最终回复预览行数,默认 3
-  --expect-changes          声明任务需要改文件;零改动时 verdict=suspect
-  --judge                   进程内调 JEV,问「最终回复是否满足任务要求」;无 TYPESAFE_API_KEY 则跳过
-
-run-many 选项:
-  --config <path>           必填。批量任务文件,JSON 数组,每项 { model, prompt, cwd? }
-  --cwd <dir>               任务没写 cwd 时的默认工作目录
-  --json                    stdout 只输出一个合法 JSON 数组;进度一律走 stderr
-  --quiet                   同 run;每个任务的日志 label 是「#序号-模型名」
-  --full / --brief-lines / --expect-changes / --judge  同 run;简报每任务一段
-
-控制面:
-  status                    列出 pid.json 对应进程仍存活的任务;pid 已死未标 finished 显示异常终止
-  status --cwd <dir>        只列该目录下的任务;默认列全部
-  say <id|latest> "<消息>"  追加到该任务收件箱,运行中进程会作为新 user 消息推入
-  stop <id|latest>          先投递收尾指令,宽限期后 interrupt,再 SIGTERM,再 5 秒 SIGKILL
-  --grace <秒>              stop 的宽限期,默认 60
-  --cwd <dir>               say/stop/resume 的 latest 只匹配该目录(realpath);默认 process.cwd();匹配不到不回退全局
-  resume <id|latest> ["追加"]  用 pid.json 里的 sessionId + model + cwd 续跑,生成新 run-id
-
-tail 选项:
-  --follow                  打印最新日志后持续跟随新增内容,直到出现 done ok / done error 行
-
-judge 选项(protocol: typesafe-systemone 的模型专用,如 jev——不生成文本、不支持多轮
-工具调用,给它一段 state + 类型化 questions,拿回结构化判断,不能用 run/run-many):
-  --model <name>            必填。models.config.json 里 protocol 是 typesafe-systemone 的友好名字(如 jev)
-  --state-file <path>       必填。要评估的内容,纯文本文件,或 .json 结尾时按 JSON 解析成结构化 state
-  --questions-file <path>    必填。JSON 文件:{ 问题key: { type: "noul"|"choice"|"score", instructions, criteria? } }
-  --json                    输出结构化 JSON 而不是人类可读文本
-
-全局选项:
-  --models-config <path>    覆盖默认的 models.config.json 路径
-
-示例:
-  agent-fleet run --model deepseek-v4.1-flash --prompt "帮我调研一下 XX 竞品有哪些定价策略"
-  agent-fleet run --model kimi --prompt "把 README 翻译成英文" --cwd ~/some-project --json
-  agent-fleet run-many --config batch.json
-  agent-fleet judge --model jev --state-file ticket.txt --questions-file questions.json --json
-  agent-fleet tail --follow
+run 默认 500 轮、安静、当前目录；--verbose 显示进度。--quiet、--max-turns、--cwd、
+--system-prompt、--json、--full、--brief-lines、--expect-changes、--judge 可选。
+code 的 --review 使用只读沙箱与内置审查提示词；旧 agent-fleet 长命令继续可用。
 `;
 
 /** 去掉 `--flag value` / `--flag` 后剩下的位置参数。 */
@@ -146,6 +98,7 @@ function outputOptions(flags, config) {
 
 async function cmdRun(argv) {
   const flags = parseFlags(argv);
+  if (flags.help) { console.log(HELP_TEXT); return; }
   if (!flags.model || !flags.prompt) {
     console.error('缺少必填参数。用法: agent-fleet run --model <name> --prompt "<text>" [选项]');
     process.exitCode = 1;
@@ -155,13 +108,13 @@ async function cmdRun(argv) {
   const config = loadModelsConfig(flags['models-config'] ? resolvePath(flags['models-config']) : undefined);
   // 进度行实时打到 stderr,并同步写进 ~/.agent-fleet/runs/<ISO时间>-<模型名>.log(tail 的
   // 数据源);--quiet 时 stderr 静音,文件照写。日志文件路径在启动时已由进度对象打到 stderr。
-  const progress = createProgress({ quiet: Boolean(flags.quiet), label: String(flags.model) });
+  const progress = createProgress({ quiet: !flags.verbose || Boolean(flags.quiet), label: String(flags.model) });
   const result = await runTask({
     friendlyModel: flags.model,
     prompt: flags.prompt,
     cwd: flags.cwd ? resolvePath(flags.cwd) : process.cwd(),
     config,
-    maxTurns: flags['max-turns'] ? Number(flags['max-turns']) : undefined,
+    maxTurns: flags['max-turns'] === undefined ? 500 : Number(flags['max-turns']),
     systemPrompt: flags['system-prompt'],
     progress,
   });
@@ -200,7 +153,10 @@ async function cmdRunMany(argv) {
 
   let results;
   try {
-    results = await runMany(tasks, { config, defaultCwd, quiet: Boolean(flags.quiet) });
+    const maxTurns = flags['max-turns'] === undefined ? 500 : Number(flags['max-turns']);
+    results = await runMany(tasks.map((task) => ({ ...task, maxTurns: task.maxTurns ?? maxTurns })), {
+      config, defaultCwd, quiet: !flags.verbose || Boolean(flags.quiet),
+    });
   } catch (err) {
     console.error(`batch 任务格式错误: ${err.message}`);
     process.exitCode = 1;
@@ -362,13 +318,13 @@ async function cmdResume(argv) {
   const config = loadModelsConfig(flags['models-config'] ? resolvePath(flags['models-config']) : undefined);
   const model = flags.model || rec.model;
   const cwd = flags.cwd ? resolvePath(flags.cwd) : rec.cwd || process.cwd();
-  const progress = createProgress({ quiet: Boolean(flags.quiet), label: String(model) });
+  const progress = createProgress({ quiet: !flags.verbose || Boolean(flags.quiet), label: String(model) });
   const result = await runTask({
     friendlyModel: model,
     prompt,
     cwd,
     config,
-    maxTurns: flags['max-turns'] ? Number(flags['max-turns']) : undefined,
+    maxTurns: flags['max-turns'] === undefined ? 500 : Number(flags['max-turns']),
     systemPrompt: flags['system-prompt'],
     progress,
     resume: rec.sessionId,
@@ -412,12 +368,47 @@ function cmdListModels(argv) {
   }
 }
 
+function flagArgs(flags, omitted = []) {
+  return Object.entries(flags)
+    .filter(([key, value]) => !omitted.includes(key) && value !== undefined)
+    .flatMap(([key, value]) => value === true ? [`--${key}`] : [`--${key}`, String(value)]);
+}
+
+async function cmdShortRun(command, argv) {
+  const options = shortRunOptions(command, argv);
+  await cmdRun(['--model', options.model, '--prompt', options.prompt, ...flagArgs(options.flags, ['model', 'prompt'])]);
+}
+
+async function cmdCode(argv) {
+  const { positionals, flags } = splitShortArgs(argv);
+  const prompt = resolveBrief(flags.prompt ?? positionals[0]);
+  const cwd = flags.cwd ? resolvePath(flags.cwd) : process.cwd();
+  const result = await runCode({
+    prompt, cwd, low: Boolean(flags.low), review: Boolean(flags.review),
+    onFallback: async (reason, fullPrompt) => {
+      console.error(`${reason}，改走 kollab-gateway-gpt-sol。`);
+      await cmdRun(['--model', 'kollab-gateway-gpt-sol', '--prompt', fullPrompt,
+        ...flagArgs(flags, ['prompt', 'low', 'review', 'model'])]);
+      return null;
+    },
+  });
+  if (!result) return;
+  process.stdout.write(await renderRunOutput(result, outputOptions(flags)));
+  process.exitCode = result.ok ? 0 : 1;
+}
+
+async function cmdShortJudge(argv) {
+  const { positionals, flags } = splitShortArgs(argv);
+  await cmdJudge(['--model', 'jev', '--state-file', positionals[0] ?? '', '--questions-file', positionals[1] ?? '',
+    ...flagArgs(flags, ['model', 'state-file', 'questions-file'])]);
+}
+
 async function main() {
   loadEnvFile(join(PKG_ROOT, '.env'));
 
   const [command, ...rest] = process.argv.slice(2);
 
-  if (!command || command === '--help' || command === '-h') {
+  if (!command || command === 'help' || command === '--help' || command === '-h') {
     console.log(HELP_TEXT);
     return;
   }
@@ -428,14 +419,24 @@ async function main() {
 
   try {
     switch (command) {
+      case 'copy':
+      case 'grok':
+      case 'bulk':
+      case 'gpt':
+        await cmdShortRun(command, rest);
+        break;
+      case 'code':
+        await cmdCode(rest);
+        break;
+      case 'judge':
+        if (rest.some((arg) => arg === '--model' || arg === '--state-file' || arg === '--questions-file')) await cmdJudge(rest);
+        else await cmdShortJudge(rest);
+        break;
       case 'run':
         await cmdRun(rest);
         break;
       case 'run-many':
         await cmdRunMany(rest);
-        break;
-      case 'judge':
-        await cmdJudge(rest);
         break;
       case 'tail':
         await cmdTail(rest);
