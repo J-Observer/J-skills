@@ -21,13 +21,15 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve as resolvePath } from 'node:path';
 
 import { loadEnvFile } from '../src/env.mjs';
-import { loadModelsConfig, defaultConfigPath, resolveModel, ConfigError } from '../src/config.mjs';
+import { loadModelsConfig, defaultConfigPath, ConfigError } from '../src/config.mjs';
 import { runTask } from '../src/run-task.mjs';
 import { runMany } from '../src/run-many.mjs';
 import { judgeTask } from '../src/judge-task.mjs';
 import { createProgress } from '../src/progress.mjs';
 import { tailLatestLog } from '../src/tail-log.mjs';
 import { DEFAULT_BRIEF_LINES, renderManyOutput, renderRunOutput } from '../src/brief.mjs';
+import { collectStatus, deliverSay, formatStatusHuman, requestStop } from '../src/control.mjs';
+import { readPidRecord, resolveRunId } from '../src/pid.mjs';
 
 const PKG_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const PKG_VERSION = JSON.parse(readFileSync(join(PKG_ROOT, 'package.json'), 'utf8')).version;
@@ -38,6 +40,10 @@ const HELP_TEXT = `agent-fleet ${PKG_VERSION} — 通用多模型子任务执行
   agent-fleet run --model <友好名字> --prompt "<任务描述>" [选项]
   agent-fleet run-many --config <batch.json> [选项]
   agent-fleet judge --model <友好名字> --state-file <path> --questions-file <path> [选项]
+  agent-fleet status [--cwd <dir>]
+  agent-fleet say <run-id|latest> "<消息>" [--cwd <dir>]
+  agent-fleet stop <run-id|latest> [--grace 60] [--cwd <dir>]
+  agent-fleet resume <run-id|latest> ["追加指令"] [选项]
   agent-fleet tail [--follow]
   agent-fleet list-models
   agent-fleet --help | --version
@@ -63,6 +69,15 @@ run-many 选项:
   --quiet                   同 run;每个任务的日志 label 是「#序号-模型名」
   --full / --brief-lines / --expect-changes / --judge  同 run;简报每任务一段
 
+控制面:
+  status                    列出 pid.json 对应进程仍存活的任务;pid 已死未标 finished 显示异常终止
+  status --cwd <dir>        只列该目录下的任务;默认列全部
+  say <id|latest> "<消息>"  追加到该任务收件箱,运行中进程会作为新 user 消息推入
+  stop <id|latest>          先投递收尾指令,宽限期后 interrupt,再 SIGTERM,再 5 秒 SIGKILL
+  --grace <秒>              stop 的宽限期,默认 60
+  --cwd <dir>               say/stop/resume 的 latest 只匹配该目录(realpath);默认 process.cwd();匹配不到不回退全局
+  resume <id|latest> ["追加"]  用 pid.json 里的 sessionId + model + cwd 续跑,生成新 run-id
+
 tail 选项:
   --follow                  打印最新日志后持续跟随新增内容,直到出现 done ok / done error 行
 
@@ -83,6 +98,21 @@ judge 选项(protocol: typesafe-systemone 的模型专用,如 jev——不生成
   agent-fleet judge --model jev --state-file ticket.txt --questions-file questions.json --json
   agent-fleet tail --follow
 `;
+
+/** 去掉 `--flag value` / `--flag` 后剩下的位置参数。 */
+function positionalArgs(argv) {
+  const out = [];
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (!arg.startsWith('--')) {
+      out.push(arg);
+      continue;
+    }
+    const next = argv[i + 1];
+    if (next !== undefined && !next.startsWith('--')) i++;
+  }
+  return out;
+}
 
 /** 从 argv 里手动摘取形如 `--flag value` 和布尔开关 `--flag` 的参数,不引入额外依赖。 */
 function parseFlags(argv) {
@@ -254,6 +284,100 @@ async function cmdTail(argv) {
   }
 }
 
+function matchCwd(flags) {
+  return flags.cwd ? resolvePath(flags.cwd) : process.cwd();
+}
+
+function cmdStatus(argv) {
+  const flags = parseFlags(argv);
+  const rows = collectStatus(flags.cwd ? { cwd: resolvePath(flags.cwd) } : {});
+  process.stdout.write(formatStatusHuman(rows));
+}
+
+function cmdSay(argv) {
+  const flags = parseFlags(argv);
+  const positionals = positionalArgs(argv);
+  const spec = positionals[0];
+  const text = positionals.slice(1).join(' ').trim();
+  try {
+    const { runId } = deliverSay(spec, text, { cwd: matchCwd(flags) });
+    console.log(`已投递到 ${runId}`);
+  } catch (err) {
+    console.error(err.message);
+    process.exitCode = 1;
+  }
+}
+
+async function cmdStop(argv) {
+  const flags = parseFlags(argv);
+  const spec = positionalArgs(argv)[0];
+  if (!spec) {
+    console.error('缺少 run-id。用法: agent-fleet stop <run-id|latest> [--grace 60]');
+    process.exitCode = 1;
+    return;
+  }
+  try {
+    const outcome = await requestStop(spec, {
+      grace: flags.grace === undefined ? 60 : Number(flags.grace),
+      cwd: matchCwd(flags),
+    });
+    const extra = outcome.skippedSignal ? ` (${outcome.skippedSignal})` : '';
+    console.log(`已请求停止 ${outcome.runId}${outcome.signaled ? ' 并发送信号' : extra}`);
+  } catch (err) {
+    console.error(err.message);
+    process.exitCode = 1;
+  }
+}
+
+async function cmdResume(argv) {
+  const flags = parseFlags(argv);
+  const positionals = positionalArgs(argv);
+  const spec = positionals[0];
+  if (!spec) {
+    console.error('缺少 run-id。用法: agent-fleet resume <run-id> ["追加指令"] [选项]');
+    process.exitCode = 1;
+    return;
+  }
+  let runId;
+  try {
+    runId = resolveRunId(spec, matchCwd(flags));
+  } catch (err) {
+    console.error(err.message);
+    process.exitCode = 1;
+    return;
+  }
+  const rec = readPidRecord(runId);
+  if (!rec) {
+    console.error(`找不到任务 ${runId} 的 pid.json`);
+    process.exitCode = 1;
+    return;
+  }
+  if (!rec.sessionId) {
+    console.error(`任务 ${runId} 的 pid.json 没有 sessionId,无法 resume。`);
+    process.exitCode = 1;
+    return;
+  }
+  const extra = typeof flags.prompt === 'string' ? flags.prompt : positionals.slice(1).join(' ').trim();
+  const prompt = extra || '继续完成上次未完成的工作，简要说明当前进度并给出结果。';
+  const config = loadModelsConfig(flags['models-config'] ? resolvePath(flags['models-config']) : undefined);
+  const model = flags.model || rec.model;
+  const cwd = flags.cwd ? resolvePath(flags.cwd) : rec.cwd || process.cwd();
+  const progress = createProgress({ quiet: Boolean(flags.quiet), label: String(model) });
+  const result = await runTask({
+    friendlyModel: model,
+    prompt,
+    cwd,
+    config,
+    maxTurns: flags['max-turns'] ? Number(flags['max-turns']) : undefined,
+    systemPrompt: flags['system-prompt'],
+    progress,
+    resume: rec.sessionId,
+    resumedFrom: runId,
+  });
+  process.stdout.write(await renderRunOutput(result, outputOptions(flags, config)));
+  process.exitCode = result.ok ? 0 : result.fatal402 ? 2 : 1;
+}
+
 function cmdListModels(argv) {
   const flags = parseFlags(argv);
   const configPath = flags['models-config'] ? resolvePath(flags['models-config']) : defaultConfigPath();
@@ -318,6 +442,18 @@ async function main() {
         break;
       case 'list-models':
         cmdListModels(rest);
+        break;
+      case 'status':
+        cmdStatus(rest);
+        break;
+      case 'say':
+        cmdSay(rest);
+        break;
+      case 'stop':
+        await cmdStop(rest);
+        break;
+      case 'resume':
+        await cmdResume(rest);
         break;
       default:
         console.error(`未知子命令: ${command}\n`);

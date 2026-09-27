@@ -51,6 +51,10 @@ assert(
   '报错 → fail',
 );
 assert(
+  computeVerdict({ ok: false, stopped: true, result: '进度' }).verdict === 'stopped',
+  'stop 中断 → stopped',
+);
+assert(
   computeVerdict({
     ok: false,
     subtype: 'error_max_turns',

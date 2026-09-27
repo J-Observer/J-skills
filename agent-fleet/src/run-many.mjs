@@ -64,9 +64,19 @@ export async function runMany(tasks, { config, defaultCwd, quiet = false }) {
   // runTask 本身已经把已知错误(配置错误、SDK 异常)收敛成 { ok:false, error }
   // 形状返回,理论上不会走到 reject 分支;这里兜底处理是为了防御 runTask 之外
   // 未预见的同步异常(比如 batch 条目本身是畸形对象导致属性访问抛错)。
-  return settled.map((outcome, index) =>
-    outcome.status === 'fulfilled'
-      ? outcome.value
-      : { ok: false, model: tasks[index]?.model, prompt: tasks[index]?.prompt, error: String(outcome.reason?.message ?? outcome.reason) },
-  );
+  return settled.map((outcome, index) => {
+    if (outcome.status === 'fulfilled') {
+      const value = outcome.value;
+      if (value?.signal) {
+        return {
+          ...value,
+          error: value.error
+            ? `${value.error}（run-many 任务 #${index + 1} ${value.model ?? tasks[index]?.model} 被外部信号 ${value.signal} 终止）`
+            : `run-many 任务 #${index + 1} ${value.model ?? tasks[index]?.model} 被外部信号 ${value.signal} 终止`,
+        };
+      }
+      return value;
+    }
+    return { ok: false, model: tasks[index]?.model, prompt: tasks[index]?.prompt, error: String(outcome.reason?.message ?? outcome.reason) };
+  });
 }

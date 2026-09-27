@@ -375,6 +375,8 @@ for (const name of ['CLAUDE_CODE_SUBAGENT_MODEL', 'ANTHROPIC_DEFAULT_SONNET_MODE
 // 请求,不需要真的加载模型配置,直接手造一个 resolved 对象即可。
 const resolvedForPrompt = { baseURL: 'https://x.invalid', model: 'm', apiKey: 'k', authHeader: 'x-api-key', headers: {} };
 const optsNoCustomPrompt = buildQueryOptions({ resolved: resolvedForPrompt, cwd: '/tmp' });
+assert(optsNoCustomPrompt.resume === undefined, '没传 resume 时 options 不含 resume 字段');
+assert(buildQueryOptions({ resolved: resolvedForPrompt, cwd: '/tmp', resume: 'sess-1' }).resume === 'sess-1', '传了 resume 就写进 SDK options');
 assert(optsNoCustomPrompt.systemPrompt?.type === 'preset', 'systemPrompt 用 preset 形式,不是替换成一个裸字符串');
 assert(optsNoCustomPrompt.systemPrompt?.preset === 'claude_code', 'preset 是 claude_code,保留 Claude Code 自带的默认系统提示(工具定义等)');
 assert(optsNoCustomPrompt.systemPrompt?.append === DEFAULT_EXECUTOR_SYSTEM_PROMPT, '没传自定义 systemPrompt 时,append 就是默认执行者提示本身');

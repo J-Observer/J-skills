@@ -39,7 +39,8 @@ export function isEmptyResult(text) {
  * @param {boolean} [input.hasNewCommits]
  * @param {boolean} [input.hasUncommittedChanges]
  * @param {number} [input.judgeConfidence]  JEV noul 的 confidence;缺省表示没跑 judge
- * @returns {{ verdict: 'ok'|'partial'|'suspect'|'fail'|'needs-review', note?: string }}
+ * @param {boolean} [input.stopped]  被本工具 stop 或外部信号打断
+ * @returns {{ verdict: 'ok'|'partial'|'suspect'|'fail'|'needs-review'|'stopped', note?: string }}
  */
 export function computeVerdict({
   ok = false,
@@ -50,6 +51,7 @@ export function computeVerdict({
   hasNewCommits = false,
   hasUncommittedChanges = false,
   judgeConfidence = undefined,
+  stopped = false,
 } = {}) {
   const hasChanges = Boolean(hasNewCommits || hasUncommittedChanges);
   const hitMaxTurns = subtype === 'error_max_turns';
@@ -57,6 +59,7 @@ export function computeVerdict({
   const empty = isEmptyResult(text);
   const control = hasControlTokens(text);
 
+  if (stopped) return { verdict: 'stopped', note: error || '任务被停止' };
   if (control) return { verdict: 'fail', note: '最终回复含裸 tool-call 控制 token' };
   if (error && !hitMaxTurns) return { verdict: 'fail', note: error };
   if (!ok && !hitMaxTurns) return { verdict: 'fail', note: error || '任务失败' };

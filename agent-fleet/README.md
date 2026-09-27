@@ -98,11 +98,11 @@ node bin/agent-fleet.mjs judge --model jev --state-file state.txt --questions-fi
 
 | 任务类型 | 推荐模型 / 友好名字 | 理由 |
 |---|---|---|
-| 批量文案 / 创意写作 | `kollab-gateway-copy`(`gemini-3.8-flash`)或 `kollab-gateway`(默认同款) | 速度快、成本低,适合营销文案、社媒文案等对准确性要求不高、追求产量和多样性的写作 |
+| 写代码 / 修 bug / 补测试（常规开发、写脚本、CLI 子命令、API 链路） | `kollab-gateway-research`(`grok-4.6`) | 用户 2026-09-26 定调，编程任务默认路由到这里，产出由派单方自己核验，不合格才升级 Claude。**GLM `kollab-gateway-code` 已被用户叫停**（曾 30 分钟零改动交回 Skill 介绍，假成功） |
+| 写作 / 翻译 / 调研 / 母语校对（写文档、写报告、核实资料） | `kollab-gateway-copy`(`gemini-3.8-flash`)或 `kollab-gateway`(默认同款) | 响应迅速、成本低，即用免第三方审批。长报告换 `gemini-3.1-pro`。**注意：实测 `gemini-3.8-flash` 做多文件代码改动容易跑满轮数零产出，绝对不要派它写代码** |
 | 批量翻译 / 格式转换 | `deepseek-v4.1-flash`(需配 `DEEPSEEK_API_KEY`)或 `kollab-gateway-bulk`(`gemini-3.5-flash-lite`,即用免配置) | 官方 Flash 档更便宜;没有 DeepSeek key 时 `kollab-gateway-bulk` 是免第三方审批的平替 |
 | 简单调研摘要 | `kimi`(需配 `MOONSHOT_API_KEY`,自带联网搜索)或 `kollab-gateway-research`(`grok-4.6`,即用免配置) | Kimi 官方端点自带联网检索能力,适合真正需要查资料的调研;不想等 key 审批时用 `kollab-gateway-research` 顶上 |
 | 高质量单次产出(长文案定稿、复杂推理) | `deepseek-v4-pro`(需配 `DEEPSEEK_API_KEY`) | DeepSeek 官方 Opus 档位映射目标,适合一次成型、不想反复返工的任务 |
-| 编程任务 | `kollab-gateway-research`(`grok-4.6`) | 用户 2026-09-26 定调,编程任务默认路由到这里,产出由派单方自己核验,不合格才升级 Claude |
 | 自动化流程里的判断/路由节点(分类、打分、二元判断、"下一步选哪个候选") | `jev`(**走 `judge` 子命令,不是 `run`**) | 结构化决策 API,不生成文本、极便宜(≈$0.042/百万 input token,output 免费)、同一输入多次调用高度稳定,没有裸 tool-call 控制 token 这类失败模式(协议本身不返回自由文本)。详见上面「JEV / `judge` 子命令」一节的实测结论表 |
 | Kimi/DeepSeek/Qwen 家族、多轮工具调用容错要求高的任务 | 不建议派给这几个家族的第三方模型,留给 Claude 自己处理 | 这几个家族的模型已知存在 tool-calling 可靠性问题,有时会把裸的 tool-call 控制 token 当成普通文本吐出来而不是走结构化 `tool_use`,造成"进程正常退出但其实是假成功"——这是模型生成层面的问题,agent-fleet 的 harness 补不了,只能靠不把这类任务派给它们来规避。任何第三方模型只要某次实际输出里出现裸 tool-call 控制 token,那一次就要判定失败——不能因为路由到它就放松这条判定标准 |
 
@@ -166,7 +166,7 @@ node bin/agent-fleet.mjs run \
 
 想同时跑多个不同模型的任务,最简单的办法就是开多个终端(或用 `&` 丢后台)各自 `run` 一次——Claude
 Agent SDK 的设计就是"一个调用绑一个模型的独立进程",天然支持这样并发,不需要在单进程里做复杂的
-多模型切换。
+多模型切换。运行中可以用 `status` / `say` / `stop` 插话或收尾,见下方「运行中插话」。
 
 ### `run-many` — 一次命令批量并发跑一批任务
 
@@ -184,7 +184,26 @@ agent-fleet run-many --config batch.json [--json]
 ```
 
 内部用 `Promise.allSettled` 真正并发执行,每个任务独立成败——一个任务失败不会影响其它任务,最后
-把每个任务各自的结果按原始顺序一起返回。
+把每个任务各自的结果按原始顺序一起返回。某个任务被外部信号杀掉时,简报会写明是哪一个。
+
+### 运行中插话 / 停止 / 续跑
+
+`run` / `run-many` 启动时会写 `~/.agent-fleet/runs/<run-id>.pid.json`(pid、模型、cwd、日志路径;
+SDK 给出 `session_id` 后补写)。正常结束标记 `finished`。收件箱是同目录下的 `<run-id>.inbox`(JSONL)。
+
+```bash
+agent-fleet status
+agent-fleet say latest "改变计划:写到 step5 就停"
+agent-fleet stop latest --grace 20
+agent-fleet resume <run-id> "接着把剩下的做完"
+```
+
+- `status`:列出 pid 仍存活的任务。pid 已不在但未标 finished →「异常终止（可能被外部信号杀掉）」。
+- `say`:把消息追加进收件箱,运行中的 query 以 streaming input 推成新的 user 消息;日志会出现 `收到插话：…`。
+- `stop`:先投递「请立即收尾」;宽限期后 `query.interrupt()`,仍在则对该 pid 发 SIGTERM,再 5 秒 SIGKILL。发信号前校验 pid 来自该 run 的 pid.json,且 `ps` command 含 `agent-fleet` 并与记录一致。只杀这棵 pid 树,绝不 `pkill`/`killall`。结果文件和简报仍会写出,`verdict=stopped`。
+- `resume`:SDK `options.resume` 用 pid.json 里的 `sessionId` 续跑,生成新 run-id,简报带 `resumedFrom`。
+
+默认执行者提示里写明:绝不 `kill` / `pkill` / `killall` 任何不是你自己启动的进程。进程收到并非来自本工具 `stop` 的 SIGTERM/SIGINT 时,结果文件注明「被外部信号 X 终止」。
 
 ### 常用选项
 

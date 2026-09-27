@@ -12,6 +12,9 @@ import { buildIsolatedEnv, buildPinnedSettings } from './isolated-env.mjs';
 import { assertProjectSettingsTrusted, ProjectTrustError } from './project-trust.mjs';
 import { createProgress } from './progress.mjs';
 import { snapshotGit, inspectGit, attachArtifacts } from './brief.mjs';
+import { createPromptStream, ensureInbox, watchInbox } from './inbox.mjs';
+import { patchPidRecord, processCommand, readPidRecord, runIdFromLogPath, writePidRecord } from './pid.mjs';
+import { onProcessSignal } from './signals.mjs';
 
 /**
  * 默认追加给每个任务的执行者系统提示。
@@ -35,7 +38,8 @@ export const DEFAULT_EXECUTOR_SYSTEM_PROMPT =
   '那会造成递归嵌套。可以用 Agent 工具把边界清晰的子任务拆给子 agent 并行处理,' +
   '但你必须自己读懂并验证子 agent 的结果,最终给出真正完成任务的回复,' +
   '不允许原样转发子 agent 的输出、也不允许只回"已启动/等结果"就结束当轮。' +
-  '任何时候都不允许杀死、停止或干预不是你自己这次任务启动的进程。';
+  '任何时候都不允许杀死、停止或干预不是你自己这次任务启动的进程。' +
+  '绝不 kill / pkill / killall 任何不是你自己启动的进程。';
 
 /**
  * 组装一次 query() 调用的 options。
@@ -44,10 +48,10 @@ export const DEFAULT_EXECUTOR_SYSTEM_PROMPT =
  * 这里的安全相关字段还在——env 隔离、flag 层 settings 钉住 baseURL、strictMcpConfig
  * 这几项一旦被谁顺手删掉,链路仍然"能跑通",只有针对这个结构的断言才拦得住这种回归。
  *
- * @param {{ resolved: object, cwd: string, maxTurns?: number, systemPrompt?: string }} params
+ * @param {{ resolved: object, cwd: string, maxTurns?: number, systemPrompt?: string, resume?: string }} params
  * @returns {object} 传给 query() 的 options
  */
-export function buildQueryOptions({ resolved, cwd, maxTurns, systemPrompt }) {
+export function buildQueryOptions({ resolved, cwd, maxTurns, systemPrompt, resume }) {
   return {
     model: resolved.model,
     cwd,
@@ -84,6 +88,8 @@ export function buildQueryOptions({ resolved, cwd, maxTurns, systemPrompt }) {
       preset: 'claude_code',
       append: systemPrompt ? `${DEFAULT_EXECUTOR_SYSTEM_PROMPT}\n\n${systemPrompt}` : DEFAULT_EXECUTOR_SYSTEM_PROMPT,
     },
+    // SDK Options.resume:加载指定 session 的对话历史再继续。与 continue 互斥。
+    ...(resume ? { resume } : {}),
   };
 }
 
@@ -97,9 +103,11 @@ export function buildQueryOptions({ resolved, cwd, maxTurns, systemPrompt }) {
  * @param {object} params.config         已加载的 models.config.json(见 config.mjs)
  * @param {number} [params.maxTurns]     可选,限制最大工具调用轮数,避免任务跑飞
  * @param {string} [params.systemPrompt] 可选,追加的系统提示
+ * @param {string} [params.resume]       SDK session id,续跑历史对话
+ * @param {string} [params.resumedFrom]  被续跑的原 run-id,只进返回值/简报
  * @returns {Promise<object>} 见文件底部的返回形状说明
  */
-export async function runTask({ friendlyModel, prompt, cwd, config, maxTurns, systemPrompt, progress }) {
+export async function runTask({ friendlyModel, prompt, cwd, config, maxTurns, systemPrompt, progress, resume, resumedFrom }) {
   const startedAt = Date.now();
 
   // 进度输出对象:调用方(bin 的 run、run-many)注入,各自决定 quiet 和 label;以库方式
@@ -109,20 +117,81 @@ export async function runTask({ friendlyModel, prompt, cwd, config, maxTurns, sy
   // 内部函数只拿到 log(line) 写入函数;stop 由这一层负责,内部不用关心生命周期。
   const output = progress ?? createProgress({ quiet: true, label: friendlyModel });
   const gitBefore = snapshotGit(cwd);
+  const runId = runIdFromLogPath(output.logPath);
+  writePidFile(runId, {
+    pid: process.pid,
+    ppid: process.ppid,
+    model: friendlyModel,
+    cwd,
+    startedAt: new Date(startedAt).toISOString(),
+    logPath: output.logPath,
+    sessionId: null,
+    command: processCommand(process.pid),
+    resume: resume ?? null,
+    resumedFrom: resumedFrom ?? null,
+    finished: false,
+  });
   try {
-    const inner = await runTaskInner({ friendlyModel, prompt, cwd, config, maxTurns, systemPrompt, startedAt, log: output.log });
-    return attachArtifacts(inner, output.logPath, inspectGit(cwd, gitBefore));
+    const inner = await runTaskInner({
+      friendlyModel,
+      prompt,
+      cwd,
+      config,
+      maxTurns,
+      systemPrompt,
+      resume,
+      resumedFrom,
+      startedAt,
+      log: output.log,
+      runId,
+    });
+    const withMeta = resumedFrom ? { ...inner, resumedFrom } : inner;
+    return attachArtifacts(withMeta, output.logPath, inspectGit(cwd, gitBefore));
   } catch (err) {
     // 未预见的异常:同样补一行 done error 再抛,保住"日志必有 done 行收尾"的不变量,
     // 否则 tail --follow 会对这份日志永远等下去。
     output.log(`done error ${oneLine(err?.message ?? String(err), 160)}`);
     throw err;
   } finally {
+    markPidFinished(runId);
     output.stop();
   }
 }
 
-async function runTaskInner({ friendlyModel, prompt, cwd, config, maxTurns, systemPrompt, startedAt, log }) {
+export const STOP_USER_MESSAGE = '请立即收尾：停止新工作，简要写出当前进度与结果';
+const RESULT_CLOSE_GRACE_MS = 2000;
+
+/** 从进程开始跑任务到现在的总墙钟。不用 SDK result.duration_ms(插话后续段会重置)。 */
+export function wallClockDurationMs(startedAt, now = Date.now()) {
+  const start = Number(startedAt);
+  if (!Number.isFinite(start)) return 0;
+  return Math.max(0, Number(now) - start);
+}
+
+function writePidFile(runId, rec) {
+  if (!runId) return;
+  try {
+    writePidRecord(runId, rec);
+  } catch {
+    /* 目录不可写时不影响真正执行 */
+  }
+  try {
+    ensureInbox(runId);
+  } catch {
+    /* ignore */
+  }
+}
+
+function markPidFinished(runId) {
+  if (!runId) return;
+  try {
+    patchPidRecord(runId, { finished: true, finishedAt: new Date().toISOString() });
+  } catch {
+    /* ignore */
+  }
+}
+
+async function runTaskInner({ friendlyModel, prompt, cwd, config, maxTurns, systemPrompt, resume, resumedFrom, startedAt, log, runId }) {
   let resolved;
   try {
     // 顺序是有意的:先过目标目录的信任闸门,再解析模型(后者会把真实密钥读进内存)。
@@ -149,30 +218,114 @@ async function runTaskInner({ friendlyModel, prompt, cwd, config, maxTurns, syst
       // 这类错误发生在真正发起请求之前;也补一行 done error,保证"每份日志都以 done 行
       // 收尾"的不变量成立——tail --follow 靠这一行判断停止。
       log(`done error ${oneLine(err.message, 160)}`);
-      return { ok: false, model: friendlyModel, prompt, cwd, error: err.message, durationMs: Date.now() - startedAt };
+      return { ok: false, model: friendlyModel, prompt, cwd, error: err.message, durationMs: wallClockDurationMs(startedAt) };
     }
     throw err;
   }
 
-  const options = buildQueryOptions({ resolved, cwd, maxTurns, systemPrompt });
+  const options = buildQueryOptions({ resolved, cwd, maxTurns, systemPrompt, resume });
+
+  const stream = createPromptStream(prompt);
+  const q = query({ prompt: stream, options });
+
+  let pendingAfterResult = 0;
+  let seenResult = false;
+  let stopRequested = false;
+  let interruptTimer = null;
+  let closeTimer = null;
+  const cancelCloseTimer = () => {
+    if (closeTimer) {
+      clearTimeout(closeTimer);
+      closeTimer = null;
+    }
+  };
+  const maybeCloseAfterResult = () => {
+    cancelCloseTimer();
+    inbox?.pump();
+    if (pendingAfterResult > 0) {
+      pendingAfterResult = 0;
+      return;
+    }
+    // result 之后再等 2 秒:这期间新来的 say 还能再开一轮;否则关流让 query 结束。
+    closeTimer = setTimeout(() => {
+      inbox?.pump();
+      if (pendingAfterResult > 0) {
+        pendingAfterResult = 0;
+        closeTimer = null;
+        return;
+      }
+      stream.close();
+      closeTimer = null;
+    }, RESULT_CLOSE_GRACE_MS);
+    closeTimer.unref?.();
+  };
+
+  const inbox = runId
+    ? watchInbox(runId, (entry) => {
+        if (entry.type === 'say') {
+          if (seenResult) pendingAfterResult += 1;
+          cancelCloseTimer();
+          stream.push(entry.text);
+          log(`收到插话：${oneLine(entry.text, 160)}`);
+        } else if (entry.type === 'stop') {
+          stopRequested = true;
+          if (seenResult) pendingAfterResult += 1;
+          cancelCloseTimer();
+          stream.push(STOP_USER_MESSAGE);
+          log(`收到插话：${STOP_USER_MESSAGE}`);
+          const graceSec = Number.isFinite(entry.grace) ? entry.grace : 60;
+          if (interruptTimer) clearTimeout(interruptTimer);
+          interruptTimer = setTimeout(() => {
+            q.interrupt().catch(() => {});
+          }, Math.max(0, graceSec) * 1000);
+          interruptTimer.unref?.();
+        }
+      })
+    : null;
+
+  let signalName = null;
+  const onSignal = (name) => {
+    if (signalName) return;
+    const rec = runId ? readPidRecord(runId) : null;
+    const fromOurStop = stopRequested || rec?.stopRequested || rec?.stopSignal;
+    if (fromOurStop) {
+      stream.close();
+      q.interrupt().catch(() => {});
+      return;
+    }
+    signalName = name;
+    log(`被外部信号 ${name} 终止`);
+    stream.close();
+    q.interrupt().catch(() => {});
+  };
+  const unhookSignal = onProcessSignal(onSignal);
 
   let finalResult = null;
   let fallbackAssistant = { messageId: null, text: '' };
   try {
-    for await (const message of query({ prompt, options })) {
-      // 进度行:assistant 文本一行、tool_use 一行(截断),让人实时看到子任务跑到哪了。
+    for await (const message of q) {
       logSdkMessage(log, message);
       fallbackAssistant = collectFallbackAssistantText(fallbackAssistant, message);
-      // 最终结果仍然只认 result 消息。
+      if (runId && message.session_id) {
+        try {
+          patchPidRecord(runId, { sessionId: message.session_id });
+        } catch {
+          /* ignore */
+        }
+      }
       if (message.type === 'result') {
         finalResult = message;
+        seenResult = true;
+        maybeCloseAfterResult();
       }
     }
   } catch (err) {
-    // 上游 402(额度用尽)单独识别:这是"立即停止、不要重试"的失败,调用方按退出码 2 处理。
     const fatal402 = looksLikeFatal402(err.message);
     if (fatal402) log('ERROR 402');
+    if (signalName) log(`被外部信号 ${signalName} 终止`);
     log(`done error cost=? ${oneLine(err.message, 160)}`);
+    inbox?.stop();
+    if (interruptTimer) clearTimeout(interruptTimer);
     return {
       ok: false,
       model: friendlyModel,
@@ -180,15 +333,24 @@ async function runTaskInner({ friendlyModel, prompt, cwd, config, maxTurns, syst
       baseURL: resolved.baseURL,
       prompt,
       cwd,
-      error: `调用 Claude Agent SDK 失败: ${err.message}`,
+      error: signalName
+        ? `被外部信号 ${signalName} 终止: ${err.message}`
+        : `调用 Claude Agent SDK 失败: ${err.message}`,
       fatal402,
-      durationMs: Date.now() - startedAt,
+      durationMs: wallClockDurationMs(startedAt),
+      stopped: stopRequested || Boolean(signalName),
+      signal: signalName,
+      ...(resumedFrom ? { resumedFrom } : {}),
     };
+  } finally {
+    inbox?.stop();
+    if (interruptTimer) clearTimeout(interruptTimer);
+    cancelCloseTimer();
+    stream.close();
+    unhookSignal();
   }
 
   if (!finalResult) {
-    // 正常完成的 query() 一定会产出恰好一条 result 消息;走到这里说明进程中途被杀、
-    // 上游连接异常断开,或者上游根本没有实现完整的 Anthropic Messages 协议。
     log('done error cost=? (SDK 没有产出 result 消息)');
     return {
       ok: false,
@@ -197,9 +359,14 @@ async function runTaskInner({ friendlyModel, prompt, cwd, config, maxTurns, syst
       baseURL: resolved.baseURL,
       prompt,
       cwd,
-      error: 'SDK 没有产出 result 消息,任务没有跑完就结束了(可能是进程被中断,或上游端点没有正确实现流式 Anthropic Messages 协议)。',
+      error: signalName
+        ? `被外部信号 ${signalName} 终止,SDK 没有产出 result 消息`
+        : 'SDK 没有产出 result 消息,任务没有跑完就结束了(可能是进程被中断,或上游端点没有正确实现流式 Anthropic Messages 协议)。',
       fatal402: false,
-      durationMs: Date.now() - startedAt,
+      durationMs: wallClockDurationMs(startedAt),
+      stopped: stopRequested || Boolean(signalName),
+      signal: signalName,
+      ...(resumedFrom ? { resumedFrom } : {}),
     };
   }
 
@@ -207,15 +374,18 @@ async function runTaskInner({ friendlyModel, prompt, cwd, config, maxTurns, syst
   const joinedErrors = (finalResult.errors ?? []).join('; ');
   const errorText = joinedErrors || (typeof finalResult.result === 'string' ? finalResult.result : '');
   const fatal402 = looksLikeFatal402(errorText);
+  const wasStopped = stopRequested || Boolean(signalName);
   if (finalResult.is_error) {
     if (fatal402) log('ERROR 402');
     log(`done error cost=${fmtCost(finalResult.total_cost_usd)}${errorText ? ` ${oneLine(errorText, 160)}` : ''}`);
+  } else if (wasStopped) {
+    log(`done error cost=${fmtCost(finalResult.total_cost_usd)} stopped`);
   } else {
     log(`done ok cost=${fmtCost(finalResult.total_cost_usd)}`);
   }
 
   return {
-    ok: !finalResult.is_error,
+    ok: !finalResult.is_error && !wasStopped,
     model: friendlyModel,
     resolvedModel: resolved.model,
     baseURL: resolved.baseURL,
@@ -230,12 +400,16 @@ async function runTaskInner({ friendlyModel, prompt, cwd, config, maxTurns, syst
     subtype: finalResult.subtype,
     stopReason: finalResult.stop_reason ?? null,
     numTurns: finalResult.num_turns,
-    durationMs: finalResult.duration_ms,
+    durationMs: wallClockDurationMs(startedAt),
+    sdkDurationMs: finalResult.duration_ms,
     totalCostUsd: finalResult.total_cost_usd,
     sessionId: finalResult.session_id,
     errors: finalResult.errors ?? [],
+    stopped: wasStopped,
+    signal: signalName,
+    ...(resumedFrom ? { resumedFrom } : {}),
     // 只在失败分支有意义:上游 402/额度用尽,bin 据此以退出码 2 结束。
-    ...(finalResult.is_error ? { fatal402 } : {}),
+    ...(finalResult.is_error || wasStopped ? { fatal402 } : {}),
   };
 }
 
@@ -316,7 +490,8 @@ function looksLikeFatal402(text) {
  *   subtype: "success",
  *   stopReason: "end_turn",
  *   numTurns: 3,
- *   durationMs: 12345,
+ *   durationMs: 12345,            进程开始跑任务到结束的总墙钟
+ *   sdkDurationMs: 12345,         SDK result.duration_ms(插话后可能只是最后一段)
  *   totalCostUsd: 0.0012,
  *   sessionId: "…uuid…",
  *   errors: [],

@@ -133,6 +133,7 @@ export function buildBrief(result, { briefLines = DEFAULT_BRIEF_LINES, expectCha
     hasNewCommits: (result?.newCommits ?? []).length > 0,
     hasUncommittedChanges: Boolean(result?.hasUncommittedChanges),
     judgeConfidence: judge && !judge.skipped ? judge.confidence : undefined,
+    stopped: Boolean(result?.stopped),
   });
 
   const preview = previewLines(result?.result, briefLines);
@@ -141,6 +142,7 @@ export function buildBrief(result, { briefLines = DEFAULT_BRIEF_LINES, expectCha
     verdict: judged.verdict,
     verdictNote: judged.note ?? null,
     durationMs: result?.durationMs ?? null,
+    sdkDurationMs: result?.sdkDurationMs ?? null,
     totalCostUsd: result?.totalCostUsd ?? null,
     numTurns: result?.numTurns ?? null,
     preview,
@@ -156,6 +158,9 @@ export function buildBrief(result, { briefLines = DEFAULT_BRIEF_LINES, expectCha
     error: result?.error ?? null,
     fatal402: result?.fatal402 ?? false,
     judgeSkipped: judge?.skipped ?? null,
+    stopped: Boolean(result?.stopped),
+    signal: result?.signal ?? null,
+    resumedFrom: result?.resumedFrom ?? null,
   };
 }
 
@@ -173,6 +178,8 @@ export function formatBriefHuman(brief) {
     `dirty: ${brief.hasUncommittedChanges ? 'yes' : 'no'}  controlTokens: ${brief.hasControlTokens ? 'yes' : 'no'}`,
   ];
   if (brief.judgeSkipped) lines.push(`judge: ${brief.judgeSkipped}`);
+  if (brief.resumedFrom) lines.push(`resumedFrom: ${brief.resumedFrom}`);
+  if (brief.signal) lines.push(`signal: ${brief.signal}`);
   if (brief.error && !brief.ok) lines.push(`error: ${brief.error}`);
   return `${lines.join('\n')}\n`;
 }
