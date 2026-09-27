@@ -2,7 +2,7 @@
 name: rankup
 description: 管理网站和原生 App 的需求验证、立项、开发、上线及增长。用户明确提到 rankup，或任务涉及选词、SERP、SEO/GEO、索引、搜索平台、流量、网站体检、建站和增长时使用。先定位项目与具体问题，再按七段生命周期加载对应参考文件；单纯写文案、做设计或问通用开发问题，不因关键词碰巧出现就强制启动完整流程。
 metadata:
-  version: "3.23.0"
+  version: "3.24.0"
 ---
 
 # Rankup 3.0
@@ -149,7 +149,7 @@ Day-1 清单里最容易漏、也最贵的三条单列在这里，其余见 `lif
 ### 4 上线前 SEO / GEO
 
 - **触发**：「能不能上线了」「TDK」「密度」「怎么被 AI 引用」「站慢不慢」。
-- **入口**：[`lifecycle.md`](references/lifecycle.md) 段 4；判读 [`seo-box.md`](references/seo-box.md)、[`seo-webcafe.md`](references/seo-webcafe.md)、[`seo-growth.md`](references/seo-growth.md) 三-B。常用：`scripts/seo-audit.mjs --sitemap`、`scripts/pagespeed.mjs collect --strategy both`（`plan` 只打印链接不采数，仅兜底）、`scripts/is-agentic.mjs scan --save`、官方 `gefei-page` Skill（按其说明直接使用工具）。写文案的兄弟 Skill：中文 `/write`（先确认它的五个附属 Skill 都在，缺的用 `find-skills` 装齐；装不上才退到 `/human-writing` 起稿 + `/shuorenhua` 去 AI 味）；被 AI 引用的内容形状读 `/ai-seo` 的 content-patterns；JSON-LD 模板只读 `/seo-geo` 的 schema-templates，不跑它的脚本；配图 `/imagegen`。分工与加载条件见 [`skill-ecosystem.md`](references/skill-ecosystem.md)。
+- **入口**：[`lifecycle.md`](references/lifecycle.md) 段 4；判读 [`seo-box.md`](references/seo-box.md)、[`seo-webcafe.md`](references/seo-webcafe.md)、[`seo-growth.md`](references/seo-growth.md) 三-B。常用：`scripts/seo-audit.mjs --sitemap`、`scripts/pagespeed.mjs collect --strategy both`（`plan` 只打印链接不采数，仅兜底）、`scripts/is-agentic.mjs scan --save`、`scripts/ai-crawler-access.mjs --url <正式域名>`、官方 `gefei-page` Skill（按其说明直接使用工具）。写文案的兄弟 Skill：中文 `/write`（先确认它的五个附属 Skill 都在，缺的用 `find-skills` 装齐；装不上才退到 `/human-writing` 起稿 + `/shuorenhua` 去 AI 味）；被 AI 引用的内容形状读 `/ai-seo` 的 content-patterns；JSON-LD 模板只读 `/seo-geo` 的 schema-templates，不跑它的脚本；配图 `/imagegen`。分工与加载条件见 [`skill-ecosystem.md`](references/skill-ecosystem.md)。
 
 | 硬规则 | 为什么 |
 |---|---|
@@ -182,6 +182,7 @@ Day-1 清单里最容易漏、也最贵的三条单列在这里，其余见 `lif
 | **一个不漏**，清单要有「其他能带流量的平台」兜底行 | 有站 80% 流量来自 Bing，有站几乎全部来自韩国 |
 | IndexNow 排在站长工具前面 | 它一样账号都不欠，先推了再慢慢验证所有权 |
 | **绑定正式域名后、上线验收前主动完成基础安全**：按 [`cloudflare-stack.md`](references/cloudflare-stack.md) §8.8 核对 HTTPS、响应头及实际 API 防护，生产验证后记证据；已上线站 review 补查 | 属于上站后的检查优化；小改优先，嵌入/CSP/HSTS 先核用途，不批量上验证码或复杂 WAF |
+| **网站必须允许所有 AI 爬虫访问**：训练、搜索、用户代理类均不得在 Cloudflare、WAF、Bot Fight Mode 或 robots.txt 被禁；新 zone 关闭 Bot Management 四字段，按 [`checklists.md`](references/checklists.md) 段 5 逐 UA 实测 | robots.txt 放行仍可能被 Cloudflare Block AI Bots 在边缘返回 403，页面和 llms.txt 都抓不到【实测 2026-09-28】 |
 | 接入必须**线上实测**：`curl` grep beacon 只证脚本在，CF WA 还要 GraphQL `count > 0` | `site_token` 填成 `site_tag` 不报错，一个站空跑了 45 天 |
 | **第三方分析脚本（GA4、Clarity）一律延迟到首次交互或 6s 兜底再加载**（单用 `requestIdleCallback` 不够——空闲回调仍会落在 TBT 观测窗内），不许因为「脚本拖 LCP」把 GA4 标 ❌ 或推迟接入——延迟加载就完了，LCP 零影响 | 曾经因为这个理由把 GA4 标 ❌ 整整推迟了一天，纯属多此一举；【实测】单靠 `requestIdleCallback` 仍会被计入 TBT 观测窗 |
 | Ahrefs Site Audit 的问题按报告逐 URL 修完，回段 4 全套重跑 | 第二台爬虫的价值在它看得到你自己漏掉的整站问题 |
@@ -230,6 +231,7 @@ Day-1 清单里最容易漏、也最贵的三条单列在这里，其余见 `lif
 | 有 API/CLI 且本机有凭据能证明，一律走 API/CLI，禁止开浏览器点后台；只在 API 不覆盖或需一次性 OAuth 授权时开，且只做那一步 | 五 |
 | 配额站（Semrush / Similarweb / Ahrefs）不传 `--session`；会话名不用 `$$` | 五、六 |
 | 发布页面不得有误导用户的占位链接 / 文案 / 图片 | 十四 |
+| 网站不得禁用任何 AI 爬虫；新 zone 关闭 AI 拦截并逐 UA 实测 | [`cloudflare-stack.md`](references/cloudflare-stack.md) §8.5、§8.8；[`checklists.md`](references/checklists.md) 段 5 |
 | 做任何功能、任何页面，UI 只准来自脚手架的 shadcn 组件库或同生态现成组件；缺的先装，不许手写基础控件 | 十六 |
 | 漏了不会变红的收尾动作（IndexNow 等）焊进 ship 命令 | 九 |
 | 接入必须线上实测，不采信勾；批 A/批 B 接入看板逐行由 `scripts/review.mjs` 断言 | 十 |

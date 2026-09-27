@@ -818,7 +818,7 @@ scoped token 用 `Authorization: Bearer`，**两种 header 不能混用，混用
 **操作优先级：API > CLI > 浏览器。** 段 5 涉及的 Cloudflare 操作（Email Routing 启用、
 DNS 记录、zone 设置），优先用 API 或 `wrangler` CLI。浏览器是最后手段——
 实测 Dashboard 上的 Email Routing 开关和 AI 爬虫设置有时点击无响应，
-API 能立刻生效。只有没有公开 API 端点的设置（如 AI 爬虫阻止的两个开关）才走 Dashboard。【实测 2026-09-03】
+API 能立刻生效。AI 爬虫的 Bot Management 四字段已有 zone API，按 [`cloudflare-stack.md`](cloudflare-stack.md) §8.5 操作并回读；无公开端点的设置才走 Dashboard。【实测 2026-09-28】
 
 ### 必做动作
 
@@ -884,6 +884,7 @@ API 能立刻生效。只有没有公开 API 端点的设置（如 AI 爬虫阻�
 16. **把段 3 的域名留位常量换成正式域名**——只改这一处；然后全仓库 grep 预览域字面量，必须为零。
 
 16a. **绑定正式域名后主动补齐基础安全**：域名可访问后按 [`cloudflare-stack.md`](cloudflare-stack.md) §8.8 检查并配置；在 5.4 的生产验证中一并验收，再放开索引。已上线站 review 补查，开发期无需提前完成正式域名配置。
+    新 zone 同时按 §8.5 显式关闭 Bot Management 四个 AI 拦截字段；正式域名上线按 [`checklists.md`](checklists.md) 段 5 的 AI 爬虫实测闸门验收。
 
 **5.4 部署到正式域名并真实线上验证（原阶段 7）**
 
@@ -977,11 +978,7 @@ API 能立刻生效。只有没有公开 API 端点的设置（如 AI 爬虫阻�
     这里是复核不是第一次翻：正式域名的 HTML 不再输出 `noindex`，`robots.txt` 不再 `Disallow: /`；
     `curl` 正式域名首页与一个内页核实。如果发现还没翻开，立刻翻开——批 B 没接完、
     还在验收都不是继续关着的理由，理由见 5.4 第 22 条。
-    **同时关掉 Cloudflare 的 AI 爬虫阻止**（两个独立开关，新 zone 默认开启）：
-    ① Security → Bots → "阻止 AI 训练自动程序" → 不阻止（允许爬网程序）；
-    ② Security → Bots → "管理您的 robots.txt" → 禁用 robots.txt 配置。
-    改完 `curl <site>/robots.txt` 验证无 `# Cloudflare Managed Content` 段。
-    详见 [`cloudflare-stack.md`](cloudflare-stack.md) §8.7。
+    **同时核对 Cloudflare AI 爬虫放行**：Bot Management 四字段均为 `disabled`，托管 robots.txt 无 AI 禁止指令，并用 `ai-crawler-access.mjs` 逐 UA 检查首页、内页、robots.txt、llms.txt；判据见 [`checklists.md`](checklists.md) 段 5，做法见 [`cloudflare-stack.md`](cloudflare-stack.md) §8.5、§8.7。
 28. **重跑段 4 闸门 1、2、4**，并按 D1 比对正式首页与代表内页的 SSR、水合及真实 SPA 切页 head，排除第二条冲突 robots，复核 preview 仍封锁：确认 robots 类「设计」项转绿、canonical 指向正式域名、`is-agentic` 分数不低于预览域基线。
 29. **GSC 与 Bing 各提交（或复核）sitemap**，**记的是快照日期不是实时值**。
     域名有「前世」（5.2 第 10 条）时，**这是放开索引后的第一件事**——

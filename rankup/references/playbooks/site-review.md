@@ -162,6 +162,8 @@ E 组依赖 A/B/D 的事实，先完成这些取数再综合判读。开放 API 
 
 **C 组 · GEO / AI 就绪度**
 
+先跑 `node <rankup>/scripts/ai-crawler-access.mjs --url <正式域名>`，按 [`../checklists.md`](../checklists.md) 段 4、段 5 核对逐 UA 的首页、内页、robots.txt、llms.txt 状态与 robots 禁止规则；`is-agentic` 的缓存分数不能代替本次实测。
+
 | 阶段 | 并行/串行 | 跑什么 | 拿到什么 | 卡住了怎么办 |
 |---|---|---|---|---|
 | C1 单站分数 | 串行 | `node <rankup>/scripts/is-agentic.mjs scan <domain> --save --project .` | 分数 + 逐项 pass/partial/failed，快照进 `.rankup/agentic/`。**注意它返回的是缓存报告，不是一次即时重扫**：上游同域名会直接回上一份结果，报告里的 `scanned_at`（终端第二行「扫描时间」、`--save` 落盘的文件名日期）可能是几天前的 | 原始响应无条件落 `agentic/<domain>/raw/`；429 与「这个站真的没数据」只能靠原始件区分，先看它再下结论。**结论落笔前先把报告里的扫描时间和今天比一遍**——不是今天的，站上任何改动都不在里面。**每一条 failed / partial 都要用一次 `curl -s <site>/<路径> \| grep …` 复核过才允许写进必修项**（实跑里「找不到 agent 指引 / when-to-use」就是这样的误报：报告是几天前的，当天 curl 一验，章节和 `/agents.md` 都在）。这与判读表 A 组那条「Ahrefs 与自家脚本不一致时先看抓取日期」是同一个陷阱，C 组同样适用 |

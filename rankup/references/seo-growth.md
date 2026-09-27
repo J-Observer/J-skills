@@ -291,6 +291,8 @@ GO / ITERATE / KILL 判据:
 
 ### 核心判断：被 AI 引用比排第一更值钱
 
+网站上线时先按 [`checklists.md`](checklists.md) 段 4、段 5 的 AI 爬虫可访问性判据逐 UA 实测；robots.txt 放行不能排除 Cloudflare 边缘 403。
+
 Google I/O 2026（5 月 19 日）宣布搜索 25 年来最大改版：AI Mode 月活突破 10 亿、
 查询量每季度翻倍。**AI Mode 是全页替换，不显示传统结果；AI Overviews 叠在有机结果上方。**
 被 AI 引用的品牌获得的有机点击比未被引用的竞品高 35%（Digital Applied，2026-03）；
