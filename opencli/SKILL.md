@@ -201,7 +201,7 @@ tools-share 锁被谁拿着、那个 pid 还活着吗，然后给 `go` / `wait` 
 | **一次访问 = 一个 batch**（`openAndExtract`） | 「含任一写操作的混合 batch 整体按写处理」，所以整包是原子的，别人插不进来——这正是共用名字仍然安全的原因 |
 | **禁止 open 一次隔几轮对话再读** | 会话一直占着，后面全在排队。实测 daemon.log 一天 1016 条 busy 轮询 |
 | **采集写成顺序循环**（`sequentialCrawl`），不要扇出 | 排队是兜底不是调度器：daemon 默认只等 10 分钟，20 个词顺序跑就快贴到上限 |
-| **间隔用 `sleepStep()`，不要用 `wait time`** | `wait time 5` 在 1.8.7 是坏的：报 "Waited 5s"，实测 928ms 就返回。写错了整套节流静默失效 |
+| **间隔用 `sleepStep()`** | 它生成 `{ cmd: 'wait', args: { seconds } }`，在 batch 中按秒等待 |
 | **撞上限的第一动作是 `close`，不是 `sleep`** | 释放标签页本身就是退避。当成「页面没加载好」去重试只会再开一个，越retry越糟 |
 
 **daemon 排队只串行化单条命令 / 单个 batch，保护不了跨多条命令的整轮采集。**
