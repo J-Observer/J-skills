@@ -2,7 +2,7 @@
 name: rankup
 description: 管理网站和原生 App 的需求验证、立项、开发、上线及增长。用户明确提到 rankup，或任务涉及选词、SERP、SEO/GEO、索引、搜索平台、流量、网站体检、建站和增长时使用。先定位项目与具体问题，再按七段生命周期加载对应参考文件；单纯写文案、做设计或问通用开发问题，不因关键词碰巧出现就强制启动完整流程。
 metadata:
-  version: "3.22.0"
+  version: "3.23.0"
 ---
 
 # Rankup 3.0
@@ -287,17 +287,28 @@ G 组那条线：`scripts/review.mjs --project-root .` 出五块报告；再挖�
 3. **三方对账门禁**：回答「接下来做什么」或宣称任何进度之前，交叉核对 `git log --oneline -25`、真实路由清单、线上 `sitemap.xml` 全量 `<loc>`。`plan.md` 的勾选、`progress.md`、autopilot 状态都是滞后指标；外部状态（Cloudflare、GSC、Stripe、索引、外链）以当前查询为准。不一致先回写 `.rankup/` 再继续。
 4. 读 [`references/checklists.md`](references/checklists.md) 与 `.rankup/checks.md` 定段，不凭印象；需要可复用操作先查跨项目登记表。
 5. 做完更新 `.rankup/` 事实、决策、计划；把本轮过掉的 check 逐条记进 `checks.md`，动过线上 URL 的把标「动了 URL」的打回 ⬜。
-6. **沉淀义务与是否调用本 Skill 无关**：只要项目里有 `.rankup/`，任何任务完成后都要回写可复用结论，判据是「下次能否少走一遍」。
+6. **收尾闸门**：结束前对照下文「可复用操作必须落成脚本」过一遍；没沉淀成脚本、报告里没有「沉淀的脚本」一节，本轮就不算完成。
+7. **沉淀义务与是否调用本 Skill 无关**：只要项目里有 `.rankup/`，任何任务完成后都要回写可复用结论，判据是「下次能否少走一遍」。
 
 ## 经验库：规划与迭代之前先翻一遍
 
 [`references/experiences/`](references/experiences/INDEX.md) 是经验层，回答「该怎么判断、别人踩过什么坑」；方法层回答「怎么操作」。挖需求读 [`demand-discovery.md`](references/experiences/demand-discovery.md)；规划排优先级读 [`zero-to-one.md`](references/experiences/zero-to-one.md)；上线后决定改什么读 [`conversion.md`](references/experiences/conversion.md)；技术 SEO / 站群 / 多语言 / 索引读 [`webcafe-experiences.md`](references/experiences/webcafe-experiences.md) 与 [`webcafe-topics.md`](references/experiences/webcafe-topics.md)；往里加东西看 [`INDEX.md`](references/experiences/INDEX.md) 收录规则。
 三条硬约束：经验层不带任何项目信息；每条必须有出处与证据等级（【实测】/【经验】/【猜测】，猜测不得当结论执行）；这些是从业者单点实践，采纳前先问「我们的前提一样吗」，小步验证后写回项目侧。
 
-## 可复用操作必须落成脚本
+## 可复用操作必须落成脚本（硬闸门，不需要用户督促）
 
-任何需要第二次执行的操作，第一次跑通就固化成脚本，不允许下次重新摸索——每次重试都在烧上下文，且结果不可比。判定：「会再做一次」或「换个站换个词就要重跑」。
-固化到 `<project>/.rankup/scripts/<动词-对象>.mjs`，参数化（property、日期、词、国家），在 `.rankup/INDEX.md` 登记用途、参数、登录态依赖、已验证日期。脚本失败时**修脚本**，不绕过；失败原因写进脚本头部。登录态、property ID、账号配置属于项目侧，不进本 Skill。
+**本节是完成条件，不是建议。** 本轮执行中凡是满足下面任一条件的操作，本轮结束前必须存成脚本，否则本轮任务判为**未完成**，不得向用户或主线程报「已完成」：
+
+- 会再做一次，或者换个站、换个词、换个日期就要重跑（GSC/Semrush/Similarweb/Trends 取数、索引检查、体检、部署核验等）；
+- 驱动登录态浏览器超过约 5 步才拿到结果；
+- 同一串命令本轮手敲了 2 次以上。
+
+执行规则：
+1. **动手前先查现成脚本**：本 Skill `scripts/`、backlink skill `scripts/`（Semrush/Similarweb）、opencli adapter、跨项目登记表（`registry.mjs list`）。已有的就直接调用，不许重新手工摸一遍；脚本不好用就**修脚本**，不许绕过。
+2. **没有就边做边写**：第一次跑通的那条链路当场整理成参数化脚本，不要等「做完再说」。通用的（换站只改参数）放本 Skill `scripts/<动词-对象>.mjs`，头部注释写清用途、参数、登录态依赖、已知坑、验证日期；只属于某个项目的，放 `<project>/.rankup/scripts/`，登记进 `.rankup/INDEX.md`。登录态、property ID、账号配置只作为参数或项目侧配置，不写死进 Skill。
+3. **写完用真实参数跑一次**，把结果当作本轮产出。脚本没跑通不算沉淀。
+4. **交付报告必须有「## 沉淀的脚本」一节**：列出新建或修改的脚本路径和验证命令；如果本轮确实没有可复用操作，写「无，理由：…」。主线程或 checker 看到缺这一节，就把任务打回。
+5. 编码本身按全局派单规则交给第三方模型（Codex 等），但沉淀这件事的责任在当前执行者，不能甩掉。
 
 ## 跨项目资产登记表
 
