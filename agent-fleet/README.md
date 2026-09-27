@@ -31,10 +31,13 @@ Agent 能力去驱动它们的模型——你拿到的不是"一问一答",而�
 | `deepseek-v4.1-flash` | DeepSeek | 同上,`model: "deepseek-flash"` | 同一端点的 V4.1 Flash 稳定别名,快、便宜,适合调研/头脑风暴/大批量任务 |
 | `kimi` | Moonshot(Kimi) | `https://api.moonshot.cn/anthropic`,`Authorization: Bearer` 鉴权 | 官方 Anthropic 兼容端点(中国站)。国际站把 `baseURL` 换成 `https://api.moonshot.ai/anthropic` 即可,鉴权方式不变 |
 | `gemini` | Google | **没有官方端点** | 见下方说明,需要你自备网关 |
-| `kollab-gateway` | Kollab 自己的公开 LLM 网关 | `https://test.flowus.work/api/llm`(TEST 环境),`x-api-key` 鉴权,key 是 `kollab api-key create` 生成的 `kollab_live_*` | 不需要申请任何第三方官方 key,模型范围不限白名单。默认模型是 `gemini-3.8-flash`(**故意不用** `claude-sonnet-4-6`——那样账单虽然走 Kollab 自己的 Space 额度,但底层实际还在消耗 Claude,没有分担成本的效果);已做过真实端到端验证,见下方「验证情况」。费用从这把 key 绑定的 Kollab Space 额度实时扣除,换生产环境用 `https://kollab.im/api/llm` 加一把生产环境生成的 key |
+| `kollab-gateway` | Kollab 自己的公开 LLM 网关 | `https://kollab.im/api/llm`(生产环境),`x-api-key` 鉴权，使用已有 `KOLLAB_PROD_API_KEY` | 不需要申请任何第三方官方 key,模型范围不限白名单。默认模型是 `gemini-3.8-flash`(**故意不用** `claude-sonnet-4-6`——那样账单虽然走 Kollab 自己的 Space 额度,但底层实际还在消耗 Claude,没有分担成本的效果);已做过真实端到端验证,见下方「验证情况」。费用从这把 key 绑定的 Kollab Space 额度实时扣除,当前配置已使用生产环境 |
 | `kollab-gateway-copy` | 同上 | 同上,`model: "gemini-3.8-flash"` | 文案/创意用途的命名别名,和默认模型相同,单独命名是为了不依赖默认值以后的调整 |
-| `kollab-gateway-research` | 同上 | 同上,`model: "grok-4.6"` | 通用调研摘要用途 |
+| `kollab-gateway-research` | 同上 | 同上,`model: "grok-4.7"` | 通用调研摘要用途 |
 | `kollab-gateway-bulk` | 同上 | 同上,`model: "gemini-3.5-flash-lite"` | 批量翻译/格式转换等机械任务用途,目录里响应最快的免费档模型之一 |
+| `kollab-gateway-gpt-sol` | Kollab | 线上托管网关，`model: "gpt-6-sol"` | GPT-6 Sol |
+| `kollab-gateway-gpt-luna` | Kollab | 同上，`model: "gpt-6-luna"` | GPT-6 Luna |
+| `kollab-gateway-deepseek` | Kollab | 同上，`model: "deepseek-v4.1-flash"` | DeepSeek V4.1 Flash；无需第三方 Key |
 | `jev` | Typesafe(JEV / System One) | `https://api.typesafe.ai/v1/systemone`,`Authorization: Bearer` 鉴权(`protocol: "typesafe-systemone"`,**不是** Anthropic Messages/OpenAI 协议) | ⚠️ **不支持 `run`/`run-many`**——它是结构化决策 API,不生成文本、不支持多轮工具调用,只能用下面「JEV / `judge` 子命令」一节的方式调用 |
 
 **关于 Gemini 的如实说明**:查证下来,Google 官方**没有**为 Gemini 提供 Anthropic Messages 协议
@@ -98,10 +101,10 @@ node bin/agent-fleet.mjs judge --model jev --state-file state.txt --questions-fi
 
 | 任务类型 | 推荐模型 / 友好名字 | 理由 |
 |---|---|---|
-| 写代码 / 修 bug / 补测试（常规开发、写脚本、CLI 子命令、API 链路） | `kollab-gateway-research`(`grok-4.6`) | 用户 2026-09-26 定调，编程任务默认路由到这里，产出由派单方自己核验，不合格才升级 Claude。**GLM `kollab-gateway-code` 已被用户叫停**（曾 30 分钟零改动交回 Skill 介绍，假成功） |
+| 写代码 / 修 bug / 补测试（常规开发、写脚本、CLI 子命令、API 链路） | `kollab-gateway-research`(`grok-4.7`) | 用户 2026-09-26 定调，编程任务默认路由到这里，产出由派单方自己核验，不合格才升级 Claude。**GLM `kollab-gateway-code` 已被用户叫停**（曾 30 分钟零改动交回 Skill 介绍，假成功） |
 | 写作 / 翻译 / 调研 / 母语校对（写文档、写报告、核实资料） | `kollab-gateway-copy`(`gemini-3.8-flash`)或 `kollab-gateway`(默认同款) | 响应迅速、成本低，即用免第三方审批。长报告换 `gemini-3.1-pro`。**注意：实测 `gemini-3.8-flash` 做多文件代码改动容易跑满轮数零产出，绝对不要派它写代码** |
 | 批量翻译 / 格式转换 | `deepseek-v4.1-flash`(需配 `DEEPSEEK_API_KEY`)或 `kollab-gateway-bulk`(`gemini-3.5-flash-lite`,即用免配置) | 官方 Flash 档更便宜;没有 DeepSeek key 时 `kollab-gateway-bulk` 是免第三方审批的平替 |
-| 简单调研摘要 | `kimi`(需配 `MOONSHOT_API_KEY`,自带联网搜索)或 `kollab-gateway-research`(`grok-4.6`,即用免配置) | Kimi 官方端点自带联网检索能力,适合真正需要查资料的调研;不想等 key 审批时用 `kollab-gateway-research` 顶上 |
+| 简单调研摘要 | `kimi`(需配 `MOONSHOT_API_KEY`,自带联网搜索)或 `kollab-gateway-research`(`grok-4.7`,即用免配置) | Kimi 官方端点自带联网检索能力,适合真正需要查资料的调研;不想等 key 审批时用 `kollab-gateway-research` 顶上 |
 | 高质量单次产出(长文案定稿、复杂推理) | `deepseek-v4-pro`(需配 `DEEPSEEK_API_KEY`) | DeepSeek 官方 Opus 档位映射目标,适合一次成型、不想反复返工的任务 |
 | 自动化流程里的判断/路由节点(分类、打分、二元判断、"下一步选哪个候选") | `jev`(**走 `judge` 子命令,不是 `run`**) | 结构化决策 API,不生成文本、极便宜(≈$0.042/百万 input token,output 免费)、同一输入多次调用高度稳定,没有裸 tool-call 控制 token 这类失败模式(协议本身不返回自由文本)。详见上面「JEV / `judge` 子命令」一节的实测结论表 |
 | Kimi/DeepSeek/Qwen 家族、多轮工具调用容错要求高的任务 | 不建议派给这几个家族的第三方模型,留给 Claude 自己处理 | 这几个家族的模型已知存在 tool-calling 可靠性问题,有时会把裸的 tool-call 控制 token 当成普通文本吐出来而不是走结构化 `tool_use`,造成"进程正常退出但其实是假成功"——这是模型生成层面的问题,agent-fleet 的 harness 补不了,只能靠不把这类任务派给它们来规避。任何第三方模型只要某次实际输出里出现裸 tool-call 控制 token,那一次就要判定失败——不能因为路由到它就放松这条判定标准 |
@@ -295,6 +298,8 @@ ANTHROPIC_DEFAULT_SONNET_MODEL=<subagentModel 的值>
 默认提示之后,两者都保留,不是二选一。
 
 ## 验证情况(如实说明)
+
+当前模型刷新：Grok 路由为 `grok-4.7`，已通过 agent-fleet 生产真实调用（返回 `4`，无控制 token）；GPT-6 Sol/Luna 与 DeepSeek V4.1 Flash 已通过 Kollab CLI 生产真实调用，新 agent-fleet 别名的相同托管配置已通过静态检查，尚未逐个运行 SDK。历史 Grok 4.6 验证仅对应当时版本。
 
 没有真实的 DeepSeek/Moonshot API key(也没有去别的项目"顺手"拿),所以**这两家官方端点没有做过真实
 模型的端到端验证**。`kollab-gateway` 是例外——它用的是 Kollab 产品自助生成的账号 key,不需要等第三方

@@ -244,8 +244,11 @@ node bin/agent-fleet.mjs list-models
 | `gemini` | Google | **没有官方端点**,`baseURL`/`model` 在配置里留空 | 见下方「已知限制」,选它会直接报错退出,不会假装能跑 |
 | `kollab-gateway` | Kollab 自己的公开 LLM 网关 | 线上网关 `https://kollab.im/api/llm`,`x-api-key` 鉴权,key 的环境变量为 `KOLLAB_PROD_API_KEY` | 不占用第三方官方 key 申请流程,模型范围不限白名单。默认模型是 `gemini-3.8-flash`(**故意不用** `claude-sonnet-4-6`——不然账单虽然走 Kollab 自己的 Space 额度,但底层实际还在消耗 Claude,没有省 Claude 成本的效果);费用从这把 key 绑定的 Space 额度实时扣除;测试环境 `test.flowus.work` 的 key 曾经触发 402 会话额度上限，已于 2026-09-26 改用线上环境并实测通过;**已做过真实端到端验证**(非 mock,详见下方「已知限制」和 [`../README.md`](../README.md) 的「验证情况」) |
 | `kollab-gateway-copy` | 同上 | 同上,`model: "gemini-3.8-flash"` | 文案/创意/调研用途命名别名,和默认模型相同,单独命名是为了不依赖默认值以后的调整 |
-| `kollab-gateway-research` | 同上 | 同上,`model: "grok-4.6"` | 通用调研摘要/较宽松尺度用途 |
+| `kollab-gateway-research` | 同上 | 同上,`model: "grok-4.7"` | 通用调研摘要/较宽松尺度用途 |
 | `kollab-gateway-bulk` | 同上 | 同上,`model: "gemini-3.5-flash-lite"` | 批量格式转换等机械任务用途,目录里响应最快的免费档模型之一 |
+| `kollab-gateway-gpt-sol` | Kollab | 线上托管网关，`model: "gpt-6-sol"` | GPT-6 Sol |
+| `kollab-gateway-gpt-luna` | Kollab | 同上，`model: "gpt-6-luna"` | GPT-6 Luna |
+| `kollab-gateway-deepseek` | Kollab | 同上，`model: "deepseek-v4.1-flash"` | DeepSeek V4.1 Flash；无需第三方 Key |
 | `jev` | Typesafe(JEV / System One) | `https://api.typesafe.ai/v1/systemone`,`Authorization: Bearer` 鉴权(`protocol: "typesafe-systemone"`,key 环境变量 `TYPESAFE_API_KEY`) | ⚠️ **不支持 `run`/`run-many`**：Typesafe System One 结构化决策模型，只做判断不生成文本，只能通过 `judge` 子命令调用。极便宜、结果稳定、无裸 tool-call 失败模式 |
 
 模型 ID 会随官方迭代变化,需要时核对:DeepSeek 见
@@ -261,9 +264,9 @@ node bin/agent-fleet.mjs list-models
 
 | 任务类型 | 推荐模型 | 理由 / 说明 |
 |---|---|---|
-| 写代码 / 修 bug / 补测试（常规开发、写脚本、CLI 子命令、API 链路） | `kollab-gateway-research`（Grok，`grok-4.6`） | 2026-09-26 起编程任务默认路由到这里，产出由派单方自己核验，不合格才升级 Claude。**GLM `kollab-gateway-code` 已被用户叫停**（曾 30 分钟零改动交回 Skill 介绍，假成功） |
+| 写代码 / 修 bug / 补测试（常规开发、写脚本、CLI 子命令、API 链路） | `kollab-gateway-research`（Grok，`grok-4.7`） | 2026-09-26 起编程任务默认路由到这里，产出由派单方自己核验，不合格才升级 Claude。**GLM `kollab-gateway-code` 已被用户叫停**（曾 30 分钟零改动交回 Skill 介绍，假成功） |
 | 写作 / 翻译 / 调研 / 母语校对（写文档、写报告、核实资料） | `kollab-gateway-copy`（Gemini） | 响应迅速、文笔流畅，即用免第三方审批。长报告换 `gemini-3.1-pro`。**注意：实测 `gemini-3.8-flash` 做多文件代码改动容易跑满轮数零产出，绝对不要派它写代码** |
-| 题材擦边、尺度偏大、需要不那么保守的调研、报告或代码 | `kollab-gateway-research`（Grok，`grok-4.6`） | Grok 风格相对开放，和编程任务共用同一条目。**注明**：按风格分派不等于违背底线，违法、有害的任务换哪个模型都不做 |
+| 题材擦边、尺度偏大、需要不那么保守的调研、报告或代码 | `kollab-gateway-research`（Grok，`grok-4.7`） | Grok 风格相对开放，和编程任务共用同一条目。**注明**：按风格分派不等于违背底线，违法、有害的任务换哪个模型都不做 |
 | 判断节点（分类、路由、是否、打分、成败校验、下一步动作选择） | `jev`（`judge`） | 结构化决策专精，只做判断不生成文本，调用极快极省且结果高度稳定，无裸 tool-call 问题；置信度低于约 0.55 时交回 Claude |
 | 批量格式转换 | `kollab-gateway-bulk`（`gemini-3.5-flash-lite`） | 机械任务优先图快图省，目录里响应最快的免费档模型之一 |
 | 明显偏重的开发（3D、游戏、建站设计、复杂架构、高风险改动） | 不派 agent-fleet，交给 Claude 高档模型 | 超出普通轻量模型工具调用与复杂工程架构能力边界，需保持最高质量与严谨度 |
@@ -273,14 +276,17 @@ node bin/agent-fleet.mjs list-models
 
 ## 已知限制(如实说明,不美化)
 
+当前模型刷新：Grok 路由为 `grok-4.7`，已通过 agent-fleet 生产真实调用（返回 `4`，无控制 token）；GPT-6 Sol/Luna 与 DeepSeek V4.1 Flash 已通过 Kollab CLI 生产真实调用，新 agent-fleet 别名的相同托管配置已通过静态检查，尚未逐个运行 SDK。历史 Grok 4.6 验证仅对应当时版本。
+
+
 - **Gemini 没有官方 Anthropic 兼容端点**:Google 官方未提供类似 DeepSeek/Moonshot 那样的
   `/anthropic` 路径。要用 Gemini,用户必须自己搭一个能把 Anthropic Messages 协议转换成
   Gemini 请求的网关(比如自建 LiteLLM proxy),把网关地址和它认的模型 ID 填进
   `models.config.json` 的 `gemini` 条目;不填的话选这个模型会直接报错退出。
-- **`kollab-gateway` 系列与 `jev` 已完成真实端到端验证,`deepseek-v4-pro`/`deepseek-v4.1-flash`/
+- **既有 `kollab-gateway` 系列与 `jev` 的历史配置已完成真实端到端验证,`deepseek-v4-pro`/`deepseek-v4.1-flash`/
   `kimi` 这几条原生第三方 key 路径仍未验证**:项目作者手头没有真实的 DeepSeek/Moonshot API key
   (也没有去别的项目"顺手"拿),所以这三条官方端点还没跑过一次真实模型调用。`kollab-gateway` 系列与
-  `jev` 是例外——线上网关已于 2026-09-26 实测，四个 kollab 模型和 jev 都返回 ok。此前测试环境
+  `jev` 是例外——线上网关已于 2026-09-26 实测，当时四个 kollab 模型（含 Grok 4.6）和 jev 都返回 ok。此前测试环境
   `test.flowus.work` 的 key 曾经触发 402 会话额度上限，已于 2026-09-26 改用线上网关
   `https://kollab.im/api/llm`（环境变量 `KOLLAB_PROD_API_KEY`），对 `kollab-gateway`、
   `kollab-gateway-copy`、`kollab-gateway-research`、`kollab-gateway-bulk` 均跑通真实调用，返回
