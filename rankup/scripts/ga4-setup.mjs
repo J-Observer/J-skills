@@ -10,8 +10,11 @@
  * 标志：
  *   --domain <域名>           网站数据流 URL（不带协议）
  *   --name <名称>             媒体资源显示名，默认取 --domain 的二级域名
- *   --timezone-country <国>   报告时区所在国家（界面文字）。默认「冰岛」（GMT+00:00 / UTC）
- *                             fotos3x4 一类巴西站传「巴西」→ America/Sao_Paulo
+ *   --country <国>            报告时区所在国家（界面文字）。默认「冰岛」
+ *   --timezone <时区>         报告时区（界面文字，如 UTC、GMT+00:00、America/Sao_Paulo）。
+ *                             时区列表没有 UTC 时用这个显式选；不传则只按 --country 选
+ *   --timezone-country <国>   --country 的别名（兼容旧调用）
+ *                             fotos3x4 一类巴西站传 --country 巴西 [--timezone America/Sao_Paulo]
  *   --currency <币种>         界面文字或代码。默认匹配 /美元|USD/
  *   --industry <行业>         商家详情行业类别。默认「其他业务活动」
  *   --session <名>            opencli 会话名（默认 ga4-setup-<每对话唯一后缀>，不用 pid）
@@ -45,6 +48,7 @@ const action = argv[0]
 let domain = null
 let name = null
 let timezoneCountry = "冰岛"
+let timezone = null
 let currency = "USD"
 let industry = "其他业务活动"
 let session = `ga4-setup-${sessionSuffix()}`
@@ -55,7 +59,8 @@ for (let i = 1; i < argv.length; i++) {
   const a = argv[i]
   if (a === "--domain" && argv[i + 1]) { domain = argv[++i]; continue }
   if (a === "--name" && argv[i + 1]) { name = argv[++i]; continue }
-  if (a === "--timezone-country" && argv[i + 1]) { timezoneCountry = argv[++i]; continue }
+  if ((a === "--country" || a === "--timezone-country") && argv[i + 1]) { timezoneCountry = argv[++i]; continue }
+  if (a === "--timezone" && argv[i + 1]) { timezone = argv[++i]; continue }
   if (a === "--currency" && argv[i + 1]) { currency = argv[++i]; continue }
   if (a === "--industry" && argv[i + 1]) { industry = argv[++i]; continue }
   if (a === "--session" && argv[i + 1]) { session = argv[++i]; continue }
@@ -68,7 +73,8 @@ for (let i = 1; i < argv.length; i++) {
 function usage() {
   console.log(`用法:
   node ga4-setup.mjs status
-  node ga4-setup.mjs create --domain <域名> [--name <媒体资源名>] [--timezone-country 冰岛|巴西] [--currency USD]
+  node ga4-setup.mjs create --domain <域名> [--name <媒体资源名>] [--country 冰岛|巴西] [--timezone UTC] [--currency USD]
+  --timezone-country 是 --country 的别名。时区列表没有 UTC 时用 --country/--timezone 显式指定。
   已有同域名媒体资源则复用，输出 Measurement ID（形如 G-XXXXXXXXXX）。`)
 }
 
@@ -98,12 +104,30 @@ function waitFor(js, seconds = 15) {
   const deadline = Date.now() + seconds * 1000
   while (Date.now() < deadline) {
     try { if (String(evalJs(js)).includes("true")) return true } catch { /* 导航中 */ }
-    settle(500)
+    try { settle(500) } catch { /* 导航中 eval 会失败，下一轮再探 */ }
   }
   return false
 }
-function waitPageReady(seconds = 20) {
-  return waitFor(`return document.readyState==='complete' && /管理|创建媒体资源|媒体资源名称|报告/.test((document.body&&document.body.innerText)||'') && !/^\\s*正在加载/.test((document.body&&document.body.innerText)||'')`, seconds)
+function waitNetworkQuiet(seconds = 20) {
+  return waitFor(`
+    if (document.readyState !== 'complete') return false;
+    const t = performance.getEntriesByType('resource');
+    const last = t.length ? Math.max(...t.map(e => e.responseEnd || 0)) : 0;
+    return (performance.now() - last) > 800;
+  `, seconds)
+}
+function waitPageReady(seconds = 30) {
+  const ready = waitFor(`
+    const text = (document.body && document.body.innerText) || '';
+    const loading = /正在加载|Loading Google Analytics|正在载入/.test(text) && !/管理|创建媒体资源|媒体资源名称|报告/.test(text);
+    return document.readyState==='complete' && !loading && /管理|创建媒体资源|媒体资源名称|报告|账号|媒体资源/.test(text);
+  `, seconds)
+  if (!ready) return false
+  waitNetworkQuiet(Math.min(10, seconds))
+  return true
+}
+function waitForFilterBox(seconds = 15) {
+  return waitFor(`return !![...document.querySelectorAll('input')].find(el => el.offsetParent && /过滤|filter|搜索|search/i.test((el.getAttribute('aria-label')||'')+(el.placeholder||'')))`, seconds)
 }
 function dismissOverlays() {
   try { cli(["keys", "Escape"]) } catch { /* ignore */ }
@@ -161,8 +185,9 @@ function clickExactButton(text, label = text) {
 }
 
 function fillVisibleFilter(value) {
-  if (!waitFor(`return !![...document.querySelectorAll('input')].find(el => el.offsetParent && /过滤|filter|搜索|search/i.test((el.getAttribute('aria-label')||'')+(el.placeholder||'')))`, 8)) {
-    throw new Error("找不到过滤框")
+  if (!waitForFilterBox(15)) {
+    waitNetworkQuiet(8)
+    if (!waitForFilterBox(10)) throw new Error("找不到过滤框（已等待目标 input 出现并重试）")
   }
   const id = evalJs(`
     const inp = [...document.querySelectorAll('input')].find(el => el.offsetParent && /过滤|filter|搜索|search/i.test((el.getAttribute('aria-label')||'')+(el.placeholder||'')));
@@ -194,8 +219,13 @@ function goAdmin() {
   } catch (e) {
     if (!/Navigation rejected/i.test(String(e.message || e))) throw e
   }
-  waitPageReady(30)
-  settle(1500)
+  if (!waitPageReady(40)) {
+    waitNetworkQuiet(10)
+    if (!waitPageReady(20)) {
+      bail("ga-loading-stuck", "GA 后台加载页超时：目标元素未出现且网络未空闲。请确认已登录 analytics.google.com 后重试。")
+    }
+  }
+  settle(800)
   try {
     stampAndClick(
       `[...document.querySelectorAll('a[role="link"],a')].find(a => (a.innerText||'').trim()==='管理' && a.offsetParent && a.closest('mat-nav-list'))`,
@@ -308,6 +338,20 @@ function createProperty() {
   fillVisibleFilter(timezoneCountry)
   pickOption(timezoneCountry, "时区国家选项")
   settle(800)
+  if (timezone) {
+    try {
+      stampAndClick(
+        `[...document.querySelectorAll('time-zone-selector button.menu-open-button, button.menu-open-button')].find(b => b.offsetParent && /UTC|GMT|时区|Time zone|America\\/|Europe\\/|Asia\\//.test(b.innerText||'') && !/下一步|返回|Next|Back/.test(b.innerText||''))`,
+        "报告时区",
+      )
+      settle(600)
+      fillVisibleFilter(timezone)
+      pickOption(timezone, "时区选项")
+      settle(800)
+    } catch (e) {
+      throw new Error(`时区列表里找不到 ${timezone}（--timezone）。可用 --country/--timezone 指定实际界面文字。原错误: ${e.message}`)
+    }
+  }
 
   stampAndClick(
     `[...document.querySelectorAll('button')].find(b => /人民币|USD|美元|币种|Currency/.test(b.innerText||'') && b.offsetParent && (b.innerText||'').trim().length < 40)`,

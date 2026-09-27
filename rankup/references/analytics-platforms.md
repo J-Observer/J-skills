@@ -65,9 +65,12 @@ Firebase 项目可以关联这个 GA4 媒体资源（下一节），但纯 Web �
 
 ### 脚本（2026-09-27）
 
-`scripts/ga4-setup.mjs`：`status` / `create --domain --name [--timezone-country 冰岛|巴西]`。
+`scripts/ga4-setup.mjs`：`status` / `create --domain --name [--country 冰岛|巴西] [--timezone UTC]`。
+`--timezone-country` 仍可用，是 `--country` 的别名。时区列表没有 UTC 时用 `--country` /
+`--timezone` 显式指定界面文字（例如 `--country 英国 --timezone UTC` 或 `--timezone GMT+00:00`）。
 专用 OpenCLI 窗口（`--window-slot ga4-setup`）。hash URL `open` 常报 Navigation rejected，
-脚本改开 `/analytics/web/` 再点「管理」。`waitPageReady` 不以「正在加载...」为就绪。
+脚本改开 `/analytics/web/` 再点「管理」。`waitPageReady` 等目标元素出现或网络空闲，
+不以「正在加载...」为就绪；过滤框同样带超时重试，避免卡在 GA 后台加载页。
 已有同域名媒体资源则复用。create 不宣布成功——以截图 + 页面 Measurement ID 为准。
 
 ## CF WA（Cloudflare Web Analytics，域名无关，可在预览域先接）
@@ -133,9 +136,21 @@ node <rankup-skill-dir>/scripts/analytics-beacon-check.mjs <url> --both \
   --navigate-selector '<站内真实链接 CSS>' --navigate-path '<目标 pathname>' --json
 ```
 
+默认 `--window dedicated`。拿不到空闲 slot 时等待重试，默认最多 10 分钟，
+`--wait-slot <秒>` 可调（`0` 表示不等待）；超时会报清楚的 dedicated-pool 错误，而不是
+`open` 立刻失败。
+
 必须在同一会话首次交互或超时后检查各 SDK 份数，再自然点击完成 SPA 导航重查；共享加载器
 按 provider 在排程时去重，首次触发前后的 head 回放都不能重复注册。脚本 URL 存在、
 资源请求发生、成功加载、真实发送与响应状态是不同事实，未知不能填通过。
+
+**CF WA 加载链**：`beacon.min.js` 之后再加载带 hash 的第二段脚本（`beacon.min.js/<hash>`）
+是 Cloudflare 的正常链，不算「重复加载」。判定 CF WA 成功的依据是实际发出了
+`/cdn-cgi/rum` 或 `cloudflareinsights.com/cdn-cgi/rum` 请求（成功响应），不是 DOM 里有两段 script。
+
+**Clarity**：除了看 `clarity.ms/tag/<id>` 是否加载，还要看 `*.clarity.ms/collect` 请求。
+超时内 tag 已加载但没有 collect，标 `tag-loaded-no-collect`（warning，不算 fail），
+并提示可能是扩展拦截。
 
 **RUM 404 或请求失败不能凭猜测豁免。** 先区分脚本下载失败与上报失败，核对实际请求的
 URL/方法/状态、静态及运行后脚本份数、API 配置、同一会话导航前后变化。再比较普通浏览器与
