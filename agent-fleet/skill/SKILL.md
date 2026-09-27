@@ -1,11 +1,11 @@
 ---
 name: agent-fleet
-description: 用户明确要求用 agent-fleet、便宜模型、DeepSeek/Kimi/Gemini，或要求将大量低判断成本的独立任务交给第三方模型时使用。本地 CLI 通过 Claude Agent SDK 运行可读写文件和执行命令的 Agent；使用前核对目标模型当前配置、真实 Key 状态、工作目录信任边界和任务归属。第三方模型响应需按任务验收，不能只凭 CLI 返回 ok 判成功。
+description: 用户明确要求用 agent-fleet、Codex/GPT 编程与结果 review、便宜模型、DeepSeek/Kimi/Gemini，或要求将独立任务交给其他模型时使用。编程优先本机 Codex CLI 的 GPT-6 Sol，中等思考；简单任务轻度。本地 CLI 通过 Claude Agent SDK 运行可读写文件和执行命令的 Agent；使用前核对目标模型当前配置、真实 Key 状态、工作目录信任边界和任务归属。第三方模型响应需按任务验收，不能只凭 CLI 返回 ok 判成功。
 ---
 
 # agent-fleet
 
-个人本地 CLI 工具,路径 `/Users/kcsx/Project/kcsx/macmini/yan-skills/agent-fleet/`。核心用途:
+本地任务分配 skill：编程优先后台 Codex，其他模型通过个人 CLI `/Users/kcsx/Project/kcsx/macmini/yan-skills/agent-fleet/` 执行。Codex 使用本机已有登录，SDK 网关使用已有账号 key；两条路径不复制或转换凭据。核心用途:
 把已明确范围的机械化、批量子任务交给已配置的第三方模型。先判断派工是否真的比直接处理省时、省钱，且目标目录可被信任；保持一个写入负责人，结果由主代理按原任务验收。任务不独立或验证成本高于执行成本时，直接完成。
 
 它是一个独立的个人工具仓库(`yan-skills`),和 Kollab 产品的代码库无关。它的信任边界是:本地
@@ -15,14 +15,21 @@ description: 用户明确要求用 agent-fleet、便宜模型、DeepSeek/Kimi/Ge
 standalone key,费用走你自己 Space 的实时额度)。不管选哪个,接的都是**用户自己的**key,不存在
 共享的托管账号体系。
 
+## 编程和 review 的优先路由
+
+- 本机有 Codex CLI 且当前账号真实可用 `gpt-6-sol` 时，编程优先把独立任务交给后台 Codex；默认 `medium`，简单且范围明确的改动用 `low`，不自动提高到 high/xhigh/max/ultra。
+- Codex 未安装、登录失效或明确拒绝模型时，先做一次有依据的诊断；不要无限重试或静默换旧模型。可用时改走 `kollab-gateway-gpt-sol`；GPT 路径不可用时用 `kollab-gateway-research`（Grok 4.7）。两条网关路径仍只经过托管 Kollab → LiteLLM。不能把只验证过 CLI 单次文本的路径说成已经通过多轮编程验证。
+- GPT-6 Sol 用于编程及较大任务的结果 review；文案、翻译继续优先 Gemini。普通小改动自行跑针对性检查即可；跨模块、较大重构、数据迁移、权限/计费/外部写入等任务，以及项目规范要求独立 review 时，增加一次只读 GPT review。
+- review 只报告有具体触发条件、真实影响和代码/产物证据的问题；不为凑问题数量堆假设攻击链，也不因影响严重但概率低就忽略已经可达的漏洞。无实际阻断问题就简短通过。
+- 执行命令、后台收尾和精简 review 提示词见 [Codex 编程与 review](references/codex-coding.md)。使用这条路径前必须读该文件；它是当前编程规则，优先于下方历史验证说明。用户明确指定模型与项目规范始终优先。
+
 ## 什么时候用 / 什么时候不用
 
 **用**:用户明确指定，或任务确实适合独立委派且是机械化的(不需要多少判断力就能做对)、批量的(同类任务重复很多次)、或对模型能力
 要求不高(普通翻译、格式转换、常规调研摘要、批量文件级小改动),且目标模型已经在 `.env` 里配好
 真实 key。多个模型并行只用于输入、文件和外部资源彼此独立的任务。
 
-**不用**:任务需要深度架构判断、涉及本仓库(Kollab 或其它有专属规范的项目)需要遵守复杂工程规范
-的改动、或者目标工作目录来路不明——agent-fleet 跑的是 `bypassPermissions` 全权限 Agent,对
+**不用 SDK 第三方执行路径**:任务需要深度架构判断、涉及有专属规范的项目且无法将必要约束和验收完整交给执行者、或者目标工作目录来路不明——agent-fleet 跑的是 `bypassPermissions` 全权限 Agent,对
 prompt injection 没有免疫力(见下方「安全边界」),不适合处理完全不信任的目录。
 
 ## 首次使用前置检查
@@ -264,12 +271,12 @@ node bin/agent-fleet.mjs list-models
 
 | 任务类型 | 推荐模型 | 理由 / 说明 |
 |---|---|---|
-| 写代码 / 修 bug / 补测试（常规开发、写脚本、CLI 子命令、API 链路） | `kollab-gateway-research`（Grok，`grok-4.7`） | 2026-09-26 起编程任务默认路由到这里，产出由派单方自己核验，不合格才升级 Claude。**GLM `kollab-gateway-code` 已被用户叫停**（曾 30 分钟零改动交回 Skill 介绍，假成功） |
+| 写代码 / 修 bug / 补测试 | 本机 Codex CLI，`gpt-6-sol`，`medium`；简单任务 `low` | 优先后台执行；不可用时按上方 GPT 网关 → Grok 4.7 回退，GLM 不作为编程默认 |
 | 写作 / 翻译 / 调研 / 母语校对（写文档、写报告、核实资料） | `kollab-gateway-copy`（Gemini） | 响应迅速、文笔流畅，即用免第三方审批。长报告换 `gemini-3.1-pro`。**注意：实测 `gemini-3.8-flash` 做多文件代码改动容易跑满轮数零产出，绝对不要派它写代码** |
 | 题材擦边、尺度偏大、需要不那么保守的调研、报告或代码 | `kollab-gateway-research`（Grok，`grok-4.7`） | Grok 风格相对开放，和编程任务共用同一条目。**注明**：按风格分派不等于违背底线，违法、有害的任务换哪个模型都不做 |
 | 判断节点（分类、路由、是否、打分、成败校验、下一步动作选择） | `jev`（`judge`） | 结构化决策专精，只做判断不生成文本，调用极快极省且结果高度稳定，无裸 tool-call 问题；置信度低于约 0.55 时交回 Claude |
 | 批量格式转换 | `kollab-gateway-bulk`（`gemini-3.5-flash-lite`） | 机械任务优先图快图省，目录里响应最快的免费档模型之一 |
-| 明显偏重的开发（3D、游戏、建站设计、复杂架构、高风险改动） | 不派 agent-fleet，交给 Claude 高档模型 | 超出普通轻量模型工具调用与复杂工程架构能力边界，需保持最高质量与严谨度 |
+| 跨模块重构、复杂开发、权限/计费/迁移 | Codex GPT-6 Sol `medium`，完成后独立只读 review | 遵守目标项目规范，划清写入范围，验收测试和实际产物；不得仅凭模型自报完成 |
 | Kimi/DeepSeek/Qwen 家族、多轮工具调用容错要求高的任务 | 不建议派给这几个家族的第三方模型，留给 Claude 自己处理 | 这几个家族已知有 tool-calling 可靠性问题，可能吐出裸的 tool-call 控制 token 而非结构化 `tool_use`，造成假成功，harness 修不了。任何第三方模型只要某次实际输出里出现裸 tool-call 控制 token，那一次就判定失败，不能因为整体路由到它就放松这条判定标准 |
 
 完整版和已知模型目录见 [`../README.md`](../README.md) 的「任务类型 → 推荐模型」一节。

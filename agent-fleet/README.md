@@ -94,14 +94,11 @@ node bin/agent-fleet.mjs judge --model jev --state-file state.txt --questions-fi
 
 ### 任务类型 → 推荐模型(agent-fleet 自己调研 + 真实验证后得出,会持续校准)
 
-下面这张表不是写死的规则,是 agent-fleet 用 `kollab-gateway` 通道跑过一次真实路由调研任务后
-给出的建议,加上后来对 `kollab model list`(TEST 环境)返回的完整模型目录做的核对。随着
-实际使用积累更多样本、或者 Kollab 网关模型目录变化,这张表应该被重新校准,不要当成一成不变
-的硬规则来读。
+编程与 review 优先规则见 [Codex 编程与 review](skill/references/codex-coding.md)。本机 Codex 可用时优先 GPT-6 Sol；其他任务沿用下表已有的模型分工。模型目录和账号能力可能变化，始终以真实调用和任务验收为准。
 
 | 任务类型 | 推荐模型 / 友好名字 | 理由 |
 |---|---|---|
-| 写代码 / 修 bug / 补测试（常规开发、写脚本、CLI 子命令、API 链路） | `kollab-gateway-research`(`grok-4.7`) | 用户 2026-09-26 定调，编程任务默认路由到这里，产出由派单方自己核验，不合格才升级 Claude。**GLM `kollab-gateway-code` 已被用户叫停**（曾 30 分钟零改动交回 Skill 介绍，假成功） |
+| 写代码 / 修 bug / 补测试 | 本机 Codex CLI 的 `gpt-6-sol`，默认 `medium`，简单任务 `low` | 后台执行；不可用时 GPT 托管别名，再回退 Grok 4.7；GLM 不作为编程默认 |
 | 写作 / 翻译 / 调研 / 母语校对（写文档、写报告、核实资料） | `kollab-gateway-copy`(`gemini-3.8-flash`)或 `kollab-gateway`(默认同款) | 响应迅速、成本低，即用免第三方审批。长报告换 `gemini-3.1-pro`。**注意：实测 `gemini-3.8-flash` 做多文件代码改动容易跑满轮数零产出，绝对不要派它写代码** |
 | 批量翻译 / 格式转换 | `deepseek-v4.1-flash`(需配 `DEEPSEEK_API_KEY`)或 `kollab-gateway-bulk`(`gemini-3.5-flash-lite`,即用免配置) | 官方 Flash 档更便宜;没有 DeepSeek key 时 `kollab-gateway-bulk` 是免第三方审批的平替 |
 | 简单调研摘要 | `kimi`(需配 `MOONSHOT_API_KEY`,自带联网搜索)或 `kollab-gateway-research`(`grok-4.7`,即用免配置) | Kimi 官方端点自带联网检索能力,适合真正需要查资料的调研;不想等 key 审批时用 `kollab-gateway-research` 顶上 |
