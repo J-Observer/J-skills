@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-25",
+  "updatedAt": "2026-09-28",
   "note": "Submission routes observed to exist. NOT placements: no row here claims a published link, a rel value, or an index entry. A row graduates into free-channels.json only when a real anchor is seen on a live page. Relevance and authority rank these, they never gate them.",
   "targets": [
     {
@@ -33511,6 +33511,2156 @@
           "capturedAt": "2026-09-09"
         }
       ]
+    },
+    {
+      "domain": "01webdirectory.com",
+      "route": "https://www.01webdirectory.com/frmPreSubmit.aspx",
+      "name": "01webdirectory",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "2agi.net",
+      "route": "https://2agi.net/zh/submit",
+      "name": "2AGI",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "5118.link",
+      "route": "http://www.5118.link/article/22.html",
+      "name": "5118.link",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。原备注：Chinese directory, 1-2 day review",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "63243.com",
+      "route": "https://www.63243.com/about/add.html",
+      "name": "63243网址导航",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "700.tools",
+      "route": "https://700.tools/add",
+      "name": "700.tools",
+      "kind": "product-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "abc-directory.com",
+      "route": "https://www.abc-directory.com/submiturl",
+      "name": "ABC Directory",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "ai.94kan.cn",
+      "route": "https://ai.94kan.cn/submit",
+      "name": "AI导航网 (94kan)",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "aibusinesstool.com",
+      "route": "https://aibusinesstool.com/",
+      "name": "Ai Business Tool",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "aidashi.cn",
+      "route": "https://www.aidashi.cn/sl",
+      "name": "AI大师",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "aidude.pro",
+      "route": "https://aidude.pro/submit-your-tool",
+      "name": "AiDude",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "aigc.cn",
+      "route": "https://www.aigc.cn/submit",
+      "name": "AIGC工具导航",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "aihomes.io",
+      "route": "https://aihomes.io/submit/submit-tool",
+      "name": "AI Homes",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "ailibri.com",
+      "route": "https://ailibri.com/addAi",
+      "name": "AILibri",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。原备注：Russian AI directory",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "ailookme.com",
+      "route": "https://www.ailookme.com/%e7%bd%91%e5%9d%80%e6%8f%90%e4%ba%a4",
+      "name": "AI工具箱 (ailookme)",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "ainavpro.com",
+      "route": "https://www.ainavpro.com/contribute",
+      "name": "AI NAV",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "aisupersmart.com",
+      "route": "https://www.aisupersmart.com/submit-tool/",
+      "name": "AiSuperSmart",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "aitool123.cc",
+      "route": "https://www.aitool123.cc/%E6%8F%90%E4%BA%A4%E6%94%B6%E5%BD%95/",
+      "name": "AI工具箱 (aitool123)",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "aitoolforbusiness.com",
+      "route": "https://aitoolforbusiness.com/submit-ai-tool/",
+      "name": "AI Tool For Business",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "aitoolsmasters.com",
+      "route": "https://aitoolsmasters.com/add-ai-tools/",
+      "name": "AI Tools Masters",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "aiwaytools.com",
+      "route": "https://aiwaytools.com/%e7%bd%91%e5%9d%80%e6%8f%90%e4%ba%a4/",
+      "name": "AI智式",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "alistdirectory.com",
+      "route": "http://www.alistdirectory.com/submit.php",
+      "name": "A List Directory",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "allstartups.info",
+      "route": "http://www.allstartups.info/Startups/Submit",
+      "name": "All Startups",
+      "kind": "startup-launch",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "allthingsai.com",
+      "route": "https://allthingsai.com",
+      "name": "AllThingsAI",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "appsthunder.com",
+      "route": "https://appsthunder.com/submit-your-app/",
+      "name": "AppsThunder",
+      "kind": "product-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "backdata.net",
+      "route": "https://backdata.net/submit-site.html",
+      "name": "Cooltools",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "changelog.com",
+      "route": "https://changelog.com/news/submit",
+      "name": "Changelog",
+      "kind": "dev-community",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。原备注：Developer-focused, high quality",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "chatgptdemo.pro",
+      "route": "https://chatgptdemo.pro/submit-tool/",
+      "name": "ChatGPTDemo.pro",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "deepdhai.com",
+      "route": "https://www.deepdhai.com/submit",
+      "name": "深度AI导航",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "dianshangdaohang.cn",
+      "route": "https://www.dianshangdaohang.cn/shoulu/",
+      "name": "电商导航网",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。原备注：E-commerce only",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "digiprotoolz.com",
+      "route": "https://digiprotoolz.com/contact-us/",
+      "name": "DigiProToolz",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "digitalstuffwelove.org.nz",
+      "route": "https://digitalstuffwelove.org.nz/submit-tool",
+      "name": "Digital Stuff We Love",
+      "kind": "product-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "dizkaz.com",
+      "route": "https://dizkaz.com/",
+      "name": "笛卡",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "dongaiapp.com",
+      "route": "https://www.dongaiapp.com/sub",
+      "name": "懂AI",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "draeno.io",
+      "route": "https://draeno.io/submit-a-tool/",
+      "name": "Draeno.io",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "fiddy.co",
+      "route": "https://fiddy.co/",
+      "name": "Fiddy",
+      "kind": "startup-launch",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。原备注：Weekly indie hacker ranking",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "findcool.tools",
+      "route": "https://www.findcool.tools/submit-tool",
+      "name": "findcool.tools",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "freeaitool.ai",
+      "route": "https://freeaitool.ai/submit",
+      "name": "Free AI Tool",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。原备注：24h fast review",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "fsl123.com",
+      "route": "https://www.fsl123.com/contribute",
+      "name": "123AI导航",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "fullstackai.co",
+      "route": "https://fullstackai.co/submit-a-tool/",
+      "name": "Full Stack AI",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "fundamaker.com",
+      "route": "https://fundamaker.com/",
+      "name": "Fund a Maker",
+      "kind": "startup-launch",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "fuun.fun",
+      "route": "https://fuun.fun/talk.html",
+      "name": "FUUN.FUN",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。原备注：Fun/quirky web apps only",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "fwol.cn",
+      "route": "http://www.fwol.cn/infos_add.php",
+      "name": "名站在线",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "gate2ai.com",
+      "route": "https://www.gate2ai.com/zh-cn/submit-tool",
+      "name": "Gate2AI",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "hhlink.com",
+      "route": "https://www.hhlink.com/%E6%8F%90%E4%BA%A4%E6%96%B0%E7%BD%91%E7%AB%99",
+      "name": "海外导航网",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "humanalternative.com",
+      "route": "https://www.humanalternative.com/submit-resource/submit-a-tool",
+      "name": "Human Alternative",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "iforai.com",
+      "route": "https://iforai.com/submit_website/",
+      "name": "iforai",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "indietools.co",
+      "route": "https://indietools.co/",
+      "name": "Indie Tools",
+      "kind": "product-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "insanelycooltools.com",
+      "route": "https://www.insanelycooltools.com/submit",
+      "name": "insanelycooltools",
+      "kind": "product-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "killerstartups.com",
+      "route": "https://www.killerstartups.com/submit-startup/",
+      "name": "KillerStartups",
+      "kind": "startup-launch",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "launching.today",
+      "route": "https://www.launching.today/",
+      "name": "Launching Today",
+      "kind": "startup-launch",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "lbbai.com",
+      "route": "https://lbbai.com/contribute",
+      "name": "老北鼻AI导航",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "nancheng.fun",
+      "route": "https://nancheng.fun/contribute",
+      "name": "南城FE AI导航",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "nav.6aiq.com",
+      "route": "https://nav.6aiq.com/contribute",
+      "name": "未来百科",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "nextool.ai",
+      "route": "https://www.nextool.ai/submit-a-tool",
+      "name": "Nextool AI",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "once.tools",
+      "route": "https://once.tools/",
+      "name": "once.tools",
+      "kind": "product-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。原备注：One-time payment software",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "ontoplist.com",
+      "route": "https://www.ontoplist.com/join/",
+      "name": "OnToplist.com",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "paxi.ai",
+      "route": "https://paxi.ai/submit",
+      "name": "Paxi",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "poweredbyai.app",
+      "route": "https://poweredbyai.app/submit-tool",
+      "name": "PoweredbyAI",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "primeindies.com",
+      "route": "https://primeindies.com/",
+      "name": "Prime Indies",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "saasbaba.com",
+      "route": "https://saasbaba.com/add-ai-tool/",
+      "name": "SaaSBaba",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "simplelister.com",
+      "route": "https://simplelister.com/",
+      "name": "Simple Lister",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "solo.xin",
+      "route": "https://solo.xin/product",
+      "name": "Solo 社区",
+      "kind": "dev-community",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "sonicrun.com",
+      "route": "https://www.sonicrun.com/freelisting.html",
+      "name": "Sonic Run",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "spottheai.com",
+      "route": "https://www.spottheai.com/submit",
+      "name": "SpotTheAI",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。原备注：5000+ AI products",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "tap4.ai",
+      "route": "https://tap4.ai/cn/submit",
+      "name": "Tap4 AI",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。原备注：Supports Chinese",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "techdirectory.io",
+      "route": "https://www.techdirectory.io/get-listed",
+      "name": "techdirectory.io",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "thestartuppitch.com",
+      "route": "https://thestartuppitch.com/post-a-pitch/",
+      "name": "The Startup Pitch",
+      "kind": "startup-launch",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "thewarehouse.ai",
+      "route": "https://www.thewarehouse.ai/product-submission",
+      "name": "The AI Warehouse",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "tigg.cc",
+      "route": "https://tigg.cc/share",
+      "name": "挖互联网",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。原备注：Free innovative tools only",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "toolsai.net",
+      "route": "https://toolsai.net/add-listing/",
+      "name": "ToolsAI.net",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "toolsstory.net",
+      "route": "https://toolsstory.net/add-listing/",
+      "name": "ToolStory.net",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "toools.design",
+      "route": "https://toools.design/",
+      "name": "Toools.design",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。原备注：Design tools, 1500+ resources",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "topbestalternatives.com",
+      "route": "https://www.topbestalternatives.com/",
+      "name": "Top Best Alternatives",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "trackbes.com",
+      "route": "https://trackbes.com/submit-tool",
+      "name": "TrackBes",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "tsection.com",
+      "route": "https://www.tsection.com/",
+      "name": "Tsection",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "unloc.tools",
+      "route": "https://www.unloc.tools/submit-tool",
+      "name": "Unloc",
+      "kind": "product-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "unmatchedstyle.com",
+      "route": "https://unmatchedstyle.com/submit",
+      "name": "Unmatched Style",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。原备注：Web design showcase",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "usawebsitesdirectory.com",
+      "route": "https://www.usawebsitesdirectory.com/submit.php",
+      "name": "USA Websites Directory",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "w2solo.com",
+      "route": "https://w2solo.com/topics/newproduct",
+      "name": "W2solo",
+      "kind": "startup-launch",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "wechalet.cn",
+      "route": "https://wechalet.cn/appstore/add",
+      "name": "小木屋",
+      "kind": "product-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "wewaat.com",
+      "route": "https://www.wewaat.com/submitnewtool",
+      "name": "Wewaat",
+      "kind": "product-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。原备注：No-code tools",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "xquan.net",
+      "route": "https://xquan.net/help?tab=submit-guide",
+      "name": "线圈",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "yjpoo.com",
+      "route": "https://www.yjpoo.com/submit-ai-tool/",
+      "name": "映技派",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "ywyj.cn",
+      "route": "https://ywyj.cn/",
+      "name": "一网一匠",
+      "kind": "web-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "zhexieai.com",
+      "route": "https://zhexieai.com/%e6%8f%90%e4%ba%a4%e7%bd%91%e5%9d%80",
+      "name": "zhexieai",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
+    },
+    {
+      "domain": "zhifoubox.com",
+      "route": "https://www.zhifoubox.com/submission",
+      "name": "知否Box AI导航",
+      "kind": "ai-directory",
+      "gate": "unknown",
+      "gates": [
+        "unknown"
+      ],
+      "cohort": "unknown",
+      "payment": "unknown",
+      "price": null,
+      "priceCheckedAt": null,
+      "status": "unverified",
+      "sourceList": "backlink-pilot targets.yaml",
+      "notes": "从 backlink-pilot targets.yaml 补录，未探测。",
+      "lastProbedAt": "2026-09-28",
+      "evidence": {
+        "method": "anonymous-http",
+        "what": "未探测：从 backlink-pilot targets.yaml 补录，未访问该域名核实。",
+        "httpStatus": null,
+        "finalUrl": null,
+        "title": null
+      }
     }
   ]
 }
