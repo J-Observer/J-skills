@@ -5,6 +5,8 @@
  * 已知坑：Cloudflare Block AI Bots 可直接返回 403，robots.txt 放行也不能证明可访问。
  * 已验证：2026-09-28。
  */
+import { realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 const agents = [
   'GPTBot', 'OAI-SearchBot', 'ChatGPT-User', 'ClaudeBot', 'Claude-User',
@@ -97,7 +99,7 @@ async function main() {
   process.exitCode = failed ? 1 : 0;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === realpathSync(process.argv[1])) {
   if (process.argv.includes('--self-test')) {
     const { strict: assert } = await import('node:assert');
     assert.equal(blockedByRobots('User-agent: *\nDisallow: /\n', 'GPTBot'), true);
