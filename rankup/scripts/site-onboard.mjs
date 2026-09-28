@@ -24,7 +24,7 @@ const arg = name => argv[argv.indexOf(name) + 1]
 const domain = argv.includes("--domain") ? arg("--domain") : null
 const repo = argv.includes("--repo") ? resolve(arg("--repo")) : null
 const session = argv.includes("--session") ? arg("--session") : `onboard-${domain?.replaceAll(".", "")}`
-const only = argv.includes("--only") ? new Set(arg("--only").split(",")) : null
+const only = argv.includes("--only") ? new Set(arg("--only").split(",").flatMap(x => x === "analytics" ? ["cf", "ga4", "clarity"] : [x])) : null
 const skip = argv.includes("--skip") ? new Set(arg("--skip").split(",")) : new Set()
 const check = argv.includes("--check")
 const names = ["cf", "ga4", "clarity", "indexnow", "gsc", "bing", "yandex", "ahrefs"]
@@ -70,15 +70,27 @@ async function cfToken() {
   return sites.find(s => s.ruleset?.zone_tag === zones[0]?.id)?.site_token
 }
 async function buildTrigger() {
+  if (!repo) throw new Error("写入 Workers Builds 构建变量需要 --repo")
   skillEnv()
   const account = await resolveCfAccountId({ headers: cfAuthHeaders() })
   const config = readFileSync(join(repo, "apps/web/wrangler.jsonc"), "utf8")
   const worker = config.match(/"name"\s*:\s*"([^"]+)"/)?.[1]
   const service = await cfApi("GET", `/accounts/${account}/workers/services/${worker}`)
   const triggers = await cfApi("GET", `/accounts/${account}/builds/workers/${service.default_environment.script_tag}/triggers`)
-  return { account, trigger: triggers[0].trigger_uuid }
+  let branch = "main"
+  try { branch = execFileSync("git", ["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], { cwd: repo, encoding: "utf8" }).trim().replace(/^origin\//, "") } catch {}
+  const matches = triggers.filter(t => t.branch_includes?.length === 1 && t.branch_includes[0] === branch)
+  if (matches.length !== 1) throw new Error(`生产分支 ${branch} 的 trigger 未唯一匹配；候选：${triggers.map(t => `${t.trigger_name} (${t.branch_includes?.join(",") || "无分支"})`).join("；")}`)
+  return { account, trigger: matches[0].trigger_uuid }
 }
 async function buildEnv() {
+  if (!repo) {
+    const page = await homepage()
+    return {
+      GA4_MEASUREMENT_ID: { value: page.match(/G-[A-Z0-9]{6,}/)?.[0] },
+      CLARITY_PROJECT_ID: { value: page.match(/"clarity",\s*"script",\s*"([a-z0-9]+)"/)?.[1] },
+    }
+  }
   const { account, trigger } = await buildTrigger()
   return cfApi("GET", `/accounts/${account}/builds/triggers/${trigger}/environment_variables`)
 }
@@ -93,8 +105,11 @@ const steps = {
     done: async () => has("cf-analytics-setup", ["status", domain], /Web Analytics 已启用/) &&
       await live("cf", ids.CF_WEB_ANALYTICS_TOKEN || await cfToken()),
     apply: async () => {
-      run("cf-analytics-setup", "enable", domain)
       ids.CF_WEB_ANALYTICS_TOKEN = await cfToken()
+      if (!ids.CF_WEB_ANALYTICS_TOKEN) {
+        run("cf-analytics-setup", "enable", domain)
+        ids.CF_WEB_ANALYTICS_TOKEN = await cfToken()
+      }
       await wireAnalytics()
     },
   },
@@ -102,7 +117,11 @@ const steps = {
     done: async () => has("ga4-setup", ["status", "--domain", domain, ...browser("ga4")], /已找到网站数据流|线上已部署 GA4 Measurement ID/) &&
       await live("ga4", ids.GA4_MEASUREMENT_ID || (await buildEnv()).GA4_MEASUREMENT_ID?.value),
     apply: async () => {
-      ids.GA4_MEASUREMENT_ID = run("ga4-setup", "create", "--domain", domain, ...browser("ga4")).match(/ID:\s*(G-[A-Z0-9]{6,})/)?.[1]
+      const status = run("ga4-setup", "status", "--domain", domain, ...browser("ga4"))
+      const existing = (await buildEnv()).GA4_MEASUREMENT_ID?.value
+      if (/已找到网站数据流/.test(status) && !existing)
+        throw new Error("GA4 数据流已存在但无法取得 ID；请先提供现有 ID，禁止重复创建")
+      ids.GA4_MEASUREMENT_ID = existing || run("ga4-setup", "create", "--domain", domain, ...browser("ga4")).match(/ID:\s*(G-[A-Z0-9]{6,})/)?.[1]
       if (!ids.GA4_MEASUREMENT_ID) throw new Error("GA4 未返回 Measurement ID")
       await wireAnalytics()
     },
@@ -111,7 +130,11 @@ const steps = {
     done: async () => has("clarity-setup", ["status", ...browser("clarity")], new RegExp(domain.replaceAll(".", "\\."), "i")) &&
       await live("clarity", ids.CLARITY_PROJECT_ID || (await buildEnv()).CLARITY_PROJECT_ID?.value),
     apply: async () => {
-      ids.CLARITY_PROJECT_ID = run("clarity-setup", "create", "--site", domain, ...browser("clarity")).match(/ID:\s*([a-z0-9]+)/)?.[1]
+      const status = run("clarity-setup", "status", ...browser("clarity"))
+      const existing = (await buildEnv()).CLARITY_PROJECT_ID?.value
+      if (new RegExp(domain.replaceAll(".", "\\."), "i").test(status) && !existing)
+        throw new Error("Clarity 项目已存在但无法取得 ID；请先提供现有 ID，禁止重复创建")
+      ids.CLARITY_PROJECT_ID = existing || run("clarity-setup", "create", "--site", domain, ...browser("clarity")).match(/ID:\s*([a-z0-9]+)/)?.[1]
       if (!ids.CLARITY_PROJECT_ID) throw new Error("Clarity 未返回 Project ID")
       await wireAnalytics()
     },
@@ -128,13 +151,7 @@ const steps = {
       return online && (submittedIndexNow || (existsSync(record) &&
         readFileSync(record, "utf8").split("\n").some(line => {
           if (!/IndexNow[^\n]*(?:HTTP 20[02]|返回[^\n]*20[02]|推送[^\n]*20[02])/i.test(line)) return false
-          if (line.includes(file)) return true
-          const commit = line.match(/commit `([a-f0-9]{7,40})`/i)?.[1]
-          if (!commit) return false
-          try {
-            execFileSync("git", ["cat-file", "-e", `${commit}:apps/web/public/${file}`], { cwd: repo, stdio: "ignore" })
-            return true
-          } catch { return false }
+          return line.includes(file)
         })))
     },
     async apply() {
