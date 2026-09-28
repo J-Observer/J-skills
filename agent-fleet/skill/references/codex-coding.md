@@ -8,14 +8,14 @@ fleet code brief.md --low --cwd <项目目录>
 fleet code brief.md --review --cwd <项目目录>
 ```
 
-默认本机 `gpt-6-sol`、medium、`workspace-write`；`--low` 改为 low，`--review` 改为只读并在 brief 前加入下方审查模板。`brief.md` 可换成直接输入的任务文本。结果和日志写入 `~/.agent-fleet/runs/`，结束后核对 diff、产物及相关测试；退出码 0 不等于验收通过。
+默认本机 `gpt-6-sol`、medium、`danger-full-access`（全权限、可联网）；`--low` 改为 low，`--review` 改为只读并在 brief 前加入下方审查模板。`brief.md` 可换成直接输入的任务文本。结果和日志写入 `~/.agent-fleet/runs/`，结束后核对 diff、产物及相关测试；退出码 0 不等于验收通过。
 
 Codex 不存在、登录失效或模型明确不支持时，自动回退到 `kollab-gateway-gpt-sol`。其他失败保留日志，不自动重试。不要把登录文件或密钥打印出来。
 
 ## 哪些任务需要额外 review
 
 - 需要：跨模块或较大重构；数据迁移；权限、计费、删除或外部写入；执行结果不明确；目标项目强制要求独立 review。
-- 通常不需要：文案、排版、简单配置或有明确测试的单点修复。执行者仍须检查产物和跑相关测试。
+- 通常不需要：文案、排版、简单配置或有明确测试的单点修复。执行者只跑 brief 要求的已有测试，不新写测试、不加安全防护代码（见 SKILL.md「派给 GPT-6 只做被点名的那件事」）。
 - 用户或项目要求 review 时执行；审查发现问题后修复并重跑受影响检查。
 
 ## 可直接使用的 review 提示词
