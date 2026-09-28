@@ -47,8 +47,9 @@ npx skills add vercel-labs/skills --skill find-skills -g -y
 ## Google OAuth 2.0 Web Client（登录用，非 GA4/GSC）
 
 网站要接「使用 Google 登录」时用 `<rankup-skill-dir>/scripts/google-oauth-client.mjs`
-一条命令建好 consent screen + Web OAuth client，并把结果写进目标 Worker 的
-wrangler secrets 和 `.dev.vars`。**没有 gcloud/API 能建这类标准 Web client**
+配置 consent screen 和 Web OAuth client 表单。用户手点「创建」后，用同一
+OpenCLI 会话读取成功弹窗，再写入目标 Worker 的 Wrangler secrets。
+**没有 gcloud/API 能建这类标准 Web client**
 （`gcloud iam oauth-clients` 是 Workforce Identity 用的，`gcloud iap
 oauth-clients` 锁定在 IAP 资源上，都不适用），只能靠这个脚本驱动 Console UI，
 详细依据见脚本文件头「研究结论」。
@@ -60,22 +61,24 @@ node <rankup-skill-dir>/scripts/google-oauth-client.mjs \
   --name "OC Maker Hub" \
   --origins https://example.workers.dev,https://example.com,https://www.example.com,http://localhost:3000 \
   --redirect-path /api/auth/google/callback \
-  --publish --worker-dir /path/to/apps/web
+  --publish --stop-before-create
 
-# 加 --commit 才真正执行；--project new:<名字> 现建一个全新 GCP project
-node <rankup-skill-dir>/scripts/google-oauth-client.mjs ... --commit
+# 第一步：填好表单后停下，保留标签页；--project new:<名字> 可新建项目
+node <rankup-skill-dir>/scripts/google-oauth-client.mjs \
+  --project oc-maker-hub --name "OC Maker Hub" \
+  --origins https://example.com --session oauth-oc-maker-hub \
+  --stop-before-create --commit
+
+# 在浏览器里手点「创建」，成功弹窗保持打开，然后执行第二步
+node <rankup-skill-dir>/scripts/google-oauth-client.mjs \
+  --capture --session oauth-oc-maker-hub --worker-dir /path/to/apps/web --commit
+# 如需同时写本地 .dev.vars，第二步加 --write-dev-vars
 ```
 
-已知问题（2026-09-29，oc-maker-hub 首次实跑时发现，脚本头注释同步记录）：
-consent screen 创建、品牌页字段（含「发布应用」按钮初始禁用、必须先补齐
-homepage/privacy/terms 三个链接才会解锁这一坑）、发布到正式版三步已在真实
-项目上跑通；**OAuth client 本身的创建这一步当前会稳定失败**
-（Web/Desktop 两种类型、带不带 URI、测试/正式状态、新旧标签页都试过，连续
-7 次全部报通用错误「创建失败」，跟踪编号各不相同），同期 Google 官方开发者论坛有相同症状、未解决，
-判定为 Google 平台侧问题，不是脚本的 bug。脚本对这一步设了重试上限（默认 3
-次）并会清楚报最后一次的跟踪编号，不会无限重试掩盖问题。**这段免责声明留到
-下次有人用这个脚本、client 创建真正成功为止**——成功之后请回来把脚本头注释
-和本节的「已知问题」一起删掉，把「成功案例」换成真实项目名和日期。
+2026-09-29 实测：自动点击「创建 OAuth 客户端」连续 7 次被拒，用户手点一次
+即成功。因此脚本不自动点击这个按钮；第二步只读取仍打开的成功弹窗，凭据
+通过 stdin 交给 `wrangler secret put`，不打印。第一步默认停在按钮前，
+`--stop-before-create` 用于明确标出这一阶段。
 
 ## Cloudflare 路由
 

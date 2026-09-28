@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 /**
- * google-oauth-client.mjs —— 一条命令建好 Google OAuth 2.0 Web Client（含
- * consent screen / Google Auth Platform 品牌配置）并把结果写进目标 Worker
- * 的 wrangler secrets + .dev.vars。驱动用户已登录的 Chrome（OpenCLI），不
- * 走任何 API —— 研究结论见下。
+ * google-oauth-client.mjs —— 配置 Google OAuth 2.0 Web Client（含 consent
+ * screen / 品牌配置），停在创建按钮前；用户手点创建后，另行读取成功弹窗并
+ * 写入目标 Worker。驱动用户已登录的 Chrome（OpenCLI）。
  *
  * ── 研究结论：没有 API/gcloud 能建标准 Web OAuth client（2026-09-29 核实）──
  *
@@ -15,7 +14,7 @@
  * 或 gcloud 命令能创建「APIs & Services → Credentials → OAuth 2.0 Client ID
  * （Web application）」这一类标准凭据 —— 这是 Google 自己认下的限制
  * （console-only），Terraform 的 google provider 也没有对应资源。
- * 结论：只能靠本脚本这样驱动 Console UI。
+ * 结论：只能通过 Console UI 创建，最后的「创建」需用户手点。
  *
  * ── 用法 ──────────────────────────────────────────────────────────────
  *
@@ -25,8 +24,10 @@
  *     --origins https://oc-maker-hub.kanchaishaoxia.workers.dev,https://ocmakerhub.com,https://www.ocmakerhub.com,http://localhost:3000 \
  *     --redirect-path /api/auth/google/callback \
  *     [--app-name "OC Maker Hub"] [--publish] \
- *     [--worker-dir /path/to/apps/web] \
- *     [--commit]
+ *     --session oauth-oc-maker-hub --stop-before-create --commit
+ *   # 在保留的浏览器标签页手点「创建」后：
+ *   node google-oauth-client.mjs --capture --session oauth-oc-maker-hub \
+ *     --worker-dir /path/to/apps/web [--write-dev-vars] --commit
  *
  * 默认 **dry-run**：只打印将要执行的计划（项目解析结果、consent screen 要
  * 补的字段、要加的 origins/redirect URIs、要跑的 wrangler 命令），不碰任何
@@ -50,41 +51,19 @@
  *                             （External、仅基础 scope 时不需要人工审核）。
  *                             不传则保持「测试」，client 仍然可以正常创建
  *                             和使用，只是仅测试用户能登录。
- *   --worker-dir <路径>      Worker 项目目录（含 wrangler.jsonc/toml）。
- *                             给了才会跑 `wrangler secret put` 和写
- *                             `.dev.vars`；不给就只做到打印 client id/密钥
- *                             这一步。
+ *   --worker-dir <路径>      --capture 时的 Worker 项目目录。
+ *   --write-dev-vars        --capture 时额外写入 .dev.vars。
  *   --session <名>           OpenCLI 会话名，默认
  *                             `oauth-client-<8位随机>`（不用 `$$`，见
  *                             opencli Skill 会话纪律）。
- *   --max-create-retries <n> client 创建失败后的重试上限，默认 3。
+ *   --stop-before-create    填好 client 表单后停下，保留标签页。
+ *   --capture               从同一会话的成功弹窗读取凭据并写入 Worker。
  *   --commit                 真正执行；不传就是 dry-run。
  *
- * ── 已知问题：client 创建这一步当前会稳定失败（2026-09-29 实测）────────
+ * ── 已知限制（2026-09-29 实测）───────────────────────────────
  *
- * 在全新 GCP project + 全新 consent screen 上，「创建 OAuth 客户端」这一步
- * 无论 Web/Desktop 类型、带不带 URI、测试/正式状态、新旧标签页，连续多次
- * 尝试（7 次，跨度约 20 分钟）全部报同一个通用错误「创建失败 / 尝试执行的
- * 操作失败，请重试」，每次跟踪编号不同（实测样本含 c8296742444054049、
- * c7159275139954962、c6598342320490721；完整列表见
- * ~/.agent-reports/2026-09-29/oc-google-oauth-client.md）。同期 Google 官方开发者论坛
- * （2026-08-19，discuss.google.dev/t/google-auth-platform-oauth-configuration
- * -fails-with-tracking-number/391021）有完全相同症状、未解决。已排除的
- * 假设：URI 内容、client 类型、audience 发布状态、页面是否刚导航。疑似
- * Google 平台侧的活跃 bug 或对新建 project 的传播延迟（现象与「5 分钟到
- * 几小时才生效」的官方提示不完全一致，因为等了 20+ 分钟仍未恢复）。
- *
- * 本脚本因此把 createClient() 的重试设了上限（默认 3 次，每次间隔递增），
- * 到上限仍失败就把最后一次的跟踪编号打印出来并非零退出 —— **不会**无限
- * 重试掩盖一个平台侧问题。如果你在更晚的时间点重跑本脚本发现能成功了，
- * 请把这段「已知问题」连同日期一并从本注释删掉。
- *
- * 成功路径（client 创建这条链路本身）目前**未被真实跑通验证过** ——
- * 见上一段。consent screen / 品牌配置 / 发布到正式版 / URI 填写这几步
- * 已在 oc-maker-hub 项目上实测走通，代码路径可信；createClient() 之后
- * 读取 client_id / client_secret 弹窗的逻辑是按 Google 文档里描述的弹窗
- * 结构写的，标记为 best-effort，第一次真正跑通后请回来把这条免责声明
- * 也删掉。
+ * 自动点击「创建 OAuth 客户端」连续 7 次被拒，用户手点一次成功。
+ * 因此脚本只填表，保留页面供用户手点；--capture 读取成功弹窗。
  *
  * ── 品牌页「已获授权的网域」踩坑（已验证）────────────────────────────
  *
@@ -110,9 +89,7 @@
  *     覆盖了 `HTMLAnchorElement.prototype.getAttribute`，与 OpenCLI 的
  *     无障碍角色计算撞车）。本脚本因此全程只用 `eval` + 原生 DOM 查询
  *     （`document.querySelectorAll` 按文字/id 定位），不调 `find`/`state`。
- *  3. 多步向导「看起来没反应」时不要无脑重试 —— 先去 /auth/clients 列表页
- *     数一遍，确认真的没建出来，见 opencli Skill「向导重试会建出重复
- *     实体」那条法律。本脚本的 createClient() 每次重试前都会先查列表页。
+ *  3. 多步向导「看起来没反应」时不要无脑重试，先去客户端列表确认。
  */
 
 import { execFileSync } from "node:child_process"
@@ -138,7 +115,8 @@ const opt = {
   publish: false,
   workerDir: null,
   session: `oauth-client-${randomBytes(4).toString("hex")}`,
-  maxCreateRetries: 3,
+  capture: false,
+  writeDevVars: false,
   commit: false,
 }
 
@@ -153,20 +131,22 @@ for (let i = 0; i < argv.length; i++) {
   if (a === "--publish") { opt.publish = true; continue }
   if (a === "--worker-dir" && argv[i + 1]) { opt.workerDir = argv[++i]; continue }
   if (a === "--session" && argv[i + 1]) { opt.session = argv[++i]; continue }
-  if (a === "--max-create-retries" && argv[i + 1]) { opt.maxCreateRetries = Number(argv[++i]); continue }
+  if (a === "--stop-before-create") continue // 第一阶段也是默认执行方式
+  if (a === "--capture") { opt.capture = true; continue }
+  if (a === "--write-dev-vars") { opt.writeDevVars = true; continue }
   if (a === "--commit") { opt.commit = true; continue }
   if (a === "-h" || a === "--help") { usage(); process.exit(0) }
   console.error(`未知参数: ${a}`); usage(); process.exit(1)
 }
 
-if (!opt.project) { console.error("错误：需要 --project <id|new:名字>"); process.exit(1) }
-if (!opt.name) { console.error("错误：需要 --name <client 名称>"); process.exit(1) }
-if (opt.origins.length === 0) { console.error("错误：需要 --origins <逗号分隔的 origin 列表>"); process.exit(1) }
+if (!opt.capture && !opt.project) { console.error("错误：需要 --project <id|new:名字>"); process.exit(1) }
+if (!opt.capture && !opt.name) { console.error("错误：需要 --name <client 名称>"); process.exit(1) }
+if (!opt.capture && opt.origins.length === 0) { console.error("错误：需要 --origins <逗号分隔的 origin 列表>"); process.exit(1) }
 for (const o of opt.origins) {
   if (!/^https?:\/\/[^/]+$/.test(o)) { console.error(`错误：origin 必须是不带路径的 "协议://host[:port]" 形式，收到: ${o}`); process.exit(1) }
 }
 if (!opt.appName) opt.appName = opt.name
-const isNewProject = opt.project.startsWith("new:")
+const isNewProject = opt.project?.startsWith("new:") || false
 const newProjectName = isNewProject ? opt.project.slice(4) : null
 
 function usage() {
@@ -174,7 +154,9 @@ function usage() {
   node google-oauth-client.mjs --project <id|new:名字> --name <client名> \\
     --origins <逗号分隔 origin> [--redirect-path /api/auth/google/callback] \\
     [--app-name 名称] [--support-email x@y.com] [--publish] \\
-    [--worker-dir <dir>] [--session 名] [--commit]
+    [--session 名] [--stop-before-create] [--commit]
+  node google-oauth-client.mjs --capture --session <同一会话名> \\
+    --worker-dir <dir> [--write-dev-vars] [--commit]
 
 默认 dry-run，只打印计划。--commit 才真正执行。详见文件头注释。`)
 }
@@ -267,17 +249,20 @@ function printPlan() {
   console.log(`发布到正式版     : ${opt.publish ? "是" : "否（保持测试状态）"}`)
   if (opt.workerDir) {
     console.log(`Worker 目录      : ${opt.workerDir}`)
-    console.log(`将执行           : wrangler secret put GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / SESSION_SECRET`)
-    console.log(`                   写入 ${opt.workerDir}/.dev.vars（合并已有内容，不覆盖其它 key）`)
+    console.log(`捕获阶段将执行   : wrangler secret put GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET`)
+    if (opt.writeDevVars) console.log(`                   写入 ${opt.workerDir}/.dev.vars`)
   } else {
     console.log(`Worker 目录      : (未提供 --worker-dir，不会碰 wrangler secrets / .dev.vars)`)
   }
-  console.log(`\n已知风险：client 创建这一步 2026-09-29 实测稳定失败（Google 平台侧疑似 bug），`)
-  console.log(`见文件头注释「已知问题」。--commit 会真的去点，失败会重试 ${opt.maxCreateRetries} 次后退出。`)
+  console.log("将填好 Web client 表单并停在「创建」按钮前，用户手点后用 --capture 读取成功弹窗。")
 }
 
 if (!opt.commit) {
-  printPlan()
+  if (opt.capture) {
+    console.log("=== dry-run 计划（不会执行）===")
+    console.log("从现有成功弹窗读取 Client ID / Secret，使用 stdin 写入两个 Wrangler secret。")
+    if (opt.writeDevVars) console.log("另写入 .dev.vars。")
+  } else printPlan()
   process.exit(0)
 }
 
@@ -285,7 +270,7 @@ if (!opt.commit) {
 
 function bail(msg) {
   console.error(msg)
-  try { cli(["close"]) } catch { /* ignore */ }
+  if (!opt.capture) try { cli(["close"]) } catch { /* ignore */ }
   process.exit(1)
 }
 
@@ -501,91 +486,61 @@ function clientExistsInList(projectId, name) {
   return text.includes(name)
 }
 
-function createClient(projectId) {
+function prepareClient(projectId) {
   if (clientExistsInList(projectId, opt.name)) {
-    console.log(`Client "${opt.name}" 已存在于列表，跳过创建（如需重建请先在 Console 手动删除）。`)
+    console.log(`Client "${opt.name}" 已存在于列表，跳过填表。`)
     return
   }
-  let lastError = null
-  for (let attempt = 1; attempt <= opt.maxCreateRetries; attempt++) {
-    console.log(`创建 OAuth client，第 ${attempt}/${opt.maxCreateRetries} 次尝试 ...`)
-    try {
-      open(`https://console.cloud.google.com/auth/clients/create?project=${encodeURIComponent(projectId)}`)
-      if (!waitFor(`return !!document.querySelector('cfc-select, mat-select')`, 20)) throw new Error("创建页未加载出类型选择器")
-      evalJs(`document.querySelector('cfc-select, mat-select')?.click()`)
-      settle(500)
-      const typeClicked = evalJs(`
-        const opts = Array.from(document.querySelectorAll('mat-option, [role=option]'));
-        const o = opts.find(x => x.innerText.trim() === 'Web 应用' || x.innerText.trim() === 'Web application');
-        if (!o) return 'NOT_FOUND';
-        o.click();
-        return 'OK';
-      `)
-      if (typeClicked === "NOT_FOUND") throw new Error("找不到「Web 应用」选项")
-      settle(500)
-      const nameInputId = evalJs(`
-        const els = Array.from(document.querySelectorAll('input'));
-        const el = els.find(i => i.closest('mat-form-field, .mat-mdc-form-field')?.innerText?.startsWith('名称'));
-        return el ? el.id : '';
-      `)
-      if (!nameInputId) throw new Error("找不到名称输入框")
-      fillInputById(nameInputId, opt.name)
+  console.log("填写 OAuth client 表单 ...")
+  open(`https://console.cloud.google.com/auth/clients/create?project=${encodeURIComponent(projectId)}`)
+  if (!waitFor(`return !!document.querySelector('cfc-select, mat-select')`, 20)) throw new Error("创建页未加载出类型选择器")
+  evalJs(`document.querySelector('cfc-select, mat-select')?.click()`)
+  settle(500)
+  const typeClicked = evalJs(`
+    const opts = Array.from(document.querySelectorAll('mat-option, [role=option]'));
+    const o = opts.find(x => x.innerText.trim() === 'Web 应用' || x.innerText.trim() === 'Web application');
+    if (!o) return 'NOT_FOUND';
+    o.click();
+    return 'OK';
+  `)
+  if (typeClicked === "NOT_FOUND") throw new Error("找不到「Web 应用」选项")
+  settle(500)
+  const nameInputId = evalJs(`
+    const els = Array.from(document.querySelectorAll('input'));
+    const el = els.find(i => i.closest('mat-form-field, .mat-mdc-form-field')?.innerText?.startsWith('名称'));
+    return el ? el.id : '';
+  `)
+  if (!nameInputId) throw new Error("找不到名称输入框")
+  fillInputById(nameInputId, opt.name)
 
-      // 两个「添加 URI」按钮：第一个是 JS origins，第二个是 redirect URIs
-      for (let i = 0; i < opt.origins.length; i++) {
-        evalJs(`
-          const btns = Array.from(document.querySelectorAll('button')).filter(b => b.innerText.trim() === '添加 URI');
-          if (btns[0]) btns[0].click();
-        `)
-      }
-      const redirects = redirectUris()
-      for (let i = 0; i < redirects.length; i++) {
-        evalJs(`
-          const btns = Array.from(document.querySelectorAll('button')).filter(b => b.innerText.trim() === '添加 URI');
-          if (btns[1]) btns[1].click();
-        `)
-      }
-      settle(300)
-      const ids = JSON.parse(evalJs(`
-        const inputs = Array.from(document.querySelectorAll('input'));
-        return JSON.stringify(inputs.map(i => i.id).filter(id => id.includes('mat-input-') && id !== ${JSON.stringify(nameInputId)}));
-      `))
-      const originIds = ids.slice(0, opt.origins.length)
-      const redirectIds = ids.slice(opt.origins.length, opt.origins.length + redirects.length)
-      originIds.forEach((id, i) => fillInputById(id, opt.origins[i]))
-      redirectIds.forEach((id, i) => fillInputById(id, redirects[i]))
-      settle(300)
-
-      clickButtonByText("创建")
-      settle(3000)
-      const text = pageText(1000)
-      if (text.includes("创建失败") || text.includes("尝试执行的操作失败")) {
-        const trace = (text.match(/跟踪编号[：:]\s*(\S+)/) || [])[1] || "(未捕获到跟踪编号)"
-        throw new Error(`Console 报告创建失败，跟踪编号 ${trace}`)
-      }
-      // 成功路径未被真实验证过：best-effort 读取 client id / secret。
-      const creds = tryExtractCredentials()
-      if (creds) return creds
-      // 没读到弹窗内容也去列表页确认一次，成功与否以列表页为准。
-      if (clientExistsInList(projectId, opt.name)) {
-        console.log("列表页确认 client 已创建，但未能自动读取 client secret —— 请去 Console 手动查看/重置密钥。")
-        return null
-      }
-      throw new Error("创建后既未见凭据弹窗，列表页也没有这个 client，判定本次尝试失败")
-    } catch (e) {
-      lastError = e
-      console.error(`第 ${attempt} 次尝试失败: ${e.message}`)
-      if (attempt < opt.maxCreateRetries) settle(5000 * attempt)
-    }
+  // 两个「添加 URI」按钮：第一个是 JS origins，第二个是 redirect URIs
+  for (let i = 0; i < opt.origins.length; i++) {
+    evalJs(`
+      const btns = Array.from(document.querySelectorAll('button')).filter(b => b.innerText.trim() === '添加 URI');
+      if (btns[0]) btns[0].click();
+    `)
   }
-  bail(`OAuth client 创建重试 ${opt.maxCreateRetries} 次后仍失败，最后一次错误：\n${lastError?.message}\n` +
-    `这大概率是 Google Auth Platform 平台侧问题（见文件头「已知问题」），不是本脚本的 bug。` +
-    `建议稍后人工在 Console 里重试一次，或等待 Google 修复。`)
+  const redirects = redirectUris()
+  for (let i = 0; i < redirects.length; i++) {
+    evalJs(`
+      const btns = Array.from(document.querySelectorAll('button')).filter(b => b.innerText.trim() === '添加 URI');
+      if (btns[1]) btns[1].click();
+    `)
+  }
+  settle(300)
+  const ids = JSON.parse(evalJs(`
+    const inputs = Array.from(document.querySelectorAll('input'));
+    return JSON.stringify(inputs.map(i => i.id).filter(id => id.includes('mat-input-') && id !== ${JSON.stringify(nameInputId)}));
+  `))
+  const originIds = ids.slice(0, opt.origins.length)
+  const redirectIds = ids.slice(opt.origins.length, opt.origins.length + redirects.length)
+  originIds.forEach((id, i) => fillInputById(id, opt.origins[i]))
+  redirectIds.forEach((id, i) => fillInputById(id, redirects[i]))
+  settle(300)
+
+  console.log("表单已填好。请在保留的浏览器标签页手点「创建」，成功弹窗保持打开，再运行 --capture。")
 }
 
-/** best-effort：Google 创建成功后通常弹一个对话框展示 Client ID / Client
- *  Secret，可复制。选择器未经真实成功案例验证，读不到就返回 null，调用方
- *  会退回「去列表页确认存在」这条路径。 */
 function tryExtractCredentials() {
   try {
     const json = evalJs(`
@@ -595,7 +550,7 @@ function tryExtractCredentials() {
       const idMatch = text.match(/[\\d-]+\\.apps\\.googleusercontent\\.com/);
       const inputs = Array.from(dialog.querySelectorAll('input')).map(i => i.value).filter(Boolean);
       const secretGuess = inputs.find(v => v && !v.includes('.apps.googleusercontent.com') && v.length > 10);
-      if (!idMatch) return 'null';
+      if (!idMatch || !secretGuess) return 'null';
       return JSON.stringify({ clientId: idMatch[0], clientSecret: secretGuess || null });
     `)
     if (json === "null") return null
@@ -617,7 +572,7 @@ function updateDevVars(dir, kv) {
   let ignored = false
   try { ignored = readFileSync(gitignore, "utf8").includes(".dev.vars") } catch { /* 找不到就当没忽略处理，走保守分支 */ }
   if (!ignored) {
-    console.error(`警告：未能确认 .dev.vars 已被 .gitignore 忽略，为安全起见不写入本地文件。请手动确认后自行补上：\n${JSON.stringify(kv, null, 2)}`)
+    console.error("未能确认 .dev.vars 已被 .gitignore 忽略，未写入本地文件。")
     return
   }
   let lines = []
@@ -634,48 +589,32 @@ function updateDevVars(dir, kv) {
 }
 
 function applyWranglerSecrets(creds) {
-  if (!opt.workerDir) return
   const dir = resolve(opt.workerDir)
   if (!existsSync(dir)) bail(`--worker-dir 不存在: ${dir}`)
-  const sessionSecret = randomBytes(32).toString("hex")
-  if (creds?.clientId) {
-    console.log("写入 GOOGLE_CLIENT_ID ...")
-    wranglerSecretPut(dir, "GOOGLE_CLIENT_ID", creds.clientId)
-  } else {
-    console.log("没有拿到 client id，跳过 GOOGLE_CLIENT_ID（请手动补）。")
-  }
-  if (creds?.clientSecret) {
-    console.log("写入 GOOGLE_CLIENT_SECRET ...")
-    wranglerSecretPut(dir, "GOOGLE_CLIENT_SECRET", creds.clientSecret)
-  } else {
-    console.log("没有拿到 client secret，跳过 GOOGLE_CLIENT_SECRET（请手动补，Console 里可重置密钥）。")
-  }
-  console.log("写入 SESSION_SECRET（新生成的随机值，与本地 .dev.vars 的值分开，互不影响）...")
-  wranglerSecretPut(dir, "SESSION_SECRET", randomBytes(32).toString("hex"))
-
-  const devKv = { SESSION_SECRET: sessionSecret }
-  if (creds?.clientId) devKv.GOOGLE_CLIENT_ID = creds.clientId
-  if (creds?.clientSecret) devKv.GOOGLE_CLIENT_SECRET = creds.clientSecret
-  updateDevVars(dir, devKv)
-
-  try {
-    const list = execFileSync("npx", ["wrangler", "secret", "list"], { cwd: dir, encoding: "utf8", timeout: 30000 })
-    console.log("wrangler secret list:")
-    console.log(list)
-  } catch (e) {
-    console.error(`wrangler secret list 失败: ${e.message}`)
-  }
+  wranglerSecretPut(dir, "GOOGLE_CLIENT_ID", creds.clientId)
+  console.log("GOOGLE_CLIENT_ID 已写入。")
+  wranglerSecretPut(dir, "GOOGLE_CLIENT_SECRET", creds.clientSecret)
+  console.log("GOOGLE_CLIENT_SECRET 已写入。")
+  if (opt.writeDevVars) updateDevVars(dir, { GOOGLE_CLIENT_ID: creds.clientId, GOOGLE_CLIENT_SECRET: creds.clientSecret })
 }
 
 // ───────────────────────── 主流程 ─────────────────────────
 
+let captureDone = false
 try {
-  const projectId = resolveProject()
-  ensureConsentScreen(projectId)
-  ensureBrandingAndPublish(projectId)
-  const creds = createClient(projectId)
-  applyWranglerSecrets(creds)
-  console.log("完成。")
+  if (opt.capture) {
+    if (!opt.workerDir) bail("--capture 需要 --worker-dir")
+    const creds = tryExtractCredentials()
+    if (!creds) bail("当前会话中未读到包含 Client ID 和 Secret 的成功弹窗，请保持弹窗打开。")
+    applyWranglerSecrets(creds)
+    captureDone = true
+    console.log("捕获完成。")
+  } else {
+    const projectId = resolveProject()
+    ensureConsentScreen(projectId)
+    ensureBrandingAndPublish(projectId)
+    prepareClient(projectId)
+  }
 } finally {
-  try { cli(["close"]) } catch { /* ignore */ }
+  if (captureDone) try { cli(["close"]) } catch { /* ignore */ }
 }
