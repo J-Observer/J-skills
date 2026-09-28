@@ -143,6 +143,7 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 | 设计组件库参考 | 外部 shadcn 生态组件库（21st.dev 等），做页面级设计（Hero / landing page / 动画动效）时先浏览找案例再实现 | [`references/design-references.md`](design-references.md) | 「做个好看的页面」「找设计参考」「Hero 怎么设计」 |
 | 脚手架四个坑 | 每一条都实际踩过的初始化陷阱 | [`references/lifecycle.md`](lifecycle.md) 段 3 · 3.1 | 「init 报错了」 |
 | 域名接入 Cloudflare | zone onboarding 并读回 NS 对（Wrangler 没有 zone 命令）；`status` 只读、`create` 建 | `scripts/cf-zone-setup.mjs` | 「把域名挂到 CF」 |
+| 域龄与首次快照 | 公开 WHOIS 注册日期、Wayback 首次快照与域龄；缺失保留原因 | `scripts/domain-age.mjs` | 「查域龄」「查首次快照」 |
 | 支付 / 邮件 / 第三方接入 | 接入方式与边界；三方库与现成服务优先 | [`references/integrations.md`](integrations.md) | 「接个 Stripe」「这个功能有没有现成的」 |
 | 变现路由 | 意图类型 → 变现方式、Stripe + PayPal 并存规则、广告 / 订阅 / 商店上架判据、监控读数何时回段 1 | [`references/monetization.md`](monetization.md) | 「这站怎么收钱」「接个 PayPal」 |
 | 多语言架构 | URL 结构、`<html lang>`、hreflang、繁简分治；**禁止按 IP 自动跳转语言** | [`experiences/webcafe-experiences.md`](experiences/webcafe-experiences.md) 三·五 + [`seo-growth.md`](seo-growth.md) | 「要不要上多语言」 |
