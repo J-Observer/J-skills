@@ -73,6 +73,7 @@
 # section loop require repeated identical readings before accepting the score; see
 # the comments at both call sites for the exact symptoms this was observed
 # to produce.
+# 2026-09-28: GEO can take up to 3 minutes to appear; poll every 5s and report a timeout if no score appears.
 #
 # Usage:
 #   aitdk-opencli.sh <url> [session-name] [output-file] [options]
@@ -900,18 +901,21 @@ for label in "${PANEL_SECTIONS[@]}"; do
   # actual score digits either haven't rendered yet or are frozen at "0 / 100"
   # mid-animation. On 2026-09-24 the live AITDK GEO skeleton persisted for
   # over 2 minutes on one site. A new non-zero score may also be an animated
-  # intermediate (8 before 57 was observed). Poll for up to 3 minutes
+  # intermediate (8 before 57 was observed). Poll for up to AITDK_GEO_WAIT seconds
   # until three consecutive readings agree. See geo_score_from_text()
   # above for why the generic empty-check cannot catch this case.
   if [[ "$label" == "GEO" ]]; then
-    geo_attempt=0
+    geo_wait="${AITDK_GEO_WAIT:-180}"
+    geo_elapsed=0
     geo_score="$(geo_score_from_text "$SECTION_TEXT")"
     geo_prev=""
     geo_prev_prev=""
-    while [[ "$geo_attempt" -lt 18 ]] && ! geo_score_is_stable "$geo_score" "$geo_prev" "$geo_prev_prev"; do
-      geo_attempt=$((geo_attempt + 1))
-      warn "Section 'GEO': score not stable yet (read: '${geo_score:-<none>}') — waiting 10s and re-reading ($geo_attempt/18)"
-      sleep 10
+    while [[ "$geo_elapsed" -lt "$geo_wait" ]] && ! geo_score_is_stable "$geo_score" "$geo_prev" "$geo_prev_prev"; do
+      geo_step=5
+      if (( geo_wait - geo_elapsed < geo_step )); then geo_step=$((geo_wait - geo_elapsed)); fi
+      warn "Section 'GEO': score not stable yet (read: '${geo_score:-<none>}') — waiting ${geo_step}s and re-reading"
+      sleep "$geo_step"
+      geo_elapsed=$((geo_elapsed + geo_step))
       ensure_frame || true
       geo_prev_prev="$geo_prev"
       geo_prev="$geo_score"
@@ -920,11 +924,14 @@ for label in "${PANEL_SECTIONS[@]}"; do
       BODY_LEN="$(jq -r '(.bodyLength // 0)' <<<"$SECTION_JSON" 2>/dev/null || echo 0)"
       geo_score="$(geo_score_from_text "$SECTION_TEXT")"
     done
-    if ! geo_score_is_stable "$geo_score" "$geo_prev" "$geo_prev_prev"; then
-      warn "Section 'GEO': score still unstable after ${geo_attempt} extra read(s) (last: '${geo_score:-<none>}') — recording as-is; do not trust this score without checking manually"
-      panel_errors+=("geo: score unstable after retries (last read: '${geo_score:-<none>}')")
-    elif [[ "$geo_attempt" -gt 0 ]]; then
-      ok "Section 'GEO': score settled at $geo_score after ${geo_attempt} extra read(s)"
+    if [[ -z "$geo_score" || "$geo_score" == "0" ]]; then
+      warn "GEO 未出分（等待 ${geo_elapsed} 秒）"
+      panel_errors+=("GEO 未出分（等待 ${geo_elapsed} 秒）")
+    elif ! geo_score_is_stable "$geo_score" "$geo_prev" "$geo_prev_prev"; then
+      warn "Section 'GEO': score still unstable after ${geo_elapsed}s (last: '$geo_score') — recording as-is; do not trust this score without checking manually"
+      panel_errors+=("geo: score unstable after ${geo_elapsed}s (last read: '$geo_score')")
+    elif [[ "$geo_elapsed" -gt 0 ]]; then
+      ok "Section 'GEO': score settled at $geo_score after ${geo_elapsed}s"
     fi
   fi
 
