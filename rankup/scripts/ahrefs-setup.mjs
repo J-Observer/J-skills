@@ -40,8 +40,10 @@
  * （通常只有第一项有内容）→ 等验证通过 → 保存。仅用户指定账户时才传
  * `--gsc-account` 改选；验证失败须如实退出，由调用方确认 GSC 是否已验证，
  * 再决定是否退回 DNS（此脚本不自动改 DNS）。创建时不跳过可用的 GSC 验证。
- * 已知坑：Dashboard 先渲染侧栏后加载项目；项目搜索与分页只显示局部结果；
- * 项目存在冻结项时 Ahrefs 禁止新增项目（2026-09-28 实测弹窗）。
+ * 已知坑：Dashboard 先渲染侧栏后加载项目；项目搜索与分页只显示局部结果。
+ * 工作区存在冻结项目时，Ahrefs 弹窗「此功能已关闭：工作区存在冻结项目时无法添加新项目」，
+ * 创建会在最后一步被拒绝（2026-09-28 实测）。预览/临时域名（*.workers.dev、*.pages.dev）
+ * 的项目用完要及时删，否则会挡住整个工作区新建项目；本脚本只报出冻结项目名，不删除。
  * GSC 已关联账户和浏览器登录 Google 不是同一件事：下拉若显示「未连接谷歌帐户」
  * 则绝不声称 GSC 已验证；首次授权同意页出现时停下，交用户处理。
  * 验证后必须回读「所有权已验证」，不能把点击、保存或向导跳转当成功。
@@ -57,9 +59,11 @@
  * 注意：TanStack Start 的 head() scripts 不支持 data-* 属性，
  * 需要在 RootDocument 的 JSX <head> 中直接写 <script> 标签。
  *
- * 验证日期：2026-09-28（中文界面；真实账户存在冻结项目时，创建会在最后一步被拒绝）。
+ * 验证日期：2026-09-28（中文界面；删掉冻结的 workers.dev 预览项目后，
+ * 5 站经「创建 → 跳过 Web Analytics → GSC 下拉第一项或 DNS TXT → 提交 Site Audit」落库并已验证）。
  * 已知坑：Dashboard 搜索/分页只显示当前结果；新项目的「完成」按钮不能
- * 证明成功，须回读项目列表；若工作区有冻结项目，不得擅自删除项目。
+ * 证明成功，须回读项目列表。Site Audit 的「完成」是 React onSubmit，
+ * 普通 click 不会提交。若工作区有冻结项目，不得擅自删除项目。
  *
  * ── 双证人化（2026-08-30，截图链路已实盘验证）────────────────
  * 向导每一步（打开 / 每次点击后）都截图落 `.rankup/evidence/ahrefs-setup-<ts>/`；
@@ -136,6 +140,64 @@ function waitFor(js, seconds = 15) {
 /** 打开后等页面真的可读，代替原来的 settle(5000/8000) 赌秒数。 */
 function waitPageReady(seconds = 20) {
   return waitFor(`return document.readyState==='complete' && ((document.body&&document.body.innerText)||'').length>50`, seconds)
+}
+
+/**
+ * Ahrefs 按钮多是 React onMouseDown / onClick，合成 click 经常不触发。
+ * 找到元素后调它自己的 React 处理函数。
+ */
+function reactClick(jsExpr, label) {
+  const result = evalJs(`
+    const el=${jsExpr};
+    if(!el) return 'missing';
+    const key=Object.keys(el).find(k=>k.startsWith('__reactProps'));
+    const props=key?el[key]:{};
+    const fake={preventDefault(){},stopPropagation(){},target:el,currentTarget:el,button:0,nativeEvent:{}};
+    const fn=props.onClick||props.onMouseDown||props.onPress;
+    if(fn) fn(fake); else el.click();
+    return 'clicked';
+  `)
+  if (result !== "clicked") throw new Error(`找不到: ${label}`)
+  scene(`clicked-${label.replace(/[^\w一-鿿-]/g, "_")}`)
+}
+
+/** Site Audit「完成」走表单 onSubmit，点按钮本身不会提交。 */
+function submitFinish(label) {
+  const result = evalJs(`
+    const btn=[...document.querySelectorAll('button')].find(b=>/^完成$|^Finish$|^Done$/i.test((b.textContent||'').trim()));
+    if(!btn) return 'missing';
+    if(btn.disabled) return 'disabled';
+    let fiber=btn[Object.keys(btn).find(k=>k.startsWith('__reactFiber'))];
+    for(let i=0;i<16 && fiber;i++){
+      const props=fiber.memoizedProps||{};
+      if(typeof props.onSubmit==='function'){
+        props.onSubmit({preventDefault(){},stopPropagation(){},target:fiber.stateNode,currentTarget:fiber.stateNode,nativeEvent:{}});
+        return 'submitted';
+      }
+      fiber=fiber.return;
+    }
+    return 'no-submit';
+  `)
+  if (result !== "submitted") throw new Error(`${label} 未提交（${result}）`)
+  scene(`submitted-${label.replace(/[^\w一-鿿-]/g, "_")}`)
+}
+
+/** 工作区有冻结项目时新建会被拒。只读出名字，不删除。 */
+function frozenProjectNames() {
+  const raw = evalJs(`
+    const text=document.body.innerText||'';
+    if(!/冻结|frozen/i.test(text)) return '';
+    const lines=text.split(/\\n/).map(s=>s.trim()).filter(Boolean);
+    const names=[];
+    for(let i=0;i<lines.length;i++){
+      if(lines[i]==='冻结' || /被冻结|frozen/i.test(lines[i])){
+        const prev=lines.slice(Math.max(0,i-3), i).find(s=>s && !/基础的|共享|项目|概述/.test(s));
+        if(prev) names.push(prev);
+      }
+    }
+    return [...new Set(names)].join('\\n');
+  `)
+  return raw ? raw.split("\n").filter(Boolean) : []
 }
 
 /* ── 取证 ─────────────────────────────────────────────────── */
@@ -237,8 +299,30 @@ async function doStatus() {
 
 // ── create：新建项目 ──────────────────────────────────────
 async function doCreate() {
-  // 直接导航到手动添加项目页面
-  open("https://app.ahrefs.com/add-project/scope")
+  // 先看工作区有没有冻结项目。有的话新建会被拒，报出名字后停，不删除。
+  open("https://app.ahrefs.com/dashboard")
+  waitPageReady(25)
+  waitFor(`return !!document.querySelector('a[href*="projectId="],a[href*="/project-settings/"]') || /无符合搜索条件的项目|No projects/i.test(document.body.innerText)`, 30)
+  const frozen = frozenProjectNames()
+  if (frozen.length) {
+    bail("frozen-project-blocks-create", `工作区存在冻结项目，Ahrefs 不允许添加新项目：${frozen.join("、")}。预览域名（*.workers.dev / *.pages.dev）要先删掉；本脚本不删除任何项目。`)
+  }
+  const blocked = evalJs(`return /工作区存在冻结项目|此功能已关闭|frozen projects/i.test(document.body.innerText)`)
+  if (blocked === "true") {
+    bail("frozen-project-blocks-create", "Ahrefs 提示工作区存在冻结项目，无法添加新项目；不擅自删除已有项目。")
+  }
+
+  // 页内点「创建 → 手动添加」，不要硬跳 URL（硬跳会把导航挂起）。
+  reactClick(`[...document.querySelectorAll('div[role="button"],button,a')].find(el=>[...el.childNodes].some(n=>n.nodeType===3 && (n.textContent||'').trim()==='创建') || (el.innerText||'').trim()==='创建')`, "创建")
+  if (!waitFor(`return location.pathname.includes('/new-project') || !!document.querySelector('input[placeholder="域或路径"]')`, 15)) {
+    bail("create-chooser-not-opened", "点击创建后没有进入添加项目页面。")
+  }
+  if (evalJs(`return location.pathname.includes('/new-project')`) === "true") {
+    reactClick(`[...document.querySelectorAll('a,button')].find(el=>(el.innerText||'').trim()==='手动添加')`, "手动添加")
+    if (!waitFor(`return !!document.querySelector('input[placeholder="域或路径"]')`, 15)) {
+      bail("scope-not-opened", "手动添加后没有进入范围步骤。")
+    }
+  }
   waitPageReady(20)
 
   const text = pageText()
@@ -287,21 +371,16 @@ async function doCreate() {
   console.log("等待域名可访问性检查...")
   settle(8000)
 
-  // 点击"继续"
-  stampAndClick(
-    `[...document.querySelectorAll('button')].find(b=>/继续|continue|next/i.test(b.textContent))`,
-    "继续按钮"
-  )
-  settle(3000)
+  // 点击"继续"。Ahrefs 这一步认 onMouseDown，不用合成 click。
+  reactClick(`[...document.querySelectorAll('button')].find(b=>/^继续$|^Continue$/i.test((b.textContent||'').trim()) && !b.disabled)`, "继续按钮")
+  if (!waitFor(`return location.pathname.includes('/web-analytics') || location.pathname.includes('/ownership')`, 20)) {
+    bail("wizard-did-not-advance", "范围步骤点继续后没有进入下一步。")
+  }
 
   // 第 2 步：Web Analytics（跳过）
-  const text2 = pageText()
-  if (text2.includes("Web Analytics") || text2.includes("分析功能")) {
-    stampAndClick(
-      `[...document.querySelectorAll('button,a')].find(b=>/不使用.*继续|skip|跳过/i.test(b.textContent))`,
-      "跳过分析按钮"
-    )
-    settle(3000)
+  if (evalJs(`return location.pathname.includes('/web-analytics')`) === "true") {
+    reactClick(`[...document.querySelectorAll('button,a')].find(b=>/不使用分析功能继续|不使用.*继续|skip/i.test(b.textContent||''))`, "跳过分析按钮")
+    if (!waitFor(`return location.pathname.includes('/ownership')`, 20)) bail("ownership-not-reached", "跳过 Web Analytics 后未到达所有权步骤。")
   }
 
   // 第 3 步：所有权验证。页面加载时会先「检查验证」，已验证的项目无需再选账户。
@@ -313,19 +392,19 @@ async function doCreate() {
       bail("gsc-verification-pending", "创建向导未显示 GSC 所有权已验证；待 GSC 就绪后重试，不自动写 DNS。")
     }
     scene("create-gsc-verified")
-    stampAndClick(`[...document.querySelectorAll('button')].find(b=>/^继续$|^Continue$/i.test(b.textContent.trim()))`, "验证后继续")
+    reactClick(`[...document.querySelectorAll('button')].find(b=>/^继续$|^Continue$/i.test((b.textContent||'').trim()) && !b.disabled)`, "验证后继续")
     if (!waitFor(`return location.pathname.endsWith('/site-audit')`, 20)) bail("site-audit-not-reached", "GSC 验证后未到达 Site Audit 步骤。")
   }
 
-  // 第 4 步：使用一次性抓取而不是开启周期性任务或付费的 Always-On。
+  // 第 4 步：保持默认每周审计并完成向导。完成按钮走表单 onSubmit，普通点击不会落库。
   if (evalJs(`return location.pathname.endsWith('/site-audit')`) === "true") {
-    stampAndClick(`[...document.querySelectorAll('button[role="radio"]')].find(b=>/一次性|one[- ]?time/i.test(b.textContent))`, "一次性抓取")
-    stampAndClick(`[...document.querySelectorAll('button')].find(b=>/^完成$|^Finish$|^Done$/i.test(b.textContent.trim()))`, "完成按钮")
-    if (!waitFor(`return !location.pathname.includes('/add-project/') || /工作区存在冻结项目|frozen projects/i.test(document.body.innerText)`, 25)) {
-      bail("project-creation-unconfirmed", "点击完成后仍在向导；项目未确认创建。")
+    submitFinish("完成按钮")
+    if (!waitFor(`return location.pathname.startsWith('/dashboard') || /工作区存在冻结项目|frozen projects/i.test(document.body.innerText)`, 25)) {
+      bail("project-creation-unconfirmed", "提交完成后仍在向导；项目未确认创建。")
     }
     if (evalJs(`return /工作区存在冻结项目|frozen projects/i.test(document.body.innerText)`) === "true") {
-      bail("frozen-project-blocks-create", "Ahrefs 提示工作区有冻结项目，不允许添加项目；不擅自删除已有项目。")
+      const names = frozenProjectNames()
+      bail("frozen-project-blocks-create", `Ahrefs 提示工作区有冻结项目，不允许添加项目${names.length ? `：${names.join("、")}` : ""}；不擅自删除已有项目。`)
     }
   }
 
@@ -401,16 +480,15 @@ function selectGscAccount() {
   if (expanded !== "true") stampAndClick(heading, "GSC 折叠标题")
   const selector = `[...document.querySelectorAll('button,[role="button"],[role="listbox"],[class*="select"],[class*="Select"],[class*="dropdown"],[class*="Dropdown"]')].find(el=>/选择谷歌账号|Select.*Google.*account|选择帐号/i.test(el.textContent) && el.textContent.trim().length<120 && !el.disabled)`
   // Do not screenshot or run unrelated steps while the transient portal menu is open.
-  evalJs(`const el=${selector};if(!el)throw new Error('找不到 GSC 账户下拉框');el.setAttribute('data-rankup-target','1')`)
-  cli('click "[data-rankup-target=\\"1\\"]"')
+  reactClick(selector, "GSC 账户下拉框")
   // Ahrefs menu uses button[class*=menuItem], not role=option or class*=option.
   const options = `[...document.querySelectorAll('button[class*="menuItem"], [role="option"]')].filter(el=>/\\S+@\\S+/.test(el.textContent) && el.getBoundingClientRect().width>0)`
   const selection = gscAccount
     ? `${options}.find(el=>el.textContent.includes(${JSON.stringify(gscAccount)}))`
     : `${options}[0]`
-  const available = waitFor(`const el=${selection};if(!el)return false;el.setAttribute('data-rankup-account','1');return true`, 10)
+  const available = waitFor(`return !!(${selection})`, 10)
   if (!available) bail("gsc-account-not-found", gscAccount ? "找不到指定的 GSC 账户选项" : "GSC 账户下拉没有可见的账户选项（Ahrefs 尚未关联 Google 账户或授权失效）")
-  cli('click "[data-rankup-account=\\"1\\"]"')
+  reactClick(selection, "GSC 账户第一项")
   scene("gsc-account-selected")
   return "selected"
 }
