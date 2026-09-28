@@ -12,14 +12,31 @@
 
 **在用户当前任务范围内全权执行，沿用已有授权；调用技能不扩大任务范围。用户明确的先审批、只规划、不提交等限制始终有效。**
 
-### 主线只调度，sub agent 做事
+### 主 Agent 与子 Agent 分工
 
-| 规则 | 为什么 | 反面教材 |
+| 情况 | 谁执行 | 交付方式 |
 |---|---|---|
-| **所有实际工作都派 sub agent**，主线只负责摸现状、分解任务、派发、收结果、回写 `.rankup/` | 主线上下文是全局视野，烧在一个站的构建日志里是浪费；sub agent 崩了不影响其他任务 | 在主线里跑 `pnpm run build`、`wrangler deploy`、逐行读源码改 key |
-| 独立任务**必须并行派发**（一条消息多个 Agent 调用） | 三个站各自接 Ahrefs WA 互不依赖，串行等于白扔 2/3 的时间 | 先派 A 站，等完成，再派 B 站 |
-| sub agent 的 prompt 必须**自包含**：改哪个文件、改成什么、怎么验证、验证完回写 `.rankup/` 哪里 | sub agent 看不到主线上下文，信息不全就会猜，猜就会错 | prompt 只写「给某站接 Ahrefs WA」，没给项目路径、没给 data-key |
-| 派它跑 playbook 的某一步时，**把那一步的「跑什么」命令块与产出格式原样贴进 prompt**，并要求按格式逐项交付；不许只写一句「做社区验证」 | 子代理读不到 playbook 的上下文，只能按 prompt 里的字面执行；写意图不写命令，它就自己发挥，少跑的那几步没人发现 | 2026-09-02：prompt 写「community demand signals」，子代理只跑了 Reddit 和 HN，X / YouTube / B 站一条没跑，报告照样交了 |
+| 只有一个简单查询或检查 | 主 Agent 直接做 | 保留来源和结果，自己判读 |
+| 步骤前后依赖，必须串行 | 主 Agent 可以全程做 | 上一步结果作为下一步输入，不为每一步另派 Agent |
+| 多个独立问题适合同时调研 | 主 Agent 按可用并发派子 Agent | 每个子 Agent 负责一个边界清楚的任务；主 Agent 收齐证据、处理冲突、统一结论并回写 `.rankup/` |
+
+派发调研任务时，写清对象、目标市场、要加载的 Skill、取数动作、证据口径、结果落点和交付格式；使用哥飞工具时还要让子 Agent 读取官方 `gefei/SKILL.md` 与对应专用 `SKILL.md`。多个 Agent 不要同时重复调用同一个付费接口或占用同一浏览器会话。用户要求只规划、限制并行或当前环境没有子 Agent 能力时，按该约束由主 Agent 推进可执行部分。
+
+### 模型档位与外部模型：往哪派
+
+这一节管「派给哪个模型或工具」，和上一节「主 Agent 要不要拆子 Agent」是两个独立的判断轴，两个都要过。
+
+- **Haiku 档位与 `executor-haiku` 已停用（2026-09-26）**：原来派 Haiku 的机械任务（翻译、跑固定命令、调 API、格式转换、照单改文件）改派 `/agent-fleet` 的 GLM（`kollab-gateway-code`），派单方自己核一眼产物，不再另派 checker；GLM 连续报错，等几分钟重试，仍不行才临时改派 Claude 的 `executor-sonnet` 并在报告里写明原因。
+- **自动化流程里的判断节点**（分类、路由、是非判断、打分、结果成败判定、浏览器下一步点哪个）优先用 `agent-fleet judge --model jev`（Typesafe JEV，key 在环境变量 `TYPESAFE_API_KEY`）：它只吃 state 加类型化问题，不生成文本、不能写代码或做总结，按字面判断、不推断意图，置信度低时转回 Claude 或人工。
+- **编程类任务**（写脚本、加功能、修 bug、补测试）先按下表归类再派单；具体模型名、命令参数、验证方式以 `/agent-fleet` 当前文档为准，这里不重复：
+
+  | 归类 | 例子 | 派给谁 |
+  |---|---|---|
+  | 常规开发——判断下来比较好实现、没那么复杂 | 写脚本；开发非核心/常规功能；接一整条 API 调用链路（请求、解析、落盘、错误处理）；给 CLI 加子命令或参数；修 bug；补测试 | `/agent-fleet` 的 GLM（`kollab-gateway-code`） |
+  | 明显偏重——需要设计判断或后果不可逆 | 3D 模型相关开发、游戏动画与玩法；建站的设计与视觉交互；复杂脚手架或多模块架构；深度架构重构；不可逆或安全敏感的改动 | Claude 高档 subagent（`executor-sonnet` 起步，风险明显更高再上 `executor-opus`/`executor-fable`） |
+  | 拿不准 | — | 按常规开发处理，派 GLM |
+
+  GLM 连续两次不合格才升级给 Claude subagent 接手，不是第一次结果不满意就换档。
 
 ### 全量执行，不问不等
 
@@ -130,7 +147,7 @@ opencli browser "$S" open "https://seo.web.cafe/serp/"
 opencli browser "$S" eval '(async()=>{ /* fetch(..., {credentials:"include"}) */ })()'
 ```
 
-写法见 [`seo-webcafe.md`](seo-webcafe.md)「httpOnly 会话」。**eval 体一律包 IIFE**——本环境 eval 上下文跨调用持续，
+写法见 [`seo-webcafe.md`](seo-webcafe.md)（官方 Skill 入口）。**eval 体一律包 IIFE**——本环境 eval 上下文跨调用持续，
 重复声明会抛错且那次调用根本没执行。
 
 **Web.Cafe 的具体口径（2026-09-11 修）**：`seo-webcafe.mjs` 已经把这条规则焊进脚本默认行为——
@@ -270,7 +287,7 @@ Skill 集合不一样，文档只保证「该用什么」；遇缺就跳过会�
 | 为算 KGR/TDK 去开网页或消耗配额 | 本地命令 `kgr` / `string` / `money` / `email` | 纯本地、零配额、支持 `--batch` |
 | 拿 `new.web.cafe` 的 HTTP 200 当「取到了」 | 看 `access` 字段 / 正文空不空 | 该站匿名不返回 401，只把正文抹成空串 |
 | 对 `kind:collect` 的悬赏只读 `answers[]` | 读 `collect.board[]` | 征集型内容不在 answers 里，会对着几百条榜单报「0 条」且不报错 |
-| 用通用 `chatbot-drive.browser.js` 问哥飞 AI | 有 Cookie 用 `seo-webcafe.mjs chat`；没有用 `gefei-ask.mjs` | 两条专用路径都封装过配额与完成判定 |
+| 用站内哥飞 AI 代做调研或审站 | 直接用 官方 `gefei` Skill 调开放接口，Rankup 自己判读；`tools` / `me` 先查价格和余额 | 实时工具目录覆盖选词、流量、SERP、页面等数据；旧聊天路径不再是默认流程 |
 | 用 Claude in Chrome / 手动 OpenCLI 操作 Similarweb、Semrush 面板 | `similarweb-query.mjs` / `semrush-overview.mjs` 等 | 脚本已存在，手操浪费上下文且不可复现 |
 | OpenCLI 会话名用通用常量如 `work` | JS 用 `defaultSession('base')`；shell 用描述性常量 | 多任务撞名 → 拿到别人的页面，零报错 |
 | 用沙箱浏览器访问需要登录的面板 | 用户的浏览器 | 沙箱没有 cookie，返回匿名态数据 |
@@ -570,3 +587,14 @@ REST/静态 DOM、不再等待页面渲染解决，比“想办法保住前台�
 改仓库源码不会反映到全局命令上）；**浏览器扩展代码打包后仍停在旧版本**，需要用户手动在
 扩展管理页点重新加载才会生效——源码变了不代表运行时变了。这两点是排查“改了为什么没用”
 时该第一时间检查的。
+
+---
+
+## 二十、省 token 工作流
+
+1. **上线/改版验收优先命令化**：优先 `node scripts/verify-live.mjs <url...>`，只读 PASS/FAIL 简表，不让主线程自己 curl/grep。
+2. **阶段收尾及时换乘**：阶段收尾时建议主线程开新会话，靠项目 `.rankup/` 接续。
+3. **排查与重活派便宜模型**：不让主线程亲自翻日志排查，派便宜模型（agent-fleet：写代码 Grok `kollab-gateway-research`，写作/翻译/校对 Gemini `kollab-gateway-copy`，判断 JEV judge），只读它的简报。
+4. **后台任务善用自动通知**：后台任务完成会自动通知，不要轮询进度；子 agent 用 Monitor 等待时写明退出条件和超时。
+5. **循环与精确取数防 rtk 篡改**：rtk 会把 `for … done` / `while read` 循环改坏（报 parse error near done），循环或精确取数命令前加 `RTK_DISABLED=1`。
+

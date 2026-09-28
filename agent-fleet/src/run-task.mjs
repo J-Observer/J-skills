@@ -10,6 +10,35 @@ import { query } from '@anthropic-ai/claude-agent-sdk';
 import { resolveModel, ConfigError } from './config.mjs';
 import { buildIsolatedEnv, buildPinnedSettings } from './isolated-env.mjs';
 import { assertProjectSettingsTrusted, ProjectTrustError } from './project-trust.mjs';
+import { createProgress } from './progress.mjs';
+import { snapshotGit, inspectGit, attachArtifacts } from './brief.mjs';
+import { createPromptStream, ensureInbox, watchInbox } from './inbox.mjs';
+import { patchPidRecord, processCommand, readPidRecord, runIdFromLogPath, writePidRecord } from './pid.mjs';
+import { onProcessSignal } from './signals.mjs';
+
+/**
+ * 默认追加给每个任务的执行者系统提示。
+ *
+ * 【为什么需要这个 —— 真实发生过的问题】
+ * 用户全局的 ~/.claude/CLAUDE.md 要求"主线程必须把具体工作派给 subagent",而这个工具驱动的
+ * 恰恰是第三方模型(GLM/Gemini/...)在扮演 Claude Code 的主循环。第三方模型读到宿主环境里那份
+ * 全局规则后,会把 agent-fleet 交给它的任务原样再转派一层——包括荒谬地用 Bash 工具反过来调用
+ * agent-fleet 自己(2026-09-26 实测发生过),或者只回一句"已经在跑了/等结果"就结束当轮。
+ * 这段默认提示就是直接把"你现在是执行者"这条边界钉在系统提示里,不依赖每次调用方都记得写。
+ *
+ * 【怎么叠加,而不是替换 —— 见 sdk.d.ts 对 systemPrompt 的说明】
+ * `{ type: 'preset', preset: 'claude_code', append: '...' }` 是 Claude Agent SDK 官方支持的写法:
+ * 保留 Claude Code 默认的工具系统提示(工具定义、环境信息等),只在后面追加文本,不会把整个
+ * 系统提示替换掉。调用方通过 --system-prompt / task.systemPrompt 传入的自定义文本会接在这段
+ * 默认文本之后,两者都保留,不是二选一。
+ */
+export const DEFAULT_EXECUTOR_SYSTEM_PROMPT =
+  '你是执行者,拿到任务要直接动手完成,不是把任务转述或转发给别人就结束。' +
+  '禁止用 Bash 工具调用 agent-fleet 自己(bin/agent-fleet.mjs、npx agent-fleet 或等价命令),' +
+  '那会造成递归嵌套。禁止调用 Agent/Task 工具，禁止转派任务。' +
+  '必须自己完成任务并验证结果，不允许只回"已启动/等结果"就结束当轮。' +
+  '任何时候都不允许杀死、停止或干预不是你自己这次任务启动的进程。' +
+  '绝不 kill / pkill / killall 任何不是你自己启动的进程。';
 
 /**
  * 组装一次 query() 调用的 options。
@@ -18,10 +47,10 @@ import { assertProjectSettingsTrusted, ProjectTrustError } from './project-trust
  * 这里的安全相关字段还在——env 隔离、flag 层 settings 钉住 baseURL、strictMcpConfig
  * 这几项一旦被谁顺手删掉,链路仍然"能跑通",只有针对这个结构的断言才拦得住这种回归。
  *
- * @param {{ resolved: object, cwd: string, maxTurns?: number, systemPrompt?: string }} params
+ * @param {{ resolved: object, cwd: string, maxTurns?: number, systemPrompt?: string, resume?: string }} params
  * @returns {object} 传给 query() 的 options
  */
-export function buildQueryOptions({ resolved, cwd, maxTurns, systemPrompt }) {
+export function buildQueryOptions({ resolved, cwd, maxTurns, systemPrompt, resume }) {
   return {
     model: resolved.model,
     cwd,
@@ -51,7 +80,15 @@ export function buildQueryOptions({ resolved, cwd, maxTurns, systemPrompt }) {
     // mcpServers,所以关掉它不损失任何现有能力。
     strictMcpConfig: true,
     ...(maxTurns ? { maxTurns } : {}),
-    ...(systemPrompt ? { systemPrompt } : {}),
+    // 见上方 DEFAULT_EXECUTOR_SYSTEM_PROMPT 的注释:用 preset+append 叠加,不替换 Claude Code
+    // 自己的默认系统提示(工具定义等)。调用方传入的 systemPrompt 接在默认文本之后,两者共存。
+    systemPrompt: {
+      type: 'preset',
+      preset: 'claude_code',
+      append: systemPrompt ? `${DEFAULT_EXECUTOR_SYSTEM_PROMPT}\n\n${systemPrompt}` : DEFAULT_EXECUTOR_SYSTEM_PROMPT,
+    },
+    // SDK Options.resume:加载指定 session 的对话历史再继续。与 continue 互斥。
+    ...(resume ? { resume } : {}),
   };
 }
 
@@ -59,17 +96,101 @@ export function buildQueryOptions({ resolved, cwd, maxTurns, systemPrompt }) {
  * 执行一个子任务。
  *
  * @param {object} params
- * @param {string} params.friendlyModel  models.config.json 里的友好名字,如 "deepseek-v4-flash"
+ * @param {string} params.friendlyModel  models.config.json 里的友好名字,如 "deepseek-v4.1-flash"
  * @param {string} params.prompt         任务描述
  * @param {string} params.cwd            Agent 的工作目录(读写文件、跑 bash 的作用域)
  * @param {object} params.config         已加载的 models.config.json(见 config.mjs)
  * @param {number} [params.maxTurns]     可选,限制最大工具调用轮数,避免任务跑飞
  * @param {string} [params.systemPrompt] 可选,追加的系统提示
+ * @param {string} [params.resume]       SDK session id,续跑历史对话
+ * @param {string} [params.resumedFrom]  被续跑的原 run-id,只进返回值/简报
  * @returns {Promise<object>} 见文件底部的返回形状说明
  */
-export async function runTask({ friendlyModel, prompt, cwd, config, maxTurns, systemPrompt }) {
+export async function runTask({ friendlyModel, prompt, cwd, config, maxTurns, systemPrompt, progress, resume, resumedFrom }) {
   const startedAt = Date.now();
 
+  // 进度输出对象:调用方(bin 的 run、run-many)注入,各自决定 quiet 和 label;以库方式
+  // 直接调用且没传时,退化成一个只写日志文件、不打扰 stderr 的静默进度——日志文件这一层
+  // 永远存在,tail 永远有料。整个函数体包在 try/finally 里,任何一条返回路径(包括配置
+  // 错误的短路 return)都会 stop 掉 60 秒心跳定时器,不会把 CLI 进程吊住不退出。
+  // 内部函数只拿到 log(line) 写入函数;stop 由这一层负责,内部不用关心生命周期。
+  const output = progress ?? createProgress({ quiet: true, label: friendlyModel });
+  const gitBefore = snapshotGit(cwd);
+  const runId = runIdFromLogPath(output.logPath);
+  writePidFile(runId, {
+    pid: process.pid,
+    ppid: process.ppid,
+    model: friendlyModel,
+    cwd,
+    startedAt: new Date(startedAt).toISOString(),
+    logPath: output.logPath,
+    sessionId: null,
+    command: processCommand(process.pid),
+    resume: resume ?? null,
+    resumedFrom: resumedFrom ?? null,
+    finished: false,
+  });
+  try {
+    const inner = await runTaskInner({
+      friendlyModel,
+      prompt,
+      cwd,
+      config,
+      maxTurns,
+      systemPrompt,
+      resume,
+      resumedFrom,
+      startedAt,
+      log: output.log,
+      runId,
+    });
+    const withMeta = resumedFrom ? { ...inner, resumedFrom } : inner;
+    return attachArtifacts(withMeta, output.logPath, inspectGit(cwd, gitBefore));
+  } catch (err) {
+    // 未预见的异常:同样补一行 done error 再抛,保住"日志必有 done 行收尾"的不变量,
+    // 否则 tail --follow 会对这份日志永远等下去。
+    output.log(`done error ${oneLine(err?.message ?? String(err), 160)}`);
+    throw err;
+  } finally {
+    markPidFinished(runId);
+    output.stop();
+  }
+}
+
+export const STOP_USER_MESSAGE = '请立即收尾：停止新工作，简要写出当前进度与结果';
+const RESULT_CLOSE_GRACE_MS = 2000;
+
+/** 从进程开始跑任务到现在的总墙钟。不用 SDK result.duration_ms(插话后续段会重置)。 */
+export function wallClockDurationMs(startedAt, now = Date.now()) {
+  const start = Number(startedAt);
+  if (!Number.isFinite(start)) return 0;
+  return Math.max(0, Number(now) - start);
+}
+
+function writePidFile(runId, rec) {
+  if (!runId) return;
+  try {
+    writePidRecord(runId, rec);
+  } catch {
+    /* 目录不可写时不影响真正执行 */
+  }
+  try {
+    ensureInbox(runId);
+  } catch {
+    /* ignore */
+  }
+}
+
+function markPidFinished(runId) {
+  if (!runId) return;
+  try {
+    patchPidRecord(runId, { finished: true, finishedAt: new Date().toISOString() });
+  } catch {
+    /* ignore */
+  }
+}
+
+async function runTaskInner({ friendlyModel, prompt, cwd, config, maxTurns, systemPrompt, resume, resumedFrom, startedAt, log, runId }) {
   let resolved;
   try {
     // 顺序是有意的:先过目标目录的信任闸门,再解析模型(后者会把真实密钥读进内存)。
@@ -77,27 +198,133 @@ export async function runTask({ friendlyModel, prompt, cwd, config, maxTurns, sy
     // 见 project-trust.mjs:--cwd 可能是别人发来的目录,它不得决定请求发去哪、带什么凭据。
     assertProjectSettingsTrusted(cwd);
     resolved = resolveModel(friendlyModel, config);
+    // typesafe-systemone 协议(JEV 等结构化决策 API)不实现 Anthropic Messages 协议,
+    // Claude Agent SDK 的 query() 没法驱动它——它不生成文本、不支持多轮工具调用,委派
+    // 不了一个完整任务。这里在真正发起 SDK 调用之前就短路拒绝,而不是让它带着一个
+    // 必然失败或语义不明的请求打到上游。见 src/judge-task.mjs 和 README「JEV」一节。
+    if (resolved.protocol === 'typesafe-systemone') {
+      throw new ConfigError(
+        `"${friendlyModel}" 是 typesafe-systemone 协议(结构化决策 API:给它一段 state + 类型化 ` +
+          `questions,返回 noul/choice/score 结构化答案),不生成文本、不支持多轮工具调用,不能通过 ` +
+          `run/run-many 委派完整任务。请改用: node bin/agent-fleet.mjs judge --model ${friendlyModel} ` +
+          `--state-file <path> --questions-file <path>`,
+      );
+    }
   } catch (err) {
     // 配置/密钥/目标目录信任类错误在真正发起请求之前就能判定,直接短路返回,
     // 不消耗一次 SDK 调用。message 本身已经是写给人看的可操作提示。
     if (err instanceof ConfigError || err instanceof ProjectTrustError) {
-      return { ok: false, model: friendlyModel, prompt, cwd, error: err.message, durationMs: Date.now() - startedAt };
+      // 这类错误发生在真正发起请求之前;也补一行 done error,保证"每份日志都以 done 行
+      // 收尾"的不变量成立——tail --follow 靠这一行判断停止。
+      log(`done error ${oneLine(err.message, 160)}`);
+      return { ok: false, model: friendlyModel, prompt, cwd, error: err.message, durationMs: wallClockDurationMs(startedAt) };
     }
     throw err;
   }
 
-  const options = buildQueryOptions({ resolved, cwd, maxTurns, systemPrompt });
+  const options = buildQueryOptions({ resolved, cwd, maxTurns, systemPrompt, resume });
+
+  const stream = createPromptStream(prompt);
+  const q = query({ prompt: stream, options });
+
+  let pendingAfterResult = 0;
+  let seenResult = false;
+  let stopRequested = false;
+  let interruptTimer = null;
+  let closeTimer = null;
+  const cancelCloseTimer = () => {
+    if (closeTimer) {
+      clearTimeout(closeTimer);
+      closeTimer = null;
+    }
+  };
+  const maybeCloseAfterResult = () => {
+    cancelCloseTimer();
+    inbox?.pump();
+    if (pendingAfterResult > 0) {
+      pendingAfterResult = 0;
+      return;
+    }
+    // result 之后再等 2 秒:这期间新来的 say 还能再开一轮;否则关流让 query 结束。
+    closeTimer = setTimeout(() => {
+      inbox?.pump();
+      if (pendingAfterResult > 0) {
+        pendingAfterResult = 0;
+        closeTimer = null;
+        return;
+      }
+      stream.close();
+      closeTimer = null;
+    }, RESULT_CLOSE_GRACE_MS);
+    closeTimer.unref?.();
+  };
+
+  const inbox = runId
+    ? watchInbox(runId, (entry) => {
+        if (entry.type === 'say') {
+          if (seenResult) pendingAfterResult += 1;
+          cancelCloseTimer();
+          stream.push(entry.text);
+          log(`收到插话：${oneLine(entry.text, 160)}`);
+        } else if (entry.type === 'stop') {
+          stopRequested = true;
+          if (seenResult) pendingAfterResult += 1;
+          cancelCloseTimer();
+          stream.push(STOP_USER_MESSAGE);
+          log(`收到插话：${STOP_USER_MESSAGE}`);
+          const graceSec = Number.isFinite(entry.grace) ? entry.grace : 60;
+          if (interruptTimer) clearTimeout(interruptTimer);
+          interruptTimer = setTimeout(() => {
+            q.interrupt().catch(() => {});
+          }, Math.max(0, graceSec) * 1000);
+          interruptTimer.unref?.();
+        }
+      })
+    : null;
+
+  let signalName = null;
+  const onSignal = (name) => {
+    if (signalName) return;
+    const rec = runId ? readPidRecord(runId) : null;
+    const fromOurStop = stopRequested || rec?.stopRequested || rec?.stopSignal;
+    if (fromOurStop) {
+      stream.close();
+      q.interrupt().catch(() => {});
+      return;
+    }
+    signalName = name;
+    log(`被外部信号 ${name} 终止`);
+    stream.close();
+    q.interrupt().catch(() => {});
+  };
+  const unhookSignal = onProcessSignal(onSignal);
 
   let finalResult = null;
+  let fallbackAssistant = { messageId: null, text: '' };
   try {
-    for await (const message of query({ prompt, options })) {
-      // 只关心最终的 result 消息;中间的 assistant/tool_use/tool_result 消息本工具
-      // 不做流式展示(定位是"派出去、跑完拿结果"的批处理工具,不是交互式对话)。
+    for await (const message of q) {
+      logSdkMessage(log, message);
+      fallbackAssistant = collectFallbackAssistantText(fallbackAssistant, message);
+      if (runId && message.session_id) {
+        try {
+          patchPidRecord(runId, { sessionId: message.session_id });
+        } catch {
+          /* ignore */
+        }
+      }
       if (message.type === 'result') {
         finalResult = message;
+        seenResult = true;
+        maybeCloseAfterResult();
       }
     }
   } catch (err) {
+    const fatal402 = looksLikeFatal402(err.message);
+    if (fatal402) log('ERROR 402');
+    if (signalName) log(`被外部信号 ${signalName} 终止`);
+    log(`done error cost=? ${oneLine(err.message, 160)}`);
+    inbox?.stop();
+    if (interruptTimer) clearTimeout(interruptTimer);
     return {
       ok: false,
       model: friendlyModel,
@@ -105,14 +332,25 @@ export async function runTask({ friendlyModel, prompt, cwd, config, maxTurns, sy
       baseURL: resolved.baseURL,
       prompt,
       cwd,
-      error: `调用 Claude Agent SDK 失败: ${err.message}`,
-      durationMs: Date.now() - startedAt,
+      error: signalName
+        ? `被外部信号 ${signalName} 终止: ${err.message}`
+        : `调用 Claude Agent SDK 失败: ${err.message}`,
+      fatal402,
+      durationMs: wallClockDurationMs(startedAt),
+      stopped: stopRequested || Boolean(signalName),
+      signal: signalName,
+      ...(resumedFrom ? { resumedFrom } : {}),
     };
+  } finally {
+    inbox?.stop();
+    if (interruptTimer) clearTimeout(interruptTimer);
+    cancelCloseTimer();
+    stream.close();
+    unhookSignal();
   }
 
   if (!finalResult) {
-    // 正常完成的 query() 一定会产出恰好一条 result 消息;走到这里说明进程中途被杀、
-    // 上游连接异常断开,或者上游根本没有实现完整的 Anthropic Messages 协议。
+    log('done error cost=? (SDK 没有产出 result 消息)');
     return {
       ok: false,
       model: friendlyModel,
@@ -120,13 +358,33 @@ export async function runTask({ friendlyModel, prompt, cwd, config, maxTurns, sy
       baseURL: resolved.baseURL,
       prompt,
       cwd,
-      error: 'SDK 没有产出 result 消息,任务没有跑完就结束了(可能是进程被中断,或上游端点没有正确实现流式 Anthropic Messages 协议)。',
-      durationMs: Date.now() - startedAt,
+      error: signalName
+        ? `被外部信号 ${signalName} 终止,SDK 没有产出 result 消息`
+        : 'SDK 没有产出 result 消息,任务没有跑完就结束了(可能是进程被中断,或上游端点没有正确实现流式 Anthropic Messages 协议)。',
+      fatal402: false,
+      durationMs: wallClockDurationMs(startedAt),
+      stopped: stopRequested || Boolean(signalName),
+      signal: signalName,
+      ...(resumedFrom ? { resumedFrom } : {}),
     };
   }
 
+  // 收尾行:done ok / done error + 成本。这是 tail --follow 的停止信号。
+  const joinedErrors = (finalResult.errors ?? []).join('; ');
+  const errorText = joinedErrors || (typeof finalResult.result === 'string' ? finalResult.result : '');
+  const fatal402 = looksLikeFatal402(errorText);
+  const wasStopped = stopRequested || Boolean(signalName);
+  if (finalResult.is_error) {
+    if (fatal402) log('ERROR 402');
+    log(`done error cost=${fmtCost(finalResult.total_cost_usd)}${errorText ? ` ${oneLine(errorText, 160)}` : ''}`);
+  } else if (wasStopped) {
+    log(`done error cost=${fmtCost(finalResult.total_cost_usd)} stopped`);
+  } else {
+    log(`done ok cost=${fmtCost(finalResult.total_cost_usd)}`);
+  }
+
   return {
-    ok: !finalResult.is_error,
+    ok: !finalResult.is_error && !wasStopped,
     model: friendlyModel,
     resolvedModel: resolved.model,
     baseURL: resolved.baseURL,
@@ -134,23 +392,95 @@ export async function runTask({ friendlyModel, prompt, cwd, config, maxTurns, sy
     cwd,
     // 只有 success 分支才有最终文本;error 分支(error_during_execution/error_max_turns/...)
     // 没有 result 字段,把 errors 数组透出去让调用方知道具体败在哪。
-    result: finalResult.subtype === 'success' ? finalResult.result : null,
+    result: finalResult.subtype === 'success'
+      ? resolveSuccessfulResult(finalResult.result, fallbackAssistant.text)
+      : null,
     isError: finalResult.is_error,
     subtype: finalResult.subtype,
     stopReason: finalResult.stop_reason ?? null,
     numTurns: finalResult.num_turns,
-    durationMs: finalResult.duration_ms,
+    durationMs: wallClockDurationMs(startedAt),
+    sdkDurationMs: finalResult.duration_ms,
     totalCostUsd: finalResult.total_cost_usd,
     sessionId: finalResult.session_id,
     errors: finalResult.errors ?? [],
+    stopped: wasStopped,
+    signal: signalName,
+    ...(resumedFrom ? { resumedFrom } : {}),
+    // 只在失败分支有意义:上游 402/额度用尽,bin 据此以退出码 2 结束。
+    ...(finalResult.is_error || wasStopped ? { fatal402 } : {}),
   };
+}
+
+/**
+ * 把一条 SDK 消息里值得看的内容落一行进度:
+ * - assistant 的每个 text 块:一行,截前 120 字;
+ * - assistant 的每个 tool_use 块:一行,`tool=<名字> <参数摘要前 80 字>`。
+ * user(tool_result)/system/stream_event 等其它消息不打——噪音大,对"跑到哪了"没有增量信息。
+ */
+function logSdkMessage(log, message) {
+  if (message.type !== 'assistant') return;
+  const content = message.message?.content ?? message.content;
+  if (!Array.isArray(content)) return;
+  for (const block of content) {
+    if (block?.type === 'text' && block.text) {
+      log(oneLine(block.text, 120));
+    } else if (block?.type === 'tool_use') {
+      log(`tool=${block.name ?? '?'} ${oneLine(JSON.stringify(block.input ?? {}), 80)}`);
+    }
+  }
+}
+
+/**
+ * 聚合同一条主 Agent assistant 消息的流式文本块，作为空 success result 的候选回退。
+ * 新消息会先清空旧候选，子 Agent 消息不参与，避免把工具调用前的过程说明或子任务输出当最终结果。
+ */
+export function collectFallbackAssistantText(current, message) {
+  if (message.type !== 'assistant' || message.parent_tool_use_id) return current;
+  const messageId = message.message?.id;
+  const content = message.message?.content ?? message.content;
+  if (!messageId || !Array.isArray(content)) return current;
+  const text = content
+    .filter((block) => block?.type === 'text' && block.text)
+    .map((block) => block.text)
+    .join('\n')
+    .trim();
+  if (current.messageId !== messageId) return { messageId, text };
+  return text ? { messageId, text: [current.text, text].filter(Boolean).join('\n') } : current;
+}
+
+/**
+ * 部分 Anthropic 兼容模型会把完整文本放在 assistant 消息里，却给 SDK 的成功 result 留空。
+ * CLI 在这种情况下回退到最后一条 assistant 文本，避免把已完成的任务报告成空结果。
+ */
+export function resolveSuccessfulResult(result, lastAssistantText) {
+  return typeof result === 'string' && result.trim() ? result : lastAssistantText;
+}
+
+/** 压成单行并截断——进度行是给人扫一眼的,不承载完整内容(完整结果走 stdout/JSON)。 */
+function oneLine(text, max) {
+  return String(text ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max);
+}
+
+function fmtCost(cost) {
+  return typeof cost === 'number' && Number.isFinite(cost) ? `$${cost.toFixed(4)}` : '?';
+}
+
+/** 上游网关返回 402(额度/credit budget 用尽)时是"立即停止、不要重试"的失败。 */
+function looksLikeFatal402(text) {
+  if (!text) return false;
+  const s = String(text);
+  return /\b402\b/.test(s) || s.toLowerCase().includes('credit budget');
 }
 
 /*
  * 返回形状(成功时):
  * {
  *   ok: true,
- *   model: "deepseek-v4-flash",       友好名字
+ *   model: "deepseek-v4.1-flash",     友好名字
  *   resolvedModel: "deepseek-flash",  实际发给上游的 model 字段
  *   baseURL: "https://api.deepseek.com/anthropic",
  *   prompt, cwd,
@@ -159,7 +489,8 @@ export async function runTask({ friendlyModel, prompt, cwd, config, maxTurns, sy
  *   subtype: "success",
  *   stopReason: "end_turn",
  *   numTurns: 3,
- *   durationMs: 12345,
+ *   durationMs: 12345,            进程开始跑任务到结束的总墙钟
+ *   sdkDurationMs: 12345,         SDK result.duration_ms(插话后可能只是最后一段)
  *   totalCostUsd: 0.0012,
  *   sessionId: "…uuid…",
  *   errors: [],

@@ -1,5 +1,16 @@
 # agent-fleet — 通用多模型子任务执行工具
 
+## 快速开始
+
+```bash
+ln -sf /Users/kcsx/Project/kcsx/macmini/yan-skills/agent-fleet/bin/fleet ~/.local/bin/fleet
+fleet copy brief.md --cwd /path/to/project
+fleet code brief.md --cwd /path/to/project
+fleet judge state.txt questions.json
+```
+
+`brief.md` 也可以直接写成任务文本；默认当前目录、500 轮、安静模式。`--verbose` 显示进度。短命令和模型对应关系见 [skill](skill/SKILL.md)。
+
 给它一个任务描述 + 一个模型,它就用 [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-typescript)
 驱动一个完整的自主 Agent(能读写文件、跑 bash、多轮工具调用直到任务完成)去执行,权限模式固定
 `bypassPermissions`(不需要人工逐步确认每一步),跑完把结果返回。
@@ -28,13 +39,17 @@ Agent 能力去驱动它们的模型——你拿到的不是"一问一答",而�
 | 友好名字 | 上游 | 官方接入方式 | 说明 |
 |---|---|---|---|
 | `deepseek-v4-pro` | DeepSeek | `https://api.deepseek.com/anthropic`,`x-api-key` 鉴权 | 官方 Anthropic 兼容端点,Opus 档位映射目标,适合最高质量单次产出 |
-| `deepseek-v4-flash` | DeepSeek | 同上,`model: "deepseek-flash"` | 同一端点的 Flash 档位(官方默认回退模型),快、便宜,适合调研/头脑风暴/大批量任务 |
+| `deepseek-v4.1-flash` | DeepSeek | 同上,`model: "deepseek-flash"` | 同一端点的 V4.1 Flash 稳定别名,快、便宜,适合调研/头脑风暴/大批量任务 |
 | `kimi` | Moonshot(Kimi) | `https://api.moonshot.cn/anthropic`,`Authorization: Bearer` 鉴权 | 官方 Anthropic 兼容端点(中国站)。国际站把 `baseURL` 换成 `https://api.moonshot.ai/anthropic` 即可,鉴权方式不变 |
 | `gemini` | Google | **没有官方端点** | 见下方说明,需要你自备网关 |
-| `kollab-gateway` | Kollab 自己的公开 LLM 网关 | `https://test.flowus.work/api/llm`(TEST 环境),`x-api-key` 鉴权,key 是 `kollab api-key create` 生成的 `kollab_live_*` | 不需要申请任何第三方官方 key,模型范围不限白名单。默认模型是 `gemini-3.8-flash`(**故意不用** `claude-sonnet-4-6`——那样账单虽然走 Kollab 自己的 Space 额度,但底层实际还在消耗 Claude,没有分担成本的效果);已做过真实端到端验证,见下方「验证情况」。费用从这把 key 绑定的 Kollab Space 额度实时扣除,换生产环境用 `https://kollab.im/api/llm` 加一把生产环境生成的 key |
+| `kollab-gateway` | Kollab 自己的公开 LLM 网关 | `https://kollab.im/api/llm`(生产环境),`x-api-key` 鉴权，使用已有 `KOLLAB_PROD_API_KEY` | 不需要申请任何第三方官方 key,模型范围不限白名单。默认模型是 `gemini-3.8-flash`(**故意不用** `claude-sonnet-4-6`——那样账单虽然走 Kollab 自己的 Space 额度,但底层实际还在消耗 Claude,没有分担成本的效果);已做过真实端到端验证,见下方「验证情况」。费用从这把 key 绑定的 Kollab Space 额度实时扣除,当前配置已使用生产环境 |
 | `kollab-gateway-copy` | 同上 | 同上,`model: "gemini-3.8-flash"` | 文案/创意用途的命名别名,和默认模型相同,单独命名是为了不依赖默认值以后的调整 |
-| `kollab-gateway-research` | 同上 | 同上,`model: "grok-4.6"` | 通用调研摘要用途 |
+| `kollab-gateway-research` | 同上 | 同上,`model: "grok-4.7"` | 通用调研摘要用途 |
 | `kollab-gateway-bulk` | 同上 | 同上,`model: "gemini-3.5-flash-lite"` | 批量翻译/格式转换等机械任务用途,目录里响应最快的免费档模型之一 |
+| `kollab-gateway-gpt-sol` | Kollab | 线上托管网关，`model: "gpt-6-sol"` | GPT-6 Sol |
+| `kollab-gateway-gpt-luna` | Kollab | 同上，`model: "gpt-6-luna"` | GPT-6 Luna |
+| `kollab-gateway-deepseek` | Kollab | 同上，`model: "deepseek-v4.1-flash"` | DeepSeek V4.1 Flash；无需第三方 Key |
+| `jev` | Typesafe(JEV / System One) | `https://api.typesafe.ai/v1/systemone`,`Authorization: Bearer` 鉴权(`protocol: "typesafe-systemone"`,**不是** Anthropic Messages/OpenAI 协议) | ⚠️ **不支持 `run`/`run-many`**——它是结构化决策 API,不生成文本、不支持多轮工具调用,只能用下面「JEV / `judge` 子命令」一节的方式调用 |
 
 **关于 Gemini 的如实说明**:查证下来,Google 官方**没有**为 Gemini 提供 Anthropic Messages 协议
 兼容端点(不像 DeepSeek/Moonshot 那样)。市面上能找到的都是社区维护的转换代理(比如把 Anthropic
@@ -47,20 +62,60 @@ proxy,或任何等价方案)并把地址填进去之前,选这个模型会直接
 - DeepSeek: <https://api-docs.deepseek.com/guides/anthropic_api>
 - Kimi: <https://platform.kimi.com/docs/api/list-models>
 
+## JEV / `judge` 子命令(结构化决策,不是对话模型)
+
+[Typesafe 的 JEV / System One](https://docs.typesafe.ai/) 是一个和上面所有条目都不同类的东西:它不
+生成回复、不写代码、不做多轮对话,官方原话:"System One models do not write replies, produce code,
+or generate explanations of their reasoning." 每次调用给它一段 `state`(文本或结构化 JSON)+ 若干
+类型化 `questions`(`noul` = 是否概率、`choice` = 多选一 + 置信度、`score` = 打分 + 置信度),它返回
+校准过的结构化答案,你的代码可以直接拿去用,不用再让一个通用 LLM"返回 JSON 但经常返回不合法 JSON"。
+
+**为什么不是 `run --model jev`**:`run`/`run-many` 靠 Claude Agent SDK 的 `query()` 驱动上游,而
+`query()` 只认 Anthropic Messages 协议(`POST {baseURL}/messages`,messages 数组、流式、tool_use)。
+2026-09-25 真实测过 `POST https://api.typesafe.ai/v1/messages` 返回 **404**,证实 JEV 完全没实现
+这个协议——不是"加个适配器就能补"的问题,是协议层面根本不兼容。所以 agent-fleet 给
+`protocol: "typesafe-systemone"` 的模型加了一道闸门:`run --model jev` 会在发请求前直接报错拒绝,
+不会静默发出一个必然失败的请求。JEV 走独立的 `judge` 子命令,直连它自己的协议(`src/judge-task.mjs`),
+不经过 Claude Agent SDK。
+
+```bash
+# state.txt:要评估的内容(纯文本,或 .json 结尾按 JSON 解析成结构化 state)
+# questions.json:{ 问题key: { type: "noul"|"choice"|"score", instructions, criteria? } }
+node bin/agent-fleet.mjs judge --model jev --state-file state.txt --questions-file questions.json --json
+```
+
+**JEV 适合做什么 / 不适合做什么(2026-09-25 用 26 次真实调用 + 只读调研 4 个第三方 skill 得出,
+证据见 `/tmp` 的 `jev-capabilities.md` 能力摸底报告,以及下面「JEV 验证记录」)**:
+
+| 任务类型 | 结论 | 依据 |
+|---|---|---|
+| 预定义分类/路由/打分/二元判断 | **适合,是它的设计目标** | 真实调用:工单文本 → 路由(billing/technical/account)+ 紧急度打分 + 是否退款请求,一次调用三问全对,`confidence` 均 ≥0.87 |
+| 多步骤 Agent 循环里的"下一步选哪个"决策节点 | **适合**,复刻了 wy-coliney/jev-browser-use(528 安装)的真实用法 | 喂一段 accessibility-tree 文本 + 候选动作(click_2/click_7/…/DONE/BLOCKED)做 `choice`,正确选出"先填邮箱框",置信度 0.92;该第三方 skill 的真实做法就是每步一次 `choice` 调用,state 用 AX 树文本而非截图 |
+| 批量文件改动前的"要不要自动应用"闸门 | **适合(它做判断,不做编辑)** | 给 3 个候选 diff 做 `choice`,正确挑出无行为变更的安全项,正确排除有逻辑改动的选项 |
+| 爬取网页后按预定义维度分类/打分 | **适合(分类/打分),不适合生成摘要文字** | 抓取一页 Wikipedia 纯文本作 state,`choice` 判断主题 + `score` 判断专业程度,均正确;但它不会输出一段自然语言摘要——那部分仍要另一个生成式模型 |
+| 代码生成、开放式写作 | **不适合,结构性不支持** | 故意用 `noul` 让它"写一首俳句",只回了个 0-1 概率而非文字;用编造的 `"type":"generate"` 直接被协议拒绝(`HTTP 400`)——协议里根本没有自由生成这个问题类型 |
+| 多轮工具调用(bash + 读写文件) | **不适合,结构性不支持** | 单次同步调用,无 messages/tool_use/会话状态;`/v1/messages` 404 证实无法接入 SDK 的多轮循环 |
+| 图片理解 | **不支持** | 真实塞一张 1x1 PNG base64 进去,`noul` 只回 0.01(答非所问),与文档"no image input"一致 |
+| 浏览器操作本身(点击/输入) | **JEV 不操作浏览器**,只能当决策层 | 见上面"下一步选哪个"一行;真正的点击/输入由宿主 LLM 或固定代码执行,JEV 只挑候选 |
+
+**已知坑(来自第三方调研,非 agent-fleet 自己踩过,但值得留意)**:JEV 按字面判断、不推断意图
+(okooo5km/jev 曾把广告误判为"含可行动信息");`noul` 的 0.5 代表"不确定"而不是"中等"
+(dbreunig/building-with-jev-skill);不要用它承担超出"单点判断"的复合任务——kerpopule/hermes-jev-skills
+真实测过用 JEV 做会话摘要,召回率反而低于什么都不做的朴素截断方案。
+
 ### 任务类型 → 推荐模型(agent-fleet 自己调研 + 真实验证后得出,会持续校准)
 
-下面这张表不是写死的规则,是 agent-fleet 用 `kollab-gateway` 通道跑过一次真实路由调研任务后
-给出的建议,加上后来对 `kollab model list`(TEST 环境)返回的完整模型目录做的核对。随着
-实际使用积累更多样本、或者 Kollab 网关模型目录变化,这张表应该被重新校准,不要当成一成不变
-的硬规则来读。
+编程与 review 优先规则见 [Codex 编程与 review](skill/references/codex-coding.md)。本机 Codex 可用时优先 GPT-6 Sol；其他任务沿用下表已有的模型分工。模型目录和账号能力可能变化，始终以真实调用和任务验收为准。
 
 | 任务类型 | 推荐模型 / 友好名字 | 理由 |
 |---|---|---|
-| 批量文案 / 创意写作 | `kollab-gateway-copy`(`gemini-3.8-flash`)或 `kollab-gateway`(默认同款) | 速度快、成本低,适合营销文案、社媒文案等对准确性要求不高、追求产量和多样性的写作 |
-| 批量翻译 / 格式转换 | `deepseek-v4-flash`(需配 `DEEPSEEK_API_KEY`)或 `kollab-gateway-bulk`(`gemini-3.5-flash-lite`,即用免配置) | 官方 Flash 档更便宜;没有 DeepSeek key 时 `kollab-gateway-bulk` 是免第三方审批的平替 |
-| 简单调研摘要 | `kimi`(需配 `MOONSHOT_API_KEY`,自带联网搜索)或 `kollab-gateway-research`(`grok-4.6`,即用免配置) | Kimi 官方端点自带联网检索能力,适合真正需要查资料的调研;不想等 key 审批时用 `kollab-gateway-research` 顶上 |
+| 写代码 / 修 bug / 补测试 | 本机 Codex CLI 的 `gpt-6-sol`，默认 `medium`，简单任务 `low` | `fleet code` 在 Codex 缺失、登录失效或模型明确不支持时回退 GPT 托管别名；GLM 不作为编程默认 |
+| 写作 / 翻译 / 调研 / 母语校对（写文档、写报告、核实资料） | `kollab-gateway-copy`(`gemini-3.8-flash`)或 `kollab-gateway`(默认同款) | 响应迅速、成本低，即用免第三方审批。长报告换 `gemini-3.1-pro`。**注意：实测 `gemini-3.8-flash` 做多文件代码改动容易跑满轮数零产出，绝对不要派它写代码** |
+| 批量翻译 / 格式转换 | `deepseek-v4.1-flash`(需配 `DEEPSEEK_API_KEY`)或 `kollab-gateway-bulk`(`gemini-3.5-flash-lite`,即用免配置) | 官方 Flash 档更便宜;没有 DeepSeek key 时 `kollab-gateway-bulk` 是免第三方审批的平替 |
+| 简单调研摘要 | `kimi`(需配 `MOONSHOT_API_KEY`,自带联网搜索)或 `kollab-gateway-research`(`grok-4.7`,即用免配置) | Kimi 官方端点自带联网检索能力,适合真正需要查资料的调研;不想等 key 审批时用 `kollab-gateway-research` 顶上 |
 | 高质量单次产出(长文案定稿、复杂推理) | `deepseek-v4-pro`(需配 `DEEPSEEK_API_KEY`) | DeepSeek 官方 Opus 档位映射目标,适合一次成型、不想反复返工的任务 |
-| 多轮工具调用容错要求高的任务 | 不建议派给任何第三方模型,留给 Claude 自己处理 | 第三方模型(尤其 Kimi/DeepSeek/Qwen 家族)已知存在 tool-calling 可靠性问题,有时会把裸的 tool-call 控制 token 当成普通文本吐出来而不是走结构化 `tool_use`,造成"进程正常退出但其实是假成功"——这是模型生成层面的问题,agent-fleet 的 harness 补不了,只能靠不把这类任务派给它们来规避 |
+| 自动化流程里的判断/路由节点(分类、打分、二元判断、"下一步选哪个候选") | `jev`(**走 `judge` 子命令,不是 `run`**) | 结构化决策 API,不生成文本、极便宜(≈$0.042/百万 input token,output 免费)、同一输入多次调用高度稳定,没有裸 tool-call 控制 token 这类失败模式(协议本身不返回自由文本)。详见上面「JEV / `judge` 子命令」一节的实测结论表 |
+| Kimi/DeepSeek/Qwen 家族、多轮工具调用容错要求高的任务 | 不建议派给这几个家族的第三方模型,留给 Claude 自己处理 | 这几个家族的模型已知存在 tool-calling 可靠性问题,有时会把裸的 tool-call 控制 token 当成普通文本吐出来而不是走结构化 `tool_use`,造成"进程正常退出但其实是假成功"——这是模型生成层面的问题,agent-fleet 的 harness 补不了,只能靠不把这类任务派给它们来规避。任何第三方模型只要某次实际输出里出现裸 tool-call 控制 token,那一次就要判定失败——不能因为路由到它就放松这条判定标准 |
 
 **关于 Qwen**:调研建议里提过可以考虑 Qwen,但截至本次核对(2026-09,TEST 环境
 `kollab model list`),Kollab 网关目录里**没有**收录任何 Qwen 系列模型 id,所以上面没有把 Qwen
@@ -78,6 +133,8 @@ proxy,或任何等价方案)并把地址填进去之前,选这个模型会直接
 cd agent-fleet
 npm install
 ```
+
+**维护约定**：改 CLI 或 SDK 接入时先用 `npm run check-sdk` 检查当前版本；有明确兼容需求才升级依赖，并运行 `npm test` 与相关真实调用。纯文档修改无需升级 SDK 或消耗网关额度。
 
 ## 配置
 
@@ -107,7 +164,7 @@ agent-fleet run --model <友好名字> --prompt "<任务描述>" [--cwd <目录>
 ```bash
 # 用 DeepSeek Flash 做一次调研/头脑风暴
 node bin/agent-fleet.mjs run \
-  --model deepseek-v4-flash \
+  --model deepseek-v4.1-flash \
   --prompt "帮我调研一下 XX 竞品有哪些定价策略,写一份简短总结"
 
 # 用 Kimi 在指定项目目录里干活,输出结构化 JSON 方便脚本解析
@@ -120,7 +177,7 @@ node bin/agent-fleet.mjs run \
 
 想同时跑多个不同模型的任务,最简单的办法就是开多个终端(或用 `&` 丢后台)各自 `run` 一次——Claude
 Agent SDK 的设计就是"一个调用绑一个模型的独立进程",天然支持这样并发,不需要在单进程里做复杂的
-多模型切换。
+多模型切换。运行中可以用 `status` / `say` / `stop` 插话或收尾,见下方「运行中插话」。
 
 ### `run-many` — 一次命令批量并发跑一批任务
 
@@ -133,20 +190,44 @@ agent-fleet run-many --config batch.json [--json]
 ```json
 [
   { "model": "gemini", "prompt": "写一段产品介绍文案" },
-  { "model": "deepseek-v4-flash", "prompt": "调研一下同类产品的定价策略" }
+  { "model": "deepseek-v4.1-flash", "prompt": "调研一下同类产品的定价策略" }
 ]
 ```
 
 内部用 `Promise.allSettled` 真正并发执行,每个任务独立成败——一个任务失败不会影响其它任务,最后
-把每个任务各自的结果按原始顺序一起返回。
+把每个任务各自的结果按原始顺序一起返回。某个任务被外部信号杀掉时,简报会写明是哪一个。
+
+### 运行中插话 / 停止 / 续跑
+
+`run` / `run-many` 启动时会写 `~/.agent-fleet/runs/<run-id>.pid.json`(pid、模型、cwd、日志路径;
+SDK 给出 `session_id` 后补写)。正常结束标记 `finished`。收件箱是同目录下的 `<run-id>.inbox`(JSONL)。
+
+```bash
+agent-fleet status
+agent-fleet say latest "改变计划:写到 step5 就停"
+agent-fleet stop latest --grace 20
+agent-fleet resume <run-id> "接着把剩下的做完"
+```
+
+- `status`:列出 pid 仍存活的任务。pid 已不在但未标 finished →「异常终止（可能被外部信号杀掉）」。
+- `say`:把消息追加进收件箱,运行中的 query 以 streaming input 推成新的 user 消息;日志会出现 `收到插话：…`。
+- `stop`:先投递「请立即收尾」;宽限期后 `query.interrupt()`,仍在则对该 pid 发 SIGTERM,再 5 秒 SIGKILL。发信号前校验 pid 来自该 run 的 pid.json,且 `ps` command 含 `agent-fleet` 并与记录一致。只杀这棵 pid 树,绝不 `pkill`/`killall`。结果文件和简报仍会写出,`verdict=stopped`。
+- `resume`:SDK `options.resume` 用 pid.json 里的 `sessionId` 续跑,生成新 run-id,简报带 `resumedFrom`。
+
+默认执行者提示里写明:绝不 `kill` / `pkill` / `killall` 任何不是你自己启动的进程。进程收到并非来自本工具 `stop` 的 SIGTERM/SIGINT 时,结果文件注明「被外部信号 X 终止」。
 
 ### 常用选项
 
-- `--max-turns <n>`:限制最大工具调用轮数,避免任务跑飞
-- `--system-prompt <text>`:追加系统提示
+- `--max-turns <n>`:限制最大工具调用轮数,默认 500
+- `--verbose`:恢复 stderr 实时进度；默认安静写日志
+- `--system-prompt <text>`:追加系统提示。会接在下面「默认执行者系统提示」之后,两者都保留,
+  不是二选一(见「子 agent 模型映射」一节下方的说明)
 - `--models-config <path>`:临时换一份配置文件(默认用包目录下的 `models.config.json`)
-- `--json`:输出结构化 JSON(`ok`、`result`、`numTurns`、`totalCostUsd`、`sessionId` 等字段),方便被
-  其他程序/脚本解析
+- `--json`:stdout 只输出一个合法 JSON(对象或数组),进度一律走 stderr。默认是简报(`ok`、`verdict`、耗时、费用、轮数、预览前 N 行、结果文件路径、日志路径、新提交 hash、是否 dirty、是否含裸控制 token);加 `--full` 恢复旧版完整 `result`
+- `--full`:把完整最终回复打到 stdout;默认全文写进 `~/.agent-fleet/runs/<run-id>.result.md`
+- `--brief-lines <n>`:简报预览行数,默认 3
+- `--expect-changes`:声明任务需要改文件;运行期间零提交、零改动时 `verdict=suspect`
+- `--judge`:进程内调 JEV,问「最终回复是否满足任务要求」;置信度 < 0.55 → `needs-review`;无 `TYPESAFE_API_KEY` 则跳过并在简报注明
 
 ### 自定义请求头(只有自备网关才会用到)
 
@@ -169,7 +250,64 @@ API Key 完全一致:`models.config.json` 里只写**指针**,真实值只放 `.
 - 不允许自定义 `x-api-key` / `Authorization` 等由 `authHeader` 负责的头。
 - `list-models` 只显示头名和 present/missing,**从不打印头值**。
 
+### 子 agent 模型映射(0.4.0 起,修复 2026-09-26 的 unrecognized_model 崩溃;0.5.0 起默认 stdout 只给简报)
+
+**问题**:被 agent-fleet 驱动的第三方模型自己也会用 Claude Code 的 Agent/Task 工具派子 agent。
+这个工具默认让子 agent"继承主循环的 model 字符串"——当主循环 model 是网关自己的模型 ID(比如
+`gemini-3.8-flash`)而不是 Claude 官方模型名时,子 agent 一旦被(前台同步)调用,Claude Code
+本地的模型名校验会判定这个字符串"unrecognized",触发
+`[claude-code:unrecognized_model] {"model":"gemini-3.8-flash","query_source":"sdk"}`,
+严重时整个进程被 SIGKILL、父任务一起失败(2026-09-26 用 kollab-gateway-copy 真实复现过,
+`~/.agent-fleet/runs/2026-09-26T01-50-12-213Z-kollab-gateway-copy.log`)。实测下来触发条件不算
+稳定必现(同一个模型换一次 prompt/任务节奏就可能不触发),但只要出现就是整个任务失败,值得
+从根上堵掉。
+
+**根因定位**:用 `strings` 反汇编已安装的 SDK 原生二进制
+(`node_modules/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude`)确认,`unrecognized_model`
+是 Claude Code **本地**的模型名校验产生的(函数 `oZ()`,标签 `query_source`),不是网关或
+Anthropic 服务端返回的错误——本地维护一份"识别出来的模型形状"分类,网关自己的模型 ID 天然不
+在这个分类里。同一份二进制里核实到 Claude Code 官方就支持给子 agent 单独配一个模型:
+
+- `CLAUDE_CODE_SUBAGENT_MODEL`:子 agent 默认应该用哪个模型(可以是 `sonnet`/`opus`/`haiku`/
+  `fable` 这类档位别名,也可以是完整模型 ID,或 `inherit` 继承主循环——不设就是 `inherit`,
+  即修复前的行为)。SDK 的 `AgentDefinition.model` 字段文档("if omitted, uses the default
+  subagent model when one is configured, else the main model")说的就是这个变量。
+- `ANTHROPIC_DEFAULT_SONNET_MODEL`(以及 `_OPUS_MODEL`/`_HAIKU_MODEL`/`_FABLE_MODEL`):把
+  `sonnet`/`opus`/`haiku`/`fable` 这几个档位别名解析到的真实模型 ID 重新指向别处——这是
+  Claude Code 给第三方模型提供商准备的官方机制,不是绕过校验的手法。
+
+**落地方式**:`models.config.json` 里每个模型条目可以加一个可选字段 `subagentModel`(子
+agent 实际应该发给同一个 baseURL/apiKey 的模型 ID,可以和主模型相同,也可以是同网关下更便宜/
+更可靠的模型)。配了这个字段后,`src/isolated-env.mjs` 会在子进程环境和 flag 层 settings 里
+同时设置:
+
+```
+CLAUDE_CODE_SUBAGENT_MODEL=sonnet
+ANTHROPIC_DEFAULT_SONNET_MODEL=<subagentModel 的值>
+```
+
+固定用 `sonnet` 这个别名(不是按任务档位选 haiku/opus/fable)是因为这里的"档位"在网关侧没有
+实际含义——一个 `models.config.json` 条目本来就只对应一个具体第三方模型。这样 Claude Code
+本地看到的是一个自己认识的档位别名(不会触发 unrecognized_model),而真正发给网关的请求体里
+`model` 字段是 `subagentModel` 配置的那个网关模型 ID。当前 `kollab-gateway*` 系列的
+`subagentModel` 默认指向 `glm-5.3-flash`(2026-09-23 已验证的、tool-calling 可靠的编程档位模型
+——子 agent 的典型工作正是读写文件、跑 bash 这类需要可靠工具调用的活,而不是随便选一个"更便宜"
+但没验证过工具调用可靠性的模型)。没配 `subagentModel` 的模型条目行为不变(子 agent 原样继承
+主 model 字符串)。
+
+这两个变量同样受「目标工作目录不能改动本次运行的任何环境变量」那条闸门保护(见下面「安全边界」
+一节)——`--cwd` 目录没有办法通过自己的 `.claude/settings.json` 把子 agent 的模型改到别处去。
+
+**默认执行者系统提示**:每次 `run`/`run-many` 都会用 SDK 的
+`systemPrompt: { type: 'preset', preset: 'claude_code', append: '...' }` 写法追加一段默认提示
+(见 `src/run-task.mjs` 的 `DEFAULT_EXECUTOR_SYSTEM_PROMPT`):你是执行者,要直接动手完成任务、
+不能只转发或转述;禁止用 Bash 反过来调用 agent-fleet 自己(会造成递归嵌套);禁止调用 Agent/Task 工具或转派任务；不允许杀死不是自己启动的进程。用 `preset+append` 而不是替换,
+是为了保留 Claude Code 自带的默认系统提示(工具定义等)——`--system-prompt` 传入的文本接在这段
+默认提示之后,两者都保留,不是二选一。
+
 ## 验证情况(如实说明)
+
+当前模型刷新：Grok 路由为 `grok-4.7`，已通过 agent-fleet 生产真实调用（返回 `4`，无控制 token）；GPT-6 Sol/Luna 与 DeepSeek V4.1 Flash 已通过 Kollab CLI 生产真实调用，新 agent-fleet 别名的相同托管配置已通过静态检查，尚未逐个运行 SDK。历史 Grok 4.6 验证仅对应当时版本。
 
 没有真实的 DeepSeek/Moonshot API key(也没有去别的项目"顺手"拿),所以**这两家官方端点没有做过真实
 模型的端到端验证**。`kollab-gateway` 是例外——它用的是 Kollab 产品自助生成的账号 key,不需要等第三方
@@ -189,6 +327,59 @@ API Key 完全一致:`models.config.json` 里只写**指针**,真实值只放 `.
    `POST https://test.flowus.work/api/llm` 拿到了对应模型的真实响应,不是报错也不是 mock,返回内容
    里也没有出现裸的 tool-call 控制 token。
 
+   **`kollab-gateway-code`(GLM 5.3,2026-09-23 追加验证)**:用户要求给编程任务开例外前,先跑了
+   两次真实验证而不是只改配置。第一次是简单无工具调用请求(`--prompt "回复OK两个字,不要调用任何
+   工具"`),返回 `"ok": true`、`"result": "OK"`,`numTurns: 1`,`totalCostUsd: 0.09276`。第二次是
+   真实的多轮工具调用编程任务(在临时目录里让它写 `add.js` 导出加法函数,再写一个跑
+   `add(2,3)===5` 断言的脚本),`numTurns: 3`,`totalCostUsd: 0.1361`,人工 `cat` 检查了生成的
+   `add.js`/`test.js` 内容合理,并且亲自用 `node test.js` 实跑一遍确认真的打印 `PASS`、退出码 0——
+   不是只看 agent-fleet 自报的 `"ok": true`。两次调用的完整输出都人工过了一遍,均未出现任何裸露的
+   tool-call 控制 token(如 `<tool_call>`、`<minimax:tool_call>`、`<|tool_calls_section_begin|>`
+   等)。**注意范围**:这只验证了 `glm-5.3-flash` 这一个模型,不代表 Kimi/DeepSeek/Qwen 家族的
+   同类风险已被排除,那几个家族仍按原结论处理。
+
+   **`jev`(Typesafe System One,2026-09-25 接入并真实验证)**:先读了 <https://docs.typesafe.ai/>
+   全部相关页面(`introduction/quickstart`、`concepts/system-one`、`api`、`models`、
+   `introduction/coding-agents`、`agent-skill`),确认协议是自有的 `typesafe-systemone`
+   (`POST /v1/systemone`,`state` + 类型化 `questions` → `noul`/`choice`/`score` 结构化答案),
+   不是 Anthropic Messages 也不是 OpenAI 协议,且官方明确说明它"不生成回复、不写代码、不做
+   推理解释"。真实用 `TYPESAFE_API_KEY` 打了 26 次 `https://api.typesafe.ai/v1/systemone`
+   (`mktemp -d` 目录里跑,curl 直连 + 最后用 `agent-fleet judge` CLI 复测一致),覆盖:结构化
+   抽取(工单路由+打分+退款判断三问一次拿到,`confidence` 均 ≥0.87)、爬取一页真实 Wikipedia
+   文本后分类打分、复刻 wy-coliney/jev-browser-use 用法的"下一步选哪个候选"(accessibility-tree
+   文本 → `choice`,正确选出该先填的表单字段,置信度 0.92)、批量文件改动前的安全性判断(3 个
+   候选 diff 里正确挑出无行为变更的一项)、同一输入连打 20 次的稳定性(`noul` 波动 ≤0.01、`score`
+   波动 ≤0.12/满量程 3,平均延迟 1193ms)。也验证了它的边界:故意用 `noul` 让它"写一首俳句"
+   只回了个概率不是文字、编造的 `"type":"generate"` 被协议拒绝(`HTTP 400`)、塞一张真实 PNG
+   base64 进去只得到一个答非所问的低概率(印证文档"no image input")、`POST /v1/messages`
+   返回 `404`(证实无法接入 `run`/`run-many`)。26 次调用总成本约 **$0.0004**。因为协议层面
+   和 `run`/`run-many` 依赖的 Anthropic Messages 协议根本不兼容,新增了独立的 `judge` 子命令
+   (`src/judge-task.mjs`)直连它自己的协议,并在 `run`/`run-many` 里加了协议闸门——`run --model
+   jev` 会在发请求前直接报错拒绝,不会静默发出必然失败的请求(已用真实命令验证)。另外只读调研了
+   4 个第三方 JEV skill 仓库(wy-coliney/jev-browser-use、okooo5km/jev、
+   dbreunig/building-with-jev-skill、kerpopule/hermes-jev-skills),结论和用法要点见上面
+   「JEV / `judge` 子命令」一节,完整能力摸底报告见任务产出的 `jev-capabilities.md`。
+
+   **子 agent 模型映射(2026-09-26,修复 unrecognized_model 崩溃)**:先在历史日志里确认过真实
+   崩溃(`~/.agent-fleet/runs/2026-09-26T01-50-12-213Z-kollab-gateway-copy.log`:`tool=Agent`
+   前台同步调用后,`[claude-code:unrecognized_model] {"model":"gemini-3.8-flash",
+   "query_source":"sdk"}`,随后整个进程被 SIGKILL)。修复前用同样"派前台子 agent、子 agent 自己
+   跑多轮 Bash/Read 工具调用"的任务节奏对 `kollab-gateway-code`/`kollab-gateway-copy` 各重跑了
+   几次,**没能在修复前的多次尝试里重新触发这个崩溃**——如实记录:这说明触发条件不是每次必现,
+   而是和具体任务节奏/上游响应有关,不能拿"这次没崩"当作"问题不存在"的证据。改用直接读已安装 SDK
+   原生二进制字符串常量定位根因(`oZ()`/`gee()`/`tO()` 三个函数,细节见上面「子 agent 模型映射」
+   一节),给 `models.config.json` 加 `subagentModel` 字段、在 `src/isolated-env.mjs` 里落地
+   `CLAUDE_CODE_SUBAGENT_MODEL`+`ANTHROPIC_DEFAULT_SONNET_MODEL` 之后,分别对
+   `kollab-gateway-code`(`glm-5.3-flash`)和 `kollab-gateway-copy`(`gemini-3.8-flash`)各做了
+   一次真实调用(前台同步 Agent、子 agent 自己跑 Bash 写文件→Read→Bash 校验字节数,和崩溃时的
+   工具调用模式一致),两次都拿到 `"ok": true`、`numTurns: 2`,日志里能看到完整的
+   `tool=Agent`→`tool=Bash`→`tool=Read`→`tool=Bash`→`done ok` 序列,过程中直接 `ps` 查看真实
+   spawn 出来的原生 CLI 子进程命令行,确认 `--settings` 参数里确实带着
+   `"CLAUDE_CODE_SUBAGENT_MODEL":"sonnet"` 和 `"ANTHROPIC_DEFAULT_SONNET_MODEL":"glm-5.3-flash"`
+   ——这是比"这次没崩"更直接的证据:映射确实落到了发给 Claude Code 的真实参数里,不依赖崩溃是否
+   复现。另外补了单元测试(`test/security-unit-test.mjs` 第 7 节)锁定这两个变量的赋值逻辑和
+   flag 层钉定,补了 `test/smoke-test.mjs` 的真实请求体断言(见下面第 2 条)。
+
 1. **代码能正常跑**:`--help`、`--version`、`list-models`、缺参数/缺密钥/未知模型等错误路径都手动
    跑过,报错信息清晰可操作。
 2. **本地假上游端到端验证**(`test/smoke-test.mjs`,`npm run smoke-test`):自己起了一个模拟 Anthropic
@@ -198,6 +389,8 @@ API Key 完全一致:`models.config.json` 里只写**指针**,真实值只放 `.
    - `x-api-key` 和 `Authorization: Bearer` 两种鉴权风格都按配置正确生效
    - `bypassPermissions` 权限模式下,SDK 真的跑完了一整个 `query()` 循环并产出最终 `result`
    - `run-many` 里两个不同模型的任务确实并发跑完,各自拿到正确的结果
+   - (2026-09-26 追加)真实发出的请求体 `system` 字段里包含默认追加的执行者系统提示,确认
+     `preset+append` 没有被替换或丢失
 
    这条验证**不需要任何真实密钥**,`npm run smoke-test` 随时可以重跑。
 
@@ -207,6 +400,8 @@ API Key 完全一致:`models.config.json` 里只写**指针**,真实值只放 `.
    密钥"来判定,而不是断言代码里有没有某一行。覆盖:宿主凭据泄露场景、目标目录劫持 `baseURL`、
    目标目录注入自定义头、恶意配置藏在祖先目录、绕过前置闸门时结构性兜底是否还在,外加两条
    正向用例(正常项目目录不被误拦、合法自定义头仍然能用)。同样**不需要任何真实密钥**。
+   (2026-09-26 追加)`subagentModel` 的赋值逻辑、flag 层钉定,以及目标目录仍然拦不住这两个
+   新变量,也补进了单元测试第 7 节。
 
    跑全部验证:`npm test`。
 
@@ -224,7 +419,7 @@ API Key 完全一致:`models.config.json` 里只写**指针**,真实值只放 `.
    `models.config.json` 的 `gemini` 条目。
 3. 手动跑一次真实调用确认端到端可用,比如:
    ```bash
-   node bin/agent-fleet.mjs run --model deepseek-v4-flash --prompt "说一句你好" --json
+   node bin/agent-fleet.mjs run --model deepseek-v4.1-flash --prompt "说一句你好" --json
    ```
 4. 需要的话把 `bin/agent-fleet.mjs` 链接到 `PATH` 里(比如 `npm link`),这样就能直接敲
    `agent-fleet run ...`,不用带 `node bin/agent-fleet.mjs` 前缀。
@@ -286,9 +481,18 @@ agent-fleet 会把 `CLAUDE_CONFIG_DIR` 指向自己专属的 `~/.agent-fleet/cla
 会话记录不会混进你真实 Claude Code 的 `~/.claude/`(已实测:跑一次任务,`~/.claude/` 下没有新增任何
 由它产生的文件)。同时它也不加载你的全局 `~/.claude/settings.json` 和目标目录的 `.mcp.json`。
 
-另外它会关掉 Claude Code CLI 默认的遥测、错误上报和自动更新检查(`DISABLE_TELEMETRY` 等一组开关),
-目标是除了发给你配置的那个模型端点之外不产生其它对外流量。**如实说明**:这些开关是显式设置的,但
-还没有做过网络层面的抓包验证,所以只能说"按官方开关关闭了",不能说"已证实零流量"。
+另外它会关掉 Claude Code CLI 默认的遥测、错误上报、自动更新检查和 GrowthBook 远程 feature-flag
+拉取(`DISABLE_TELEMETRY`/`DISABLE_UPDATES`/`DISABLE_GROWTHBOOK`/`DO_NOT_TRACK` 等一整组开关,
+逐个对照已安装 SDK 的原生二进制核实过是真实生效的变量名,不是抄文档臆测),目标是除了发给你
+配置的那个模型端点之外不产生其它对外流量。
+
+**这一条已经做过网络层面的验证,不是只停留在"设了开关"**:跑一次真实任务(`agent-fleet run`),
+在执行期间用本机代理内核(Clash/mihomo 一类工具的 external-controller API)记录的 SNI 连接日志,
+按 OS 级别的进程路径精确反查这个 SDK 原生二进制发起的每一次连接——结果是整个任务执行期间它只
+建立了一次对外连接,目的地就是 `models.config.json` 里配的第三方 baseURL,没有任何流量打到
+`*.anthropic.com`、`*.sentry.io`、`cdn.growthbook.io` 这些 Anthropic 或其遥测供应商控制的域名。
+也就是说:只要你在 `models.config.json` 里配的是非 Claude 端点,Anthropic 的服务器不会看到这次
+调用的存在,自然也就无从"知道"你在切换或使用其它模型。
 
 **注意**:工具跑的是 `bypassPermissions` 全权限 Agent,它对你主目录下的文件**没有**任何自动防护。
 如果任务描述含糊、或者你把 `--cwd` 指向主目录,它是有可能去读甚至改 `~/.claude/` 这类敏感目录的。

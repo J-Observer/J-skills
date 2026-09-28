@@ -537,11 +537,6 @@ export async function openAndEval(session, url, expression, options = {}) {
   const wait = options.wait ?? 3;
   const commands = [
     { cmd: 'open', args: { url } },
-    // **必须走 sleepStep，不能用 `wait`。** 本文件下面 sleepStep 的注释里记着：
-    // opencli 1.8.7 的 `wait time <秒>` 把秒数原样报回来、却不到一秒就返回。
-    // 这里曾经写成 `{ cmd: 'wait' }`，等于**根本没等**——页面还没渲染就被 eval 读了，
-    // 而 vendored 副本早就改成 sleepStep 了，两份就此分叉。规则写在同一个文件里
-    // 都能被绕过，所以现在有 vendored-core-sync.test.mjs 在守这两份的一致性。
     ...(wait > 0 ? [sleepStep(wait)] : []),
     { cmd: 'eval', args: { js: expression } },
   ];
@@ -560,20 +555,10 @@ export async function closeSession(session) {
  * 配额站：并发受限的站点
  * ------------------------------------------------------------------ */
 
-/**
- * 一个真正的睡眠步骤。
- *
- * `wait time <seconds>` 在 opencli 1.8.7 是坏的：它把秒数原样报回来，
- * 但不到一秒就返回。实测（2026-08-28，扩展 1.0.32）`wait time 5` 报
- * "Waited 5s"，实际 928ms。`wait selector` / `wait text` 不受影响，
- * 仍然优先用它们——没有条件可等的时候才用这个。
- *
- * 这条对下面的节流是地基：配额站的间隔如果写成 `wait time 4`，
- * 整套节流就是个空操作，而且不会有任何报错。
- */
+/** 构造原生 batch wait 步骤，秒数钳到非负值。 */
 export function sleepStep(seconds) {
-  const ms = Math.max(0, Math.round(Number(seconds) * 1000));
-  return { cmd: 'eval', args: { js: `(async () => { await new Promise((resolve) => setTimeout(resolve, ${ms})); return true; })()` } };
+  const value = Number(seconds);
+  return { cmd: 'wait', args: { seconds: Number.isFinite(value) ? Math.max(0, value) : 0 } };
 }
 
 /**

@@ -39,6 +39,18 @@ import { join } from 'node:path';
 const PREFIXES_TO_STRIP = ['ANTHROPIC_', 'CLAUDE_'];
 
 /**
+ * 子 agent 模型映射用的固定档位别名。
+ *
+ * 【为什么固定用 "sonnet",而不是按任务档位选 haiku/opus/fable】
+ * 这几个别名在 Claude Code 本地只是"哪个官方模型族"的分类标签,网关这边每个 models.config.json
+ * 条目本来就只对应一个具体第三方模型,没有"同一个网关模型再分 haiku/sonnet/opus 档位"这回事——
+ * 所以固定用一个别名、靠 ANTHROPIC_DEFAULT_SONNET_MODEL 指向 subagentModel 的真实值即可,
+ * 没必要引入没有实际意义的档位区分。见 config.mjs 的 subagentModel 字段注释。
+ */
+const SUBAGENT_MODEL_ALIAS = 'sonnet';
+const SUBAGENT_MODEL_ALIAS_ENV = 'ANTHROPIC_DEFAULT_SONNET_MODEL';
+
+/**
  * 关闭 Claude Code CLI 自身「非必要流量」的开关。
  *
  * 为什么要设:这个工具把模型请求指向用户自己的第三方端点,用的也是用户自己的第三方 key,
@@ -47,18 +59,41 @@ const PREFIXES_TO_STRIP = ['ANTHROPIC_', 'CLAUDE_'];
  *
  * 值统一用 '1':这一族开关在 CLI 里按「非空且不是 '0'/'false'」判真。
  * 注意它们必须在上面的整族剥离**之后**设置——CLAUDE_CODE_* 会被前缀剥离带走。
+ *
+ * 【每一项都在已安装的 SDK 原生二进制里逐一核实过,不是抄官方文档臆测的】
+ * 对 node_modules/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude 做过 `strings` 提取 +
+ * 关键字上下文核对:下面这些变量名都能在二进制里找到对应的 `process.env.XXX` 判断分支,
+ * 不是「设了但其实没人读」的死变量。同时做过真实任务的运行时网络核查(见 README「不会污染
+ * 你正在用的 Claude Code」一节):用本机代理内核的 SNI 连接日志,按 OS 级别的进程路径
+ * (`processPath` 精确等于这个 SDK 二进制的路径)反查,确认整个任务执行期间唯一一次对外
+ * 连接的目标就是 models.config.json 配的第三方 baseURL,没有任何流量打到
+ * *.anthropic.com / *.sentry.io / cdn.growthbook.io 这些 Anthropic 或其遥测供应商控制的域名。
+ * 这份清单之后如果需要复核,同样按「先读二进制字符串确认变量真实存在,再抓包验证效果」这个
+ * 顺序来,不要只凭官方文档或历史记忆就假设某个开关名字有效——曾经在这里出现过一个反例:
+ * 之前设置过的 `DISABLE_NON_ESSENTIAL_MODEL_CALLS` 经核实在当前 SDK 版本里根本不是一个被
+ * 读取的变量名,已经删掉;它想拦的那类请求(标题生成等)实际由上面 essential-traffic 总开关
+ * 兜底,加上非交互 query() 模式本身不会触发这类调用,所以移除它不改变任何实际防护效果。
  */
 const NONESSENTIAL_TRAFFIC_OFF = {
-  // 总开关:遥测、错误上报、自动更新检查一起关。
+  // 总开关:二进制里能查到这是"essential-traffic-only"模式的判定入口,遥测/错误上报/
+  // 自动更新/Analytics SDK(a-api.anthropic.com)等都被这个开关统一归类为"非必要"拦掉。
   CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
-  // 再逐个显式关一遍,不依赖总开关在所有版本里都覆盖同一范围。
+  // 再逐个显式关一遍,不依赖总开关在所有版本里都覆盖同一范围——这几个都能在二进制里查到
+  // 独立的 `process.env.XXX` 判断分支,即使某个版本调整了总开关的覆盖范围,这些也不受影响。
   DISABLE_TELEMETRY: '1',
   DISABLE_ERROR_REPORTING: '1',
   DISABLE_AUTOUPDATER: '1',
+  DISABLE_UPDATES: '1',
   DISABLE_BUG_COMMAND: '1',
-  // 非必要模型调用(会话标题生成、对话摘要之类)。这些会打到本次配置的第三方端点上,
-  // 属于用户没要求、但要计费的请求,一并关掉。
-  DISABLE_NON_ESSENTIAL_MODEL_CALLS: '1',
+  DISABLE_FEEDBACK_COMMAND: '1',
+  // 关掉 GrowthBook 远程 feature-flag 拉取(会打到 cdn.growthbook.io)。SDK 的非交互
+  // query() 模式本身已经传了 kickGrowthBook:false 不会主动拉取,这里是防御性兜底——
+  // 万一未来版本在某个代码路径下不再默认跳过,这个开关能兜底拦住。
+  DISABLE_GROWTHBOOK: '1',
+  // 遥测判定里 DISABLE_TELEMETRY 和 DO_NOT_TRACK 是等价的两个入口(二进制里两者在同一条
+  // if 分支链里),两个都设上不依赖单一命名,也顺带兼容 DO_NOT_TRACK 这个更通用的生态惯例
+  // (很多命令行工具都认这个变量名)。
+  DO_NOT_TRACK: '1',
 };
 
 /**
@@ -78,7 +113,7 @@ export function agentFleetConfigDir() {
 
 /**
  * 基于 process.env 构造一份干净的子进程环境。
- * @param {{ baseURL: string, apiKey: string, authHeader: 'x-api-key' | 'auth-token', headers?: Record<string,string> }} resolved
+ * @param {{ baseURL: string, apiKey: string, authHeader: 'x-api-key' | 'auth-token', headers?: Record<string,string>, subagentModel?: string }} resolved
  * @returns {Record<string, string>}
  */
 export function buildIsolatedEnv(resolved) {
@@ -124,6 +159,14 @@ export function buildIsolatedEnv(resolved) {
     env.ANTHROPIC_CUSTOM_HEADERS = headerLines.join('\n');
   }
 
+  // 子 agent 模型映射:见 config.mjs 的 subagentModel 字段注释和顶部真实崩溃复现记录。
+  // 只在模型配置显式声明了 subagentModel 时才设这两个变量,没配的模型行为不变(子 agent
+  // 仍然原样继承主 model 字符串,和修复前一样)。
+  if (resolved.subagentModel) {
+    env.CLAUDE_CODE_SUBAGENT_MODEL = SUBAGENT_MODEL_ALIAS;
+    env[SUBAGENT_MODEL_ALIAS_ENV] = resolved.subagentModel;
+  }
+
   return env;
 }
 
@@ -147,7 +190,7 @@ export function buildIsolatedEnv(resolved) {
  * 同理 ANTHROPIC_CUSTOM_HEADERS 只在本模型**没有**配置自定义头时才钉成空字符串(纯粹为了
  * 中和注入);本模型确实配了头时不钉,避免把可能是凭据的头值写进 flag 层。
  *
- * @param {{ baseURL: string, headers?: Record<string,string> }} resolved
+ * @param {{ baseURL: string, headers?: Record<string,string>, subagentModel?: string }} resolved
  * @returns {{ env: Record<string, string> }}
  */
 export function buildPinnedSettings(resolved) {
@@ -161,6 +204,15 @@ export function buildPinnedSettings(resolved) {
   if (Object.keys(resolved.headers ?? {}).length === 0) {
     // 空字符串在 Claude Code 里等价于"没有自定义头",用来覆盖掉项目配置可能注入的值。
     env.ANTHROPIC_CUSTOM_HEADERS = '';
+  }
+
+  // 子 agent 模型映射同样钉进 flag 层:project-trust.mjs 的闸门已经把目标目录 settings 里
+  // 任何 env.* 字段整体拒绝(含这两个变量名,见其 ENV_DANGER_NOTES 对 ANTHROPIC_/CLAUDE_ 前缀
+  // 的说明),这里是不依赖那道闸门的结构性兜底——万一闸门将来出现没预料到的写法,路由/子 agent
+  // 模型这几项仍然钉死在我们配置的值上,和 buildIsolatedEnv 保持一致。
+  if (resolved.subagentModel) {
+    env.CLAUDE_CODE_SUBAGENT_MODEL = SUBAGENT_MODEL_ALIAS;
+    env[SUBAGENT_MODEL_ALIAS_ENV] = resolved.subagentModel;
   }
 
   // 「决定新进程执行什么代码」的变量也钉住。

@@ -58,6 +58,18 @@
         "name": {
           "type": "string"
         },
+        "_signals": {
+          "type": "object",
+          "description": "Probe heuristics retained for reviewing the anonymous HTTP result; these are not verified submission facts.",
+          "properties": {
+            "forms": { "type": "integer" },
+            "captchaModern": { "type": "boolean" },
+            "captchaLegacy": { "type": "boolean" },
+            "submitLinks": { "type": "array", "items": { "type": "string" } },
+            "fieldNames": { "type": "array", "items": { "type": "string" } },
+            "priceHitsUnscoped": { "type": "array", "items": { "type": "string" } }
+          }
+        },
         "kind": {
           "enum": [
             "product-directory",
@@ -174,6 +186,10 @@
                 "string",
                 "null"
               ]
+            },
+            "rawHtml": {
+              "type": "string",
+              "description": "Path to the raw probe HTML saved for later review."
             }
           }
         },
@@ -220,7 +236,6 @@
           "description": "Measured human traffic. This is the admission gate (>= 100 monthly visits) and it is checked BEFORE any form is filled. Absent means never measured — which is not the same as zero, and not a licence to submit.",
           "required": [
             "monthlyVisits",
-            "verdict",
             "checkedAt",
             "source"
           ],
@@ -252,6 +267,22 @@
                 "integer",
                 "null"
               ]
+            },
+            "db": {
+              "type": ["string", "null"],
+              "description": "Country database used by the traffic source; null when the source has no country database."
+            },
+            "evidence": {
+              "type": "object",
+              "description": "Pointers and capture state for checking the traffic measurement, not a traffic verdict.",
+              "properties": {
+                "stopReason": { "type": ["string", "null"] },
+                "parse": { "type": ["string", "null"] },
+                "windowLabel": { "type": ["string", "null"] },
+                "screenshot": { "type": ["string", "null"] },
+                "raw": { "type": ["string", "null"] },
+                "jsonl": { "type": ["string", "null"] }
+              }
             }
           }
         },

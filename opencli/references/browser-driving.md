@@ -138,26 +138,14 @@ wait selector "<css>" [--timeout ms]
 wait text "<substring>" [--timeout ms]
 wait xhr "<url 片段>" [--timeout ms]
 wait download [pattern] [--timeout ms]
-wait time <seconds>                      # 坏的，见下
+wait time <seconds>
 ```
 
 默认超时 10000 ms。SPA 路由、登录跳转、懒加载列表在 `state`/`get` 之前都需要 `wait`。
 
-> **`wait time` 不要用（opencli 1.8.7 实测）。** 它会把秒数原样回显，然后**不到一秒就返回**。
-> 干净会话上实测：`wait time 1`、`wait time 5`、`wait time 12` 全部约 0.97 秒返回，
-> `--timeout` 调大也没用。任何写了 `wait time 12` 的脚本实际只等了不到一秒，
-> 于是在页面渲染完之前就去读它——**失败是静默的，表现为"偶发抓不到数据"。**
->
-> `wait selector` / `wait text` / `wait xhr` **都是好的**，能正确尊重 `--timeout`，优先用它们。
-> 确实只能硬睡时，在页面里睡：
->
-> ```bash
-> opencli browser "$S" eval '(async()=>{await new Promise(r=>setTimeout(r,12000));return true})()'
-> ```
->
-> 实测准确到 45 秒仍无误差。本仓库把它封装成了 `backlink/scripts/opencli-core.mjs` 的
-> `sleepStep(seconds)`，回归测试在 `backlink/tests/opencli-wait.test.mjs`——
-> **那个测试失败就说明 opencli 修好了，可以改回原生 `wait time`。**
+> `wait time` 已修复。batch 中用 `{ cmd: 'wait', args: { seconds: 6 } }` 按秒等待；
+> 本仓库的 `sleepStep(seconds)` 生成该步骤，回归测试在 `backlink/tests/opencli-wait.test.mjs`。
+> 能用 selector、text 或 xhr 判断页面就绪时，仍优先等待对应条件。
 
 `wait download` 需要扩展 1.0.8+。尽量传窄一点的文件名或 URL 片段（如 `receipt.pdf`）；
 空 pattern 会等超时窗口内的下一次下载。成功返回
@@ -322,7 +310,7 @@ opencli 会静默退回主页面执行。** 症状很阴——你在"iframe 里"
 
 - **`eval` 体一律包 IIFE**（见[坑](#pitfalls)）。eval 上下文跨调用持续，
   顶层 `const` 会 `already been declared`，**在 iframe 上下文里同样成立**。
-- **脚本里用 `sleep`，不要用 `wait time`**——它在 1.8.7 仍是坏的，见[等待](#commands)。
+- **脚本里的固定间隔用 `sleepStep()`**——它生成 batch 的原生 wait 步骤，见[等待](#commands)。
 - **实测参考实现**：`~/.claude/skills/rankup/scripts/aitdk-opencli.sh`，
   跑完 15 个 section 用 2 分 08 秒。要驱动别家扩展面板时照着它改，比从零写快得多。
 

@@ -19,7 +19,12 @@ import {
   FORBIDDEN_TOP_LEVEL_KEYS,
 } from '../src/project-trust.mjs';
 import { loadModelsConfig, resolveModel } from '../src/config.mjs';
-import { buildQueryOptions } from '../src/run-task.mjs';
+import {
+  buildQueryOptions,
+  collectFallbackAssistantText,
+  DEFAULT_EXECUTOR_SYSTEM_PROMPT,
+  resolveSuccessfulResult,
+} from '../src/run-task.mjs';
 import { mkdtempSync, mkdirSync, writeFileSync, symlinkSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -72,13 +77,18 @@ assert(isolated.CLAUDE_CONFIG_DIR === agentFleetConfigDir(), 'CLAUDE_CONFIG_DIR 
 assert(!/\/\.claude$/.test(isolated.CLAUDE_CONFIG_DIR), '专属目录不是用户真实 Claude Code 的 ~/.claude');
 
 // CLI 自身的非必要对外流量必须是关闭状态(这几个变量带 CLAUDE_CODE_ 前缀,必须在整族剥离之后设)。
+// 清单已对照已安装 SDK 原生二进制逐个核实过(见 isolated-env.mjs 顶部注释),
+// 不包含没有实际效果的变量名。
 for (const key of [
   'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC',
   'DISABLE_TELEMETRY',
   'DISABLE_ERROR_REPORTING',
   'DISABLE_AUTOUPDATER',
+  'DISABLE_UPDATES',
   'DISABLE_BUG_COMMAND',
-  'DISABLE_NON_ESSENTIAL_MODEL_CALLS',
+  'DISABLE_FEEDBACK_COMMAND',
+  'DISABLE_GROWTHBOOK',
+  'DO_NOT_TRACK',
 ]) {
   assert(isolated[key] === '1', `${key}=1(关闭 CLI 默认的非必要上报/调用)`);
 }
@@ -295,5 +305,107 @@ try {
   delete process.env.MOCK_K;
   delete process.env.MOCK_GW_TOKEN;
 }
+
+// ---------------------------------------------------------------------------
+// 7. subagentModel:子 agent 模型映射(修复 2026-09-26 的 unrecognized_model SIGKILL)
+// ---------------------------------------------------------------------------
+
+// 7a. config.mjs:字段校验——空字符串/非字符串必须拒绝,合法值能正常加载并透传到 resolveModel。
+const subagentScratch = mkdtempSync(join(tmpdir(), 'agent-fleet-sec-subagent-'));
+const writeSubagentConfig = (entry) => {
+  const p = join(subagentScratch, `cfg-${Math.random().toString(36).slice(2)}.json`);
+  writeFileSync(p, JSON.stringify({ m: { baseURL: 'https://x.invalid', model: 'm', apiKeyEnv: 'MOCK_SUB_K', ...entry } }));
+  return p;
+};
+try {
+  assertThrows(
+    () => loadModelsConfig(writeSubagentConfig({ subagentModel: '' })),
+    'subagentModel 必须是非空字符串',
+    '空字符串 subagentModel 被拒绝加载',
+  );
+  assertThrows(
+    () => loadModelsConfig(writeSubagentConfig({ subagentModel: 123 })),
+    'subagentModel 必须是非空字符串',
+    '非字符串 subagentModel 被拒绝加载',
+  );
+
+  process.env.MOCK_SUB_K = FAKE_TASK_KEY;
+  const withSubagent = loadModelsConfig(writeSubagentConfig({ subagentModel: 'glm-5.3-flash' }));
+  const resolvedWithSubagent = resolveModel('m', withSubagent);
+  assert(resolvedWithSubagent.subagentModel === 'glm-5.3-flash', 'resolveModel 把合法的 subagentModel 原样透传出来');
+
+  const withoutSubagent = loadModelsConfig(writeSubagentConfig({}));
+  const resolvedWithoutSubagent = resolveModel('m', withoutSubagent);
+  assert(resolvedWithoutSubagent.subagentModel === undefined, '没配 subagentModel 的模型条目,resolveModel 结果里这个字段是 undefined(行为不变)');
+} finally {
+  rmSync(subagentScratch, { recursive: true, force: true });
+  delete process.env.MOCK_SUB_K;
+}
+
+// 7b. isolated-env.mjs:两个映射环境变量只在配了 subagentModel 时才出现,且值正确。
+const envWithSubagent = buildIsolatedEnv({
+  baseURL: 'https://gw.invalid',
+  apiKey: FAKE_TASK_KEY,
+  authHeader: 'x-api-key',
+  subagentModel: 'glm-5.3-flash',
+});
+assert(envWithSubagent.CLAUDE_CODE_SUBAGENT_MODEL === 'sonnet', '配了 subagentModel 时,子进程环境里 CLAUDE_CODE_SUBAGENT_MODEL 被设成一个 Claude Code 本地认识的档位别名');
+assert(
+  envWithSubagent.ANTHROPIC_DEFAULT_SONNET_MODEL === 'glm-5.3-flash',
+  'ANTHROPIC_DEFAULT_SONNET_MODEL 把那个别名解析到 subagentModel 配置的真实网关模型 ID',
+);
+
+const envWithoutSubagent = buildIsolatedEnv({ baseURL: 'https://gw.invalid', apiKey: FAKE_TASK_KEY, authHeader: 'x-api-key' });
+assert(envWithoutSubagent.CLAUDE_CODE_SUBAGENT_MODEL === undefined, '没配 subagentModel 时不设置 CLAUDE_CODE_SUBAGENT_MODEL(行为不变,子 agent 仍原样继承主 model)');
+assert(envWithoutSubagent.ANTHROPIC_DEFAULT_SONNET_MODEL === undefined, '没配 subagentModel 时不设置 ANTHROPIC_DEFAULT_SONNET_MODEL');
+
+// 7c. isolated-env.mjs:flag 层 settings 同样钉住这两个变量(结构性兜底,不依赖 project-trust 的黑名单)。
+const pinnedWithSubagent = buildPinnedSettings({ baseURL: 'https://gw.invalid', subagentModel: 'glm-5.3-flash' });
+assert(pinnedWithSubagent.env.CLAUDE_CODE_SUBAGENT_MODEL === 'sonnet', 'flag 层 settings 同样钉住 CLAUDE_CODE_SUBAGENT_MODEL');
+assert(pinnedWithSubagent.env.ANTHROPIC_DEFAULT_SONNET_MODEL === 'glm-5.3-flash', 'flag 层 settings 同样钉住 ANTHROPIC_DEFAULT_SONNET_MODEL 的目标值');
+
+// 7d. project-trust.mjs:目标目录一旦想在自己的 settings.json 里设这两个变量,已有的
+// "env 块一个都不许设" 黑名单必须照样能拦下来(不是这次新加字段才需要专门开的口子)。
+for (const name of ['CLAUDE_CODE_SUBAGENT_MODEL', 'ANTHROPIC_DEFAULT_SONNET_MODEL']) {
+  assert(findTrustViolations({ env: { [name]: 'attacker-picked-model' } }).length === 1, `项目配置里的 env.${name} 同样被拒(子 agent 模型映射不能被目标目录接管)`);
+}
+
+// 7e. run-task.mjs:默认系统提示用 preset+append 叠加,不替换 Claude Code 自己的默认系统提示;
+// 调用方传入的 systemPrompt 接在默认文本之后,两者都保留。buildQueryOptions 不实际发起网络
+// 请求,不需要真的加载模型配置,直接手造一个 resolved 对象即可。
+const resolvedForPrompt = { baseURL: 'https://x.invalid', model: 'm', apiKey: 'k', authHeader: 'x-api-key', headers: {} };
+const optsNoCustomPrompt = buildQueryOptions({ resolved: resolvedForPrompt, cwd: '/tmp' });
+assert(optsNoCustomPrompt.resume === undefined, '没传 resume 时 options 不含 resume 字段');
+assert(buildQueryOptions({ resolved: resolvedForPrompt, cwd: '/tmp', resume: 'sess-1' }).resume === 'sess-1', '传了 resume 就写进 SDK options');
+assert(optsNoCustomPrompt.systemPrompt?.type === 'preset', 'systemPrompt 用 preset 形式,不是替换成一个裸字符串');
+assert(optsNoCustomPrompt.systemPrompt?.preset === 'claude_code', 'preset 是 claude_code,保留 Claude Code 自带的默认系统提示(工具定义等)');
+assert(optsNoCustomPrompt.systemPrompt?.append === DEFAULT_EXECUTOR_SYSTEM_PROMPT, '没传自定义 systemPrompt 时,append 就是默认执行者提示本身');
+
+const optsWithCustomPrompt = buildQueryOptions({ resolved: resolvedForPrompt, cwd: '/tmp', systemPrompt: '额外:优先用中文回复。' });
+assert(
+  optsWithCustomPrompt.systemPrompt?.append === `${DEFAULT_EXECUTOR_SYSTEM_PROMPT}\n\n额外:优先用中文回复。`,
+  '传了自定义 systemPrompt 时,默认执行者提示和调用方的自定义文本都保留(叠加,不是二选一)',
+);
+
+// 7f. 部分兼容网关的成功 result 为空，但主 Agent assistant 消息已携带完整文本。
+// SDK 会把同一消息的 content block 分开发出；新消息和子 Agent 输出不能污染最终候选。
+let fallback = { messageId: null, text: '' };
+fallback = collectFallbackAssistantText(fallback, {
+  type: 'assistant', parent_tool_use_id: null, message: { id: 'msg-1', content: [{ type: 'text', text: '第一段' }] },
+});
+fallback = collectFallbackAssistantText(fallback, {
+  type: 'assistant', parent_tool_use_id: null, message: { id: 'msg-1', content: [{ type: 'text', text: '第二段' }] },
+});
+assert(fallback.text === '第一段\n第二段', '同一主 Agent 消息的多个文本块按顺序完整聚合');
+fallback = collectFallbackAssistantText(fallback, {
+  type: 'assistant', parent_tool_use_id: 'tool-parent', message: { id: 'sub-msg', content: [{ type: 'text', text: '子 Agent 输出' }] },
+});
+assert(fallback.text === '第一段\n第二段', '子 Agent assistant 文本不覆盖主 Agent 回退候选');
+fallback = collectFallbackAssistantText(fallback, {
+  type: 'assistant', parent_tool_use_id: null, message: { id: 'msg-2', content: [{ type: 'tool_use', name: 'Bash', input: {} }] },
+});
+assert(fallback.text === '', '新一轮只有工具调用时清空上一轮过程文本');
+assert(resolveSuccessfulResult('SDK 结果', 'assistant 结果') === 'SDK 结果', '非空 SDK result 保持原值');
+assert(resolveSuccessfulResult(' ', 'assistant 结果') === 'assistant 结果', '空白 SDK result 回退到最后一条 assistant 文本');
 
 finish();

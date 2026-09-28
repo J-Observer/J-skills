@@ -246,6 +246,16 @@ zone 尚不存在，所以 zone-scoped 的 token 建不了它——这是官方�
 5. 等 zone 变为 active；
 6. 用 Cloudflare 提供的 DS 记录重新启用 DNSSEC。
 
+Spaceship 注册的域名可用官方 API 操作，免去逐站手改 NS：
+`scripts/spaceship-api.mjs get <domain>` 只读核对；
+`scripts/spaceship-api.mjs set-ns <domain> <Cloudflare NS1> <Cloudflare NS2>` 整体替换并跳过已一致的配置。
+先按上面步骤关闭旧 DNSSEC、确认注册局 DS 已消失，再执行 `set-ns`。
+脚本从 macOS 钥匙串读取 `rankup.spaceship.api-key` 与 `rankup.spaceship.api-secret`
+（账户名 `kcsx`），不会把凭据放到命令参数、项目文件或日志里。
+通用官方端点可用 `scripts/spaceship-api.mjs request GET /domains/<domain>`；
+写入请求的 JSON 从标准输入读取，其他操作的路径与参数按[Spaceship 官方 API](https://docs.spaceship.dev/)核对。
+Spaceship 另有[官方远程 MCP](https://www.spaceship.com/en-GB/knowledgebase/spaceship-mcp/)（`https://mcp.spaceship.com/mcp`，OAuth 授权，含 `domain_set_nameservers`）；目前官方仅验证 Claude 客户端，其他 MCP 客户端需实际连接验收。
+
 **NS 对是按 zone 分配的**，加站点之后才知道是哪一对，无法预先告知或猜测；
 换一个域名就是另一对，不可套用上一个项目的值。
 
@@ -293,6 +303,8 @@ Cloudflare 后台点"用该身份登录"会失败，表现为**控制台整个�
    `result.original_registrar` 能看出域名在哪个注册商——流程不依赖具体注册商，
    只要用户能进去改 NS 就行。这一步也可以直接用已有的 `scripts/cf-zone-setup.mjs
    create <domain>`，两者等价，脚本内部同样是这个端点。
+
+   **随即显式关闭 AI 爬虫拦截**：先 `GET /zones/{zone_id}/bot_management` 记录现值，再以具备 Bot Management 编辑权限的凭据调用 `PUT /zones/{zone_id}/bot_management`，将 `ai_bots_protection`、`ai_training`、`ai_search`、`ai_user` 全部设为 `disabled`；回读四个字段。正式域名可访问后再用 [`ai-crawler-access.mjs`](../scripts/ai-crawler-access.mjs) 逐 UA 实测，不能只看 robots.txt。【实测 2026-09-28】
 
 2. **绑定 Workers 自定义域名**（裸域 + `www` 各一条）：`PUT
    /accounts/{account_id}/workers/domains`，请求体为
@@ -424,24 +436,18 @@ routing 显示「已禁用」但 DNS 记录和规则都在。此时 API `POST ..
 **地址只有一个约定：`hello@<domain>`**，不用 `contact@` / `admin@` / `info@`。
 详见 `lifecycle.md` 段 5 批 B 第 26 条的完整操作指南与注意事项。
 
-## 8.7 Cloudflare 的 AI 爬虫阻止（robots.txt 注入）
+## 8.7 Cloudflare 的 AI 爬虫阻止（边缘拦截与 robots.txt）
 
-Cloudflare 有**两个独立开关**会向 `robots.txt` 注入 AI 爬虫的 Disallow 规则，
-它们的名字容易混淆，且**默认都是开启的**——新建的 zone 会自动阻止 AI 训练爬虫。
-对 SEO/GEO 站来说这是反向操作：AI 搜索引擎（Perplexity、ChatGPT Search、
-Google AI Overview）的爬虫与训练爬虫共用 User-Agent，阻止训练同时阻止了被引用。
+Cloudflare 的 Bot Management 拦截与托管 robots.txt 是不同层。新 zone 接入时相关开关可能默认开启；robots.txt 放行仍可能让 AI UA 在边缘得到 403。【实测 2026-09-28】
 
-两个开关的位置和含义：
+两层设置分别核对：
 
 | 开关 | 位置 | 含义 | 应设为 |
 |---|---|---|---|
-| 阻止 AI 训练自动程序 | Security → Bots → Bot Protection | 向 robots.txt 注入 `User-agent: GPTBot` 等 AI 训练爬虫的 Disallow | **不阻止（允许爬网程序）** |
-| 管理您的 robots.txt | Security → Bots → Managed Content Protection | Cloudflare 托管 robots.txt，会追加 Managed Content 段 | **禁用 robots.txt 配置**（让站点自己的 robots.txt 生效） |
+| Block AI Bots | Security → Bots → Bot Protection | `ai_bots_protection=block` 可在边缘直接给 AI UA 返回 403 | `ai_bots_protection=disabled`；另将 `ai_training`、`ai_search`、`ai_user` 设为 `disabled` |
+| 托管 robots.txt | Security → Bots → Managed Content Protection | 可追加 Managed Content 与 Content Signals | 禁用 AI 禁止规则和 `ai-train=no`，保留站点自己的放行规则 |
 
-**两个都要改**，只改一个仍然会有注入。改完后 `curl <site>/robots.txt` 验证输出干净、
-没有 `# Cloudflare Managed Content` 段。【实测 2026-09-03】
-
-**API 替代**：目前这两个开关没有公开的 zone-level API 端点，只能通过 Dashboard 操作。
+托管 robots.txt 禁用后，确认没有 `# Cloudflare Managed Content` 和 `Content-Signal: ai-train=no`；Bot Management 四字段按 §8.5 通过 API 关闭并回读。最后用 `ai-crawler-access.mjs` 实测，任何层的 403 都不能算通过。
 
 ## 8.8 基础安全：主动补齐，按用途取舍
 
@@ -455,6 +461,7 @@ Google AI Overview）的爬虫与训练爬虫共用 User-Agent，阻止训练同
 | CSP | 保留并核验已有策略；新增时盘点内联脚本、分析、支付、登录与资源域，必要时先 Report-Only。不要为了评分批量套严格 CSP，也不拿放开所有来源冒充有效防护 |
 | HSTS | 确认目标主机 HTTPS 稳定后，新增先用短 `max-age`（如 86400）观察；不默认加 `includeSubDomains` / `preload`，不降级已有有效策略。扩展前核对所有子域，回滚须经 HTTPS 下发 `max-age=0`，浏览器已缓存策略不会因删除服务器配置立即失效 |
 | 实际 API | 沿共享处理入口核对参数、请求体/上传大小、外部请求超时、对象权限与必要鉴权；URL 抓取还要核对协议、目标及重定向后的地址范围。耗资源接口复用已有服务端限流/额度，按真实入口设阈值；不能把进程内计数当分布式硬限额，不能只信客户端或 Content-Length |
+| AI 爬虫 | 不得为了安全开启 Security → Bots 的 **Block AI Bots**；不得用 Bot Fight Mode 或 WAF 拦截 AI 爬虫；托管 robots.txt 不得设置 `Content-Signal: ai-train=no`。按 §8.5 关闭 Bot Management 四字段，再按 [`checklists.md`](checklists.md) 段 5 逐 UA 实测 |
 | 账号与凭据 | 可读时核对管理账号双重验证、令牌用途与最小权限；无法读取就注明未核验，不输出秘密，不自行轮换或撤销正在使用的凭据 |
 
 纯前端工具无需为了这轮加验证码；不批量启用攻击模式、全站挑战、国家封禁、封爬虫或复杂 WAF。已发现的真实高风险缺口如无法小改修复，单列证据与影响，不能标成已安全。

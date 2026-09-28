@@ -1,15 +1,23 @@
 ---
 name: rankup
-description: 网站从零到一与长期增长的总控 Skill。用于新建网站、SaaS、工具站或内容站，规划或初始化 TanStack Start Monorepo，使用 Cloudflare Workers、D1、R2 部署全栈应用，接入支付，执行 SEO、内容、外链、上线验证和持续迭代；也负责 Google Trends 查询、关键词难度（KD）估算与选词工作流；2026 AI 搜索范式（AI Overviews、AI Mode、Preferred Sources、Discover 独立算法、Information Gain、引用优先于排名）；AI Agent 就绪度评分（is-agentic、agent readiness、llms.txt、MCP 可发现性、AI 代理优化）。用户提到 rankup、rankup init、rankup check、环节闸门、检查清单、checklist、"现在该做什么"、"到哪一步了"、"这个环节能不能过"、"本轮还差什么"、建站、网站改版、搜索流量、GSC、排名、关键词、CTR、索引、网站增长，或提到 谷歌趋势、Google Trends、搜索热度、热度对比、搜索趋势、trending、"XX 和 YY 哪个更火"、"今天美国/日本在搜什么"、每日热搜、"这个词能不能做站"、"哪个市场/国家有机会"、帮我选 SEO 关键词、选词、小语种、小语种找词、本地化关键词、机翻、选品调研、市场探测、挖需求、找需求、需求挖掘、找方向、找选题、选品、"这个方向能不能做"、"值不值得做"、"帮我看看这个想法"、"最近有什么能做的"、"找几个关键词"、"挖个新词的工具站"、"看看有什么游戏站能做"、竞品调研、榜单调研、差评挖掘、反查谁在赚钱、关键词难度、KD、竞争度、SERP 分析、"这个词难不难做"、"做这个词要多少外链"，或提到 哥飞、web.cafe、哥飞论坛、哥飞的朋友们、悬赏、悬赏问答、经验帖、"群里怎么说的"、"社群里有没有讲过"、"论坛里搜一下"、"哥飞说过什么"、哥飞.ai，或提到 AI 搜索优化、AI Overviews、AI Mode、被 AI 引用、AEO、GEO、Preferred Sources、Discover 优化、Google 算法更新、核心更新、spam 更新、Information Gain，或提到 AI Agent 就绪度、is-agentic、agent readiness、llms.txt、对 AI 代理友好、AI 代理优化、agent-friendly、agentic score 时使用。也覆盖用户真正会打出来的模糊说法：我想让流量涨一点、今天弄下 SEO、帮我看看这个站有什么问题、优化一下我的网站、流量掉了、排名没了、是不是被 K 了、怎么一直不收录、新页面多久能进索引、提交 sitemap、IndexNow、站慢不慢、跑个性能、Core Web Vitals、PageSpeed、Lighthouse、全站内链失效、TDK、标题描述怎么写、关键词密度、能不能上线了、上线前还差什么、帮我搞点外链、外链、反链、去哪发外链、抓一下后台数据、导出报表、数据面板、这站没有 API、访客不注册、没人付费、定价怎么定、要不要上多语言、hreflang、发个 Product Hunt、跑一下小游戏监测。也覆盖：词根、扩词、扩词树、占位链接、占位文案、变现、PayPal、域名黑历史、域名前世、单语种、hello@、"这个域名能不能用"、"看下这批数据有没有能做的关键词"、"调研一下这个词"、"review 一下我的站"、"数据检测平台都接入了吗"、"把 Ahrefs 的检验结果都修了"、"我们开始执行这个项目的计划"、"一步步来"、"调研一下这关键词"、"我们做个网站吧"、"我们做个内页吧"、"把这个关键词做成内页"、"看一下 GEO 有没有问题"、"SEO 有没有问题"、"把这个经验写进 rankup"、"记下来更新到源码里"、"帮我生成 logo"、配图、封面、og 图、"写一下这页的文案"、"AI 味太重"、"帮我改稿"、"语言结构理顺"、"文案怎么写才有人点"、"用户为什么不买"、"Reddit 上怎么说"、"X 上有没有人讨论"、社区验证、社区调研、"做个好看的页面"、设计参考、组件库参考、"Hero 怎么设计"、"landing page 怎么排"、动画效果、动效、页面设计灵感、21st.dev。
+description: 管理网站和原生 App 的需求验证、立项、开发、上线及增长。用户明确提到 rankup，或任务涉及选词、SERP、SEO/GEO、索引、搜索平台、流量、网站体检、建站和增长时使用。先定位项目与具体问题，再按七段生命周期加载对应参考文件；单纯写文案、做设计或问通用开发问题，不因关键词碰巧出现就强制启动完整流程。
 metadata:
-  version: "3.16.1"
+  version: "3.24.0"
 ---
 
 # Rankup 3.0
 
 给独立开发者用：做产品，也做关键词流量站、AI 工具、桌面客户端上架商店、付费订阅。
 产品形态不限，包括macOS、iOS、iPad App、网站与 SaaS 均可，唯独不做 Android App；Android 商店只作需求参考。按用户任务和真实市场证据选平台，不把所有 App 机会改成网站。SEO + GEO 保留为网页获客验证，App 同时验证商店及原生分发市场，见 [`research.md` App 分支](references/playbooks/research.md#app-市场验证分支)。
-本文件只做两件事：把一句话落到七段生命周期的哪一段，以及每段的硬规则。怎么干活的纪律在 [`references/discipline.md`](references/discipline.md)。
+本文件负责定位生命周期和选择相关入口；具体操作与证据判据在 [`references/discipline.md`](references/discipline.md) 及对应参考文件。只加载本次任务需要的部分。搜索平台、工具评分和模型能力可能变化，查询时核对当前来源、日期、市场与目标环境；历史经验不自动变成当前事实。Google 对关键词密度、工具评分和 AI 搜索的当前口径见 [官方 SEO 问答](https://developers.google.com/search/help/office-hours/2023/january)、[页面体验指南](https://developers.google.com/search/docs/appearance/page-experience) 和 [生成式 AI 搜索指南](https://developers.google.com/search/docs/fundamentals/ai-optimization-guide)。
+
+**执行原则**：先明确用户真正要解决的问题和目标市场，再查已有 `.rankup/` 证据。取不到数据写“未知/不可用”，不要写成 0。对官方指南、第三方工具和本 Skill 的结论区分“官方要求”“工具建议”“项目经验”。具体做法参考 [Claude Opus 5.5 官方提示指南](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5)：指令要明确，长任务用可核验的完成条件，阶段性汇报不等于完成。
+
+## 哥飞官方 Skill
+
+查关键词、竞品、域名、页面、哥飞经验规则，或遇到不熟悉的 SEO 问题时，按 [`seo-webcafe.md`](references/seo-webcafe.md) 检查并加载**哥飞官方 Skill 包**。未安装则按[官方页面](https://seo.web.cafe/api/)的 Skills 说明安装到当前 Agent 的 Skill 目录，再主动读取官方 `gefei/SKILL.md` 与对应专用 `SKILL.md` 并执行；专用 Skill 设置了 `disable-model-invocation: true`，禁止模型自动触发，不能只等它自己出现。Rankup 不内置哥飞的 Skill、CLI 或接口表；工具如何调用听官方 Skill，市场证据与项目闸门仍由 Rankup 判断。
+
+**执行分工**：单一查询或前后依赖的串行任务，主 Agent 可直接调用官方工具；需要同时调研多个独立问题时，主 Agent 把各问题及官方 Skill 入口交给子 Agent，收回证据后统一判读和回写。不要为了用哥飞工具而专门创建子 Agent；细则见 [`discipline.md`](references/discipline.md) 与 [`seo-webcafe.md`](references/seo-webcafe.md)。
 
 ## 一句话落到哪一段
 
@@ -24,7 +32,7 @@ metadata:
 | 「找个方向」「这个方向能不能做」「值不值得做」「选品」「有什么能做的」「帮我看看这个想法」 | 1 | [`playbooks/selection.md`](references/playbooks/selection.md)：先过七道选品闸门判"该不该做"（硬约束/频次/痛点/付费信号/护城河/获客可行性，几乎零配额），过闸的候选才把主词交给 `research.md` P2 花配额查清楚——不要跳过闸门直接进 P2 |
 | 「App 有没有需求」「找 iOS/iPad/macOS 产品」「商店里哪个方向能做」 | 1–2 | `research.md` App 市场验证分支 → `lifecycle.md` 2.2 按任务选择平台；不做 Android App |
 | 「谁在赚钱」「反查这个站」「竞品最近在做什么」「帖子说月入 X 是真的吗」 | 1 | `research.md` P4 + [`demand-sources.md`](references/demand-sources.md) 第十节 |
-| 「筛这批 AITDK 报告」「只看竞品异常」「先压缩报告再给 AI」 | 1 | [`seo-box.md`](references/seo-box.md#aitdk-研究报告离线分流)：`aitdk-triage.mjs` 离线读取已有 JSON → 异常 Markdown → `file#JSON-pointer` 定点复核；只作 P2/P4 研究分流，不替代上线满分审核 |
+| 「筛这批 AITDK 报告」「只看竞品异常」「先压缩报告再给 AI」 | 1 | [`seo-box.md`](references/seo-box.md#aitdk-研究报告离线分流)：`aitdk-triage.mjs` 离线读取已有 JSON → 异常 Markdown → `file#JSON-pointer` 定点复核；只作 P2/P4 研究分流，不替代上线前的真实问题核验 |
 | 「XX 和 YY 哪个更火」「今天美国/日本在搜什么」「哪个国家有机会」 | 1–2 | [`trends.md`](references/trends.md)，`scripts/gt.py` |
 | 「有什么游戏站能做」「跑一下小游戏监测」「游戏关键词怎么找」 | 1 | [`game-sites.md`](references/game-sites.md)：Rankup 总控发现、探索、研究和是否值得做的判断，内部按需调用 `game-opportunity` |
 | 「小游戏机会每日采集」 | 1 | [`game-sites.md` 每日采集](references/game-sites.md#每日采集)：读项目参数，采集、全池轻筛、写当天交接 |
@@ -34,17 +42,18 @@ metadata:
 | 「一步步来」「我们开始执行这个项目的计划」 | check | 先 `rankup check` 定位当前段与第一个没过的闸，然后按 [`checklists.md`](references/checklists.md) 逐环节推进，每过一闸记 `checks.md`；不要跳过 check 直接猜段 |
 | 「做个功能吧」「加个 X 功能」「把这个做出来」「实现一下这个」 | 3 | **红线先行：任何 UI 一律用脚手架自带的 shadcn 组件库**（`components/ui/`），缺的 `shadcn add` 或装同生态的现成组件，禁止手写下拉框 / 弹窗 / 日期选择 / 表格分页 / Toast；多功能工具站导航先读[侧栏统一规范](references/design-references.md#多功能工具站侧栏统一规范)；然后按段 3 硬规则与 `checklists.md` 段 3 做，做完段 4 全套体检 |
 | 开发时挂着当规范：「按 rankup 规范来」「这个页面这样写行不行」「这块要不要 SSR」 | 3–4 | 本文段 3、段 4 硬规则 + `checklists.md` 对应段 |
-| 「我们做个内页吧」「把这个关键词做成内页」「关键词没问题了，做成内页」 | 4 | **一个关键词对应一个内页**：目标词登记、TDK、独立 OG 含图、密度、无占位、体检全套；页面上的控件同样只准来自组件库（红线，见 `discipline.md` 十六）；**按 `lifecycle.md` 段 4「新增内页 / 新模板的随手清单」逐条带上，不是等段 4 集中体检才补**；`lifecycle.md` 段 4 + `checklists.md` 段 4 |
-| 「看一下 SEO 有没有问题」「看一下 GEO 有没有问题」「GEO/SEO 有没有问题」 | 4 | 段 4 体检：`seo-audit.mjs`、`is-agentic.mjs`、`aitdk-opencli.sh`、`seo-webcafe.mjs audit`、哥飞 AI；分组见 [`playbooks/site-review.md`](references/playbooks/site-review.md) A / C / E 组 |
+| 「我们做个内页吧」「把这个关键词做成内页」「关键词没问题了，做成内页」 | 4 | 一个明确搜索意图对应可解决任务的页面：目标词登记、TDK、适用的 OG、无占位、相关体检；页面上的控件同样只准来自组件库（红线，见 `discipline.md` 十六）；**按 `lifecycle.md` 段 4「新增内页 / 新模板的随手清单」逐条带上，不是等段 4 集中体检才补**；`lifecycle.md` 段 4 + `checklists.md` 段 4 |
+| 「看一下 SEO 有没有问题」「看一下 GEO 有没有问题」「GEO/SEO 有没有问题」 | 4 | 先跑 Rankup 自有体检；第三方页面复核加载官方 `gefei-page`，见 [`seo-webcafe.md`](references/seo-webcafe.md) 与 [`playbooks/site-review.md`](references/playbooks/site-review.md) |
 | 「能不能上线了」「上线前还差什么」「TDK」「关键词密度」「标题描述怎么写」 | 4 | `checklists.md` 段 4 + [`seo-box.md`](references/seo-box.md) |
 | 「怎么被 AI 引用」「llms.txt」「对 AI 代理友好吗」「AEO/GEO」 | 4 | [`seo-growth.md`](references/seo-growth.md) 三-B |
 | 「AI 会不会推荐我们」「GEO 反推」「试试 AI 搜这个词会推荐谁」 | 4 | `seo-growth.md` 三-B GEO 反推测试 |
 | 「帮我生成 logo / 配图 / 封面 / 海报」「要张 og 图」「画个吉祥物」 | 3–4 | `/imagegen`：图片必须真实生成，不允许占位图 |
+| 「建站当天做图标」「生成一整套网站图标」「favicon 怎么做」「标准图标集」 | 3–4 | `scripts/make-favicons.mjs --src <logo.png> --out <public目录>`：由一张 ≥512×512 品牌源图生成标准图标全集（`favicon.ico`/48/96/192/180/512） |
 | 「做个好看的页面」「有没有什么好的设计参考」「Hero 怎么设计」「找个组件参考」「landing page 怎么排」「有什么动画效果」「页面设计灵感」 | 3 | 先浏览 [`design-references.md`](references/design-references.md) 收录站的相关分类，选 2–3 个案例参考后再实现；基础控件仍走 shadcn 组件库红线 |
 | 「写一下这页的文案」「这稿子 AI 味太重」「帮我改稿」「语言结构理顺一点」「怎么写才会被 AI 引用」 | 4 | 中文：`/write`（先确认它的五个附属 Skill 都在，缺的用 `find-skills` 装齐；装不上才退到 `/human-writing` 起稿 → `/shuorenhua` 去 AI 味，见 [`skill-ecosystem.md`](references/skill-ecosystem.md)）；内容形状按 `/ai-seo` 的 content-patterns；JSON-LD 只取 `/seo-geo` 的模板 |
 | 「文案怎么写才有人点」「定价页怎么排」「用户为什么不买」「还有什么渠道能推」 | 7 | `/marketing-psychology`（锚定、社会认同、损失厌恶等用在页面与定价上）+ `/marketing-ideas`（渠道清单）；判据仍以 [`conversion.md`](references/experiences/conversion.md) 为准 |
 | 「站慢不慢」「跑个性能」「Core Web Vitals」 | 4 | `seo-box.md` 一，`scripts/pagespeed.mjs collect --strategy both`（`plan` 只打印链接不采数，仅兜底） |
-| 「这个域名能不能用」「域名前世」「域名黑历史」 | 5 | `lifecycle.md` 段 5 黑历史闸门 + [`seo-webcafe.md`](references/seo-webcafe.md) `history` |
+| 「这个域名能不能用」「域名前世」「域名黑历史」 | 5 | `lifecycle.md` 段 5 黑历史闸门 + 官方 `gefei-domain` Skill |
 | 「域名买完了」「帮我绑域名」「这个域名绑一下」 | 5 | `cloudflare-stack.md` §8.5「域名绑定到 Workers（全 API，零界面操作）」：添加 zone → 绑 Workers 自定义域名 → 设 SITE_URL → 告知 NS → 等激活 → §8.8 基础安全与 §8.6 邮箱核验 → 上线验收 → 放开索引 |
 | 「数据检测平台都接入了吗」「GSC 接了没」「提交 sitemap」「怎么一直不收录」 | 5 | [`search-platforms.md`](references/search-platforms.md)、[`analytics-platforms.md`](references/analytics-platforms.md) |
 | 「把 Ahrefs 的检验结果都修了」「全站内链失效」「重定向链」 | 5→4 | `scripts/ahrefs-site-audit.mjs` 取清单，`scripts/ahrefs-issues-recheck.mjs <导出的issues.json>` 线上复核哪些已经不存在、哪些仍存在、哪些需要浏览器或 PSI 判（报告常滞后于最近部署，别假设报告永远反映当前状态），修完按段 4 全套重跑 |
@@ -56,9 +65,9 @@ metadata:
 | 「review 一下我的站」「帮我看看这个站有什么问题」「查漏补缺」「这项目脱轨了」 | review | 本文 `rankup review` → `site-review.md` 一 |
 | 「我想让流量涨一点」「今天弄下 SEO」「优化一下我的网站」 | check | 先 `rankup check` 定位第一个没过闸的段；默认打磨转化链路，不重构（[`zero-to-one.md`](references/experiences/zero-to-one.md)） |
 | 「把这个老项目接进来」「rankup init」 | init | 本文 `rankup init` → [`project-memory.md`](references/project-memory.md) |
-| 「群里怎么说的」「哥飞说过什么」「论坛里搜一下」 | 经验 | [`webcafe-forum.md`](references/webcafe-forum.md)，`scripts/webcafe-forum.mjs chat-search` 拿原文，不问 ask |
+| 「群里怎么说的」「哥飞说过什么」「论坛里搜一下」 | 经验 | 先加载官方 `gefei` Skill，按其知识库工作流取原文与出处；公开论坛资料见 [`webcafe-forum.md`](references/webcafe-forum.md) |
 | 「我看到一个帖子分享 SEO 的东西，你把这东西记下来更新到源码里」「把这个经验写进 rankup」 | 维护 | 维护 Skill 本身：按 [`experiences/INDEX.md`](references/experiences/INDEX.md) 收录规则与 [`evolution.md`](references/evolution.md) 晋升门写进**对应的现有文件**，不新建文件；见文末「经验回流」 |
-| 「抓一下后台数据」「导出报表」「数据面板」「Semrush 能查这个吗」 | 取数 | [`discipline.md`](references/discipline.md) 六 + [`provider-capabilities.md`](references/provider-capabilities.md)：有脚本先跑，没有才加载 `backlink` |
+| 「抓一下后台数据」「导出报表」「数据面板」「Semrush 能查这个吗」 | 取数 | 哥飞工具先加载官方 `gefei` Skill；其他面板看 [`provider-capabilities.md`](references/provider-capabilities.md) |
 | 说的事这张表没有 | — | [`capability-map.md`](references/capability-map.md) → [`skill-ecosystem.md`](references/skill-ecosystem.md) → `/skillsmp` → 最后才按 [`integrations.md`](references/integrations.md) 用 find-skills；不要现写等价实现 |
 | 本文点名的任何兄弟 Skill 本机没装 | — | 加载 `find-skills` 搜索并安装，装完再继续；不跳过、不现写替代。每台机器装的不一样，文档只保证「该用什么」（[`skill-ecosystem.md`](references/skill-ecosystem.md)「缺 Skill 的处置」） |
 
@@ -71,7 +80,7 @@ metadata:
 ### 1 调研
 
 - **触发**：给了一批数据、一个词、一个帖子、一个域名，问「能不能做」；或者只有一个模糊方向，问「该不该做」「值不值得做」——后者先进 `selection.md`，不要直接进 `research.md`。
-- **入口**：候选方向先过 [`playbooks/selection.md`](references/playbooks/selection.md)（七道选品闸门：硬约束/频次/痛点/付费信号/护城河/获客可行性/量化验证，前六道几乎零配额，判"该不该做"）；过闸的候选，或用户已经给了一个具体词/域名，再进 [`playbooks/research.md`](references/playbooks/research.md)（P0 只看输入分流：什么都没有 → P1；一个词 → **P2 词根调研**；一个域名 → P4，判"怎么把它查清楚"）；判读 [`demand-discovery.md`](references/experiences/demand-discovery.md)；意图核验在 [`lifecycle.md`](references/lifecycle.md) 段 1 · 1.2；验收单 `research-checklist.md`（不是入口）。常用脚本：`scripts/demand/suggest.mjs`（三引擎下拉联想）、`scripts/seo-webcafe.mjs kd`（默认经 OpenCLI 驱动已登录 Chrome 跑登录/VIP 档，游客 10/日只在 OpenCLI 不可用或显式 `--guest` 时出现，是降级不是默认）、`backlink/scripts/semrush-keyword.mjs`；面板取证 `scripts/rankup-cli.mjs`（`npx @yan-labs/rankup audit similarweb`）；`selection.md` 自己的两个
+- **入口**：候选方向先过 [`playbooks/selection.md`](references/playbooks/selection.md)（七道选品闸门：硬约束/频次/痛点/付费信号/护城河/获客可行性/量化验证，前六道几乎零配额，判"该不该做"）；过闸的候选，或用户已经给了一个具体词/域名，再进 [`playbooks/research.md`](references/playbooks/research.md)（P0 只看输入分流：什么都没有 → P1；一个词 → **P2 词根调研**；一个域名 → P4，判"怎么把它查清楚"）；判读 [`demand-discovery.md`](references/experiences/demand-discovery.md)；意图核验在 [`lifecycle.md`](references/lifecycle.md) 段 1 · 1.2；验收单 `research-checklist.md`（不是入口）。常用脚本：`scripts/demand/suggest.mjs`（三引擎下拉联想）、官方 `gefei-keywords` / `gefei-competitor` Skill（按 `seo-webcafe.md` 安装并加载）、`backlink/scripts/semrush-keyword.mjs`；面板取证 `scripts/rankup-cli.mjs`（`npx @yan-labs/rankup audit similarweb`）；`selection.md` 自己的两个
 脚本——`scripts/select/leading-indicator.mjs`（候选生成器，扫 ads/appstore/gplay/stripe 信号源产出候选）
 与 `scripts/select/gate-runner.mjs`（七道闸门判定，自动写 `.rankup/decisions.md`/`rejected.md`）。
 
@@ -88,7 +97,7 @@ metadata:
 | 亲眼看 SERP，用页面类型核实**真实意图** | 宠物诊断那次：词看着是工具需求，首页全是兽医内容，做工具就错了 |
 | 空结果先核 manifest：429 / CAPTCHA / 超时都产出 0 条 | 采集失败 ≠ 没需求，把失败读成结论是最贵的错 |
 | **开跑前先 grep 项目的 `.rankup/rejected.md` 与 `research/`**：上一轮 pass 掉的词或方向，命中就跳过并引用，或写明复活条件已满足再重开；本轮 pass 掉的带理由与复活条件写回 `rejected.md` | 换个会话就把否决过的东西当新点子重做一遍、再踩同一个坑，是项目记忆最常见的失效形态；理由留着，条件变了才能有据翻案 |
-| 结论要折成钱：Web 查同类站真实流量，`seo-webcafe.mjs money`；App 按 `research.md` App 分支核对收入、下载与留存，不能拿网页低量否决App市场 | 能排上去 ≠ 能赚钱，漏掉这道闸会得出 SEO 正确、商业错误的结论 |
+| 结论要折成钱：Web 同类站流量按官方 `gefei-competitor` 核实并折成收入区间；App 按 `research.md` App 分支核对收入、下载与留存 | 能排上去 ≠ 能赚钱；网页低量也不能否决 App 市场 |
 
 - **闸门**：[`checklists.md`](references/checklists.md) 段 1。
 
@@ -121,7 +130,7 @@ metadata:
 | **任何功能、任何 UI 一律用脚手架自带的 shadcn 组件库**（`components/ui/`）；库里没有的先 `pnpm dlx shadcn@latest add <组件>` 或装现成的 shadcn / React 生态组件，**禁止手写下拉框、弹窗、日期选择、表格分页这类基础控件** | 脚手架初始化时组件库已经在了，手写一个下拉框等于放弃可访问性、键盘导航、暗色模式和一致的视觉，且每个站各写一遍没人维护 |
 | **做页面级设计（Hero / landing page / 定价页 / 关于页 / 404 / 登录页）或需要动画动效时，先浏览 [`design-references.md`](references/design-references.md) 收录的组件库参考站**，选 2–3 个案例参考后再实现；基础控件红线不变 | 凭空设计的页面视觉质量不稳定，参考真人设计工程师的现成案例再适配，省时间且质量高；shadcn 生态的组件库（如 21st.dev）和我们的脚手架直接兼容 |
 | 域名做成**一处配置留位**，开发期不接正式域名 | 域名在段 5 才定稿，提前硬编码会在换域名时漏改 |
-| **任何页面不得出现占位链接 / 占位文案 / 占位图片** | Google 判垃圾站，红线；宁可整块删掉（[`discipline.md`](references/discipline.md) 十四）。开发期写占位、上线时无人复查是实际发生过的漏法——多个站上线后仍被发现有占位超链接、占位文案，所以段 3（开发自查）/ 4（上线前 review）/ 5（放开索引前）各设一道占位专项闸，不是只在段 3 提一句禁令 |
+| **发布页面不得出现会误导用户的占位链接、文案或图片** | Google 判垃圾站，红线；宁可整块删掉（[`discipline.md`](references/discipline.md) 十四）。开发期写占位、上线时无人复查是实际发生过的漏法——多个站上线后仍被发现有占位超链接、占位文案，所以段 3（开发自查）/ 4（上线前 review）/ 5（放开索引前）各设一道占位专项闸，不是只在段 3 提一句禁令 |
 | **品牌图标在开发当天做齐**：按 [`lifecycle.md`](references/lifecycle.md) 段 4 · A 节制作与核验，段 3 Day-1 D15 当天通过 | 清除全部脚手架默认图标及引用，不能只换 SVG、留下默认 `favicon.ico` 或 manifest 图标 |
 | 网站需要任何视觉素材（logo、favicon 源图、og:image、内页配图、用户场景图、插画）→ 加载 `/imagegen` 真实生成 | 占位图是红线，而段 4 要求每页独立 og:image 必须有图，没有生成能力就只剩占位一条路 |
 | 邮箱一律 Cloudflare Email Routing 的 `hello@`；新建/绑定域名、接邮箱、上线及现站 review 主动核查 SPF / DKIM / DMARC，按 [`cloudflare-stack.md`](references/cloudflare-stack.md) §8.6 补齐并验证 | 收信成功不等于防冒充完成；先确认用途与发信子域，CLI 支持则 CLI，否则官方 API |
@@ -140,21 +149,21 @@ Day-1 清单里最容易漏、也最贵的三条单列在这里，其余见 `lif
 ### 4 上线前 SEO / GEO
 
 - **触发**：「能不能上线了」「TDK」「密度」「怎么被 AI 引用」「站慢不慢」。
-- **入口**：[`lifecycle.md`](references/lifecycle.md) 段 4；判读 [`seo-box.md`](references/seo-box.md)、[`seo-webcafe.md`](references/seo-webcafe.md)、[`seo-growth.md`](references/seo-growth.md) 三-B。常用：`scripts/seo-audit.mjs --sitemap`、`scripts/pagespeed.mjs collect --strategy both`（`plan` 只打印链接不采数，仅兜底）、`scripts/is-agentic.mjs scan --save`、`seo-webcafe.mjs audit` / `chat`。写文案的兄弟 Skill：中文 `/write`（先确认它的五个附属 Skill 都在，缺的用 `find-skills` 装齐；装不上才退到 `/human-writing` 起稿 + `/shuorenhua` 去 AI 味）；被 AI 引用的内容形状读 `/ai-seo` 的 content-patterns；JSON-LD 模板只读 `/seo-geo` 的 schema-templates，不跑它的脚本；配图 `/imagegen`。分工与加载条件见 [`skill-ecosystem.md`](references/skill-ecosystem.md)。
+- **入口**：[`lifecycle.md`](references/lifecycle.md) 段 4；判读 [`seo-box.md`](references/seo-box.md)、[`seo-webcafe.md`](references/seo-webcafe.md)、[`seo-growth.md`](references/seo-growth.md) 三-B。常用：`scripts/seo-audit.mjs --sitemap`、`scripts/pagespeed.mjs collect --strategy both`（`plan` 只打印链接不采数，仅兜底）、`scripts/is-agentic.mjs scan --save`、`scripts/ai-crawler-access.mjs --url <正式域名>`、官方 `gefei-page` Skill（按其说明直接使用工具）。写文案的兄弟 Skill：中文 `/write`（先确认它的五个附属 Skill 都在，缺的用 `find-skills` 装齐；装不上才退到 `/human-writing` 起稿 + `/shuorenhua` 去 AI 味）；被 AI 引用的内容形状读 `/ai-seo` 的 content-patterns；JSON-LD 模板只读 `/seo-geo` 的 schema-templates，不跑它的脚本；配图 `/imagegen`。分工与加载条件见 [`skill-ecosystem.md`](references/skill-ecosystem.md)。
 
 | 硬规则 | 为什么 |
 |---|---|
 | 在预览域上做完，预览域 **noindex** | 半成品被收录，第一印象就是半成品 |
-| **一个关键词对应一个内页**；「做成内页」必做：目标词登记进 `keywords.md`、TDK、独立 OG 含图、密度、无占位、体检全套 | 一页扛多个词会互相稀释，首页覆盖太多词是排名波动的常见根因 |
-| 每页目标词 + 密度达标；价格表等无关区块改**客户端加载**，SSR 只输出目标文案（与 `seo-growth.md` 的「首次交互后注入」是同一节） | 密度按 SSR 输出的 HTML 算，无关区块会把目标词冲淡 |
+| 一个明确搜索意图对应可解决任务的页面；「做成内页」需登记目标词、编写独立标题与描述、提供有用正文和真实功能、检查内链与占位，并做相关体检；相同意图的词可由同一页承接 | 一页扛多个词会互相稀释，首页覆盖太多词是排名波动的常见根因 |
+| 每页以真实任务与读者可读性为准；SSR 输出应包含完成该任务所需的主要内容，不为提高词频把有用内容移到客户端 | 关键词密度是诊断线索，不是 Google 的通过阈值；异步加载不应遮蔽重要内容或损害用户体验 |
 | **占位专项复查**是上线 review 必做项：按 sitemap 逐 URL grep（正则见 `discipline.md` 十四）+ 人工抽查首页/定价/关于/联系/法律页每个链接可点、每张图有内容，重跑不采信上一轮 | 段 3 的开发期禁令拦不住上线后仍有占位——这是漏法本身，闸门必须落在「上线前」这个时间点上才管用 |
 | **图标专项未通过不许上线**：段 4 必过 `checklists.md` 图标专项，操作统一见 `lifecycle.md` 段 4 · A 节；发布后正式域名回读 | 必须核对全部实际引用与图案，文件存在、200 或标签页正常都不能代替实图核验；搜索结果刷新单独观察 |
-| 每页独立 meta / OG 且**必须有图** | 共享 OG 让全站在社交分享里一张脸，没图的分享卡没人点 |
+| 可索引的重要页面有独立且准确的 meta / OG；需要分享卡的页面提供真实图片 | 分享卡应反映页面内容，图片需求依实际分享场景判定 |
 | 正文是给人读的，不是给密度工具凑的：起稿后必须过一遍去 AI 味与结构梳理（中文走 `/write` 阶段四或 `/shuorenhua`，英文按 `/ai-seo` 的 Information Gain 判据自查），首屏一句话说清这页解决什么。**中英文都查四样**：矫饰文风（用比喻花腔代替直说，有直说就直说）、句子密度（一句一个意思）、引文标记（别人的话打引号注出处，最多一处）、格式克制（列表只在内容确实多面时用）——判据与自查正则在 `/write` 阶段四 | 模板腔与空话会被 AI 搜索跳过、被读者秒关；Information Gain 是 2026 排名与被引用的共同判据；矫饰句读者一眼能认出是模型写的 |
-| llms.txt / GEO 按 `seo-growth.md` 三-B 做：Google 定论 AEO/GEO 就是 SEO | 不需要第二套方法论，也不要加载会跑付费凭据的兄弟 Skill 脚本 |
-| **上线前（段 4）与 `rankup review` 全站体检都要用 AITDK 扩展面板对站点跑一遍完整报告**（按 sitemap 抽样：首页 + 每类模板页各至少一个 + 全部法律/关于/联系页）；报告里**所有标红/标黄的问题项，以及任何没拿到满分的评分项，一律算必修**，逐条修完重跑，直到全绿满分，改不动的写清为什么改不动 | AITDK 是与 Google 视角独立的第三双眼睛，看得到自家 `seo-audit.mjs` / `is-agentic.mjs` 漏掉的项；不满分就说明还有可修的空间，不能因为自家脚本已经全绿就跳过 |
-| **每次页面改动全套检测重跑**：TDK、密度、AITDK 全站报告、seo.web.cafe audit、哥飞 AI 二次意见 | 只重跑改到的两项会漏掉连带影响 |
-| 证据必填：控制台绿图标不算；PageSpeed 移动 + 桌面都跑、实验室性能分 ≥ 90、CWV 达标（LCP ≤ 2.5s / CLS ≤ 0.1 / TBT ≤ 200ms）、opportunity/diagnostic 逐条必修；现场那块不存在 = CrUX 流量不足，不是通过；**TTFB > 600ms 不通过，先查匿名页 HTML 边缘缓存是否命中再排查别的原因**；LCP 慢而无阻塞资源先按 seo-box 一的 Lantern 优先级模型排查——**降请求优先级只能收敛 FCP，改不动 LCP**，LCP 要查 hydration 脚本是否已挪到首帧绘制之后才加载 | 这套东西唯一致命的失败形态是看着全绿、底下什么都没有；判据写成自设下限的结果是两个站直接跳过了这一闸 |
+| GEO 先按 Google 搜索基础实践和目标用户任务检查；`llms.txt` 仅在其他明确消费它的系统有需求时做，不能当作 Google 搜索优化闸门 | Google 表示其搜索系统不使用 `llms.txt`；第三方 AI 产品的可发现性另按其实际协议验证 |
+| **上线前（段 4）与 `rankup review` 全站体检可用 AITDK 作补充复核**（按 sitemap 抽样：首页 + 每类模板页各至少一个 + 全部法律/关于/联系页）；把报告中的问题逐条与实际页面、官方要求和用户目标核对；真实缺陷修复并重跑，工具建议、不可用结果和误报标明依据，不以满分为上线条件 | AITDK 是与 Google 视角独立的第三双眼睛，看得到自家 `seo-audit.mjs` / `is-agentic.mjs` 漏掉的项；第三方工具可发现自家脚本遗漏的问题，但评分和告警需要按真实影响判读 |
+| **页面改动后重跑受影响的检查**：标题、描述、可索引性、渲染内容和实际用户路径；模板或全站配置改变时扩大到相应页面类型与站点范围 | 验证范围由改动影响面决定，并记录未覆盖范围 |
+| 证据必填：控制台绿图标不算；PageSpeed 移动 + 桌面都跑、记录实验室分数与真实用户 Core Web Vitals；优先修复用户可感知的瓶颈，CrUX 无数据写“未知”；TTFB 异常时核对缓存与服务端耗时，LCP 异常时检查关键资源、脚本与渲染路径。工具机会项按实际影响排序，不要求每条都修 | 第三方报告和实验室分数不能代替真实用户体验；Google 明确不建议只为 SEO 追求工具满分 |
 
 - **上线前与发布后复核入口**：复用 `checklists.md` D1 / D4 / D12 / D13 / P3，覆盖索引水合、Schema 语义、网格父子与键盘、SSR 可达性、分析去重与真实上报；操作见 `lifecycle.md` 与 `analytics-platforms.md`，图标专项仍完整执行。
 
@@ -168,11 +177,12 @@ Day-1 清单里最容易漏、也最贵的三条单列在这里，其余见 `lif
 | 硬规则 | 为什么 |
 |---|---|
 | **部署一律走 Cloudflare 原生 Git 集成**（Pages「Git 存储库连接」/ Worker Workers Builds），push `main` 自动构建部署；**不写 GitHub Actions 部署 workflow**；本地 `wrangler deploy` 只作应急兜底。模板与坑见 [`cloudflare-stack.md`](references/cloudflare-stack.md) §9 | GitHub Actions 免费额度用完就断，Cloudflare 构建额度对站点几乎用不完 |
-| 分两批：**批 A 域名无关**（GA4、Clarity、CF Web Analytics）在预览域接好并验证 → **域名定稿** → 绑域名并部署验证（**索引开关随之翻开，不等批 B**）→ **批 B 域名相关**（GSC、Bing、Yandex、Naver、IndexNow、Ahrefs WA + Site Audit、Email Routing）→ 首页请求编入索引 | 批 A 不依赖域名，先做省一轮；批 B 换域名就作废，所以放在定稿之后。**正式域名不再靠 `noindex`/`Disallow: /` 拖到批 B 接完才放开**——曾有项目这样做，Google 抓到过屏蔽状态的 robots.txt，放开后 GSC 仍长期报「已编入索引，尽管遭到 robots.txt 屏蔽」，理由与替代方案见 `lifecycle.md` 段 5.4 第 22 条 |
-| 域名定稿前过**黑历史裁决闸门**：`seo-webcafe.mjs history`、Wayback、外链画像、`site:` 搜索；成人 / 赌博 / 被惩罚一律否 | 带惩罚的域名做什么都起不来，换域名比救域名便宜 |
+| 分两批：**批 A 域名无关**（GA4、Clarity、CF Web Analytics）在预览域接好并验证 → **域名定稿** → 绑域名并部署验证（**索引开关随之翻开，不等批 B**）→ **批 B 域名相关**（GSC、Bing、Yandex、Naver、IndexNow、Ahrefs WA + Site Audit、Email Routing）→ 提交 sitemap（默认不逐 URL 请求编入索引，需要催收录见 `search-platforms.md` 的可选脚本） | 批 A 不依赖域名，先做省一轮；批 B 换域名就作废，所以放在定稿之后。**正式域名不再靠 `noindex`/`Disallow: /` 拖到批 B 接完才放开**——曾有项目这样做，Google 抓到过屏蔽状态的 robots.txt，放开后 GSC 仍长期报「已编入索引，尽管遭到 robots.txt 屏蔽」，理由与替代方案见 `lifecycle.md` 段 5.4 第 22 条 |
+| 域名定稿前过**黑历史裁决闸门**：官方 `gefei-domain` Skill、Wayback、外链画像、`site:` 搜索；成人 / 赌博 / 被惩罚一律否 | 带惩罚的域名做什么都起不来，换域名比救域名便宜 |
 | **一个不漏**，清单要有「其他能带流量的平台」兜底行 | 有站 80% 流量来自 Bing，有站几乎全部来自韩国 |
 | IndexNow 排在站长工具前面 | 它一样账号都不欠，先推了再慢慢验证所有权 |
 | **绑定正式域名后、上线验收前主动完成基础安全**：按 [`cloudflare-stack.md`](references/cloudflare-stack.md) §8.8 核对 HTTPS、响应头及实际 API 防护，生产验证后记证据；已上线站 review 补查 | 属于上站后的检查优化；小改优先，嵌入/CSP/HSTS 先核用途，不批量上验证码或复杂 WAF |
+| **网站必须允许所有 AI 爬虫访问**：训练、搜索、用户代理类均不得在 Cloudflare、WAF、Bot Fight Mode 或 robots.txt 被禁；新 zone 关闭 Bot Management 四字段，按 [`checklists.md`](references/checklists.md) 段 5 逐 UA 实测 | robots.txt 放行仍可能被 Cloudflare Block AI Bots 在边缘返回 403，页面和 llms.txt 都抓不到【实测 2026-09-28】 |
 | 接入必须**线上实测**：`curl` grep beacon 只证脚本在，CF WA 还要 GraphQL `count > 0` | `site_token` 填成 `site_tag` 不报错，一个站空跑了 45 天 |
 | **第三方分析脚本（GA4、Clarity）一律延迟到首次交互或 6s 兜底再加载**（单用 `requestIdleCallback` 不够——空闲回调仍会落在 TBT 观测窗内），不许因为「脚本拖 LCP」把 GA4 标 ❌ 或推迟接入——延迟加载就完了，LCP 零影响 | 曾经因为这个理由把 GA4 标 ❌ 整整推迟了一天，纯属多此一举；【实测】单靠 `requestIdleCallback` 仍会被计入 TBT 观测窗 |
 | Ahrefs Site Audit 的问题按报告逐 URL 修完，回段 4 全套重跑 | 第二台爬虫的价值在它看得到你自己漏掉的整站问题 |
@@ -220,7 +230,8 @@ Day-1 清单里最容易漏、也最贵的三条单列在这里，其余见 `lif
 | 需要登录态一律用户的浏览器，沙箱浏览器只能看公开 SERP | 五 |
 | 有 API/CLI 且本机有凭据能证明，一律走 API/CLI，禁止开浏览器点后台；只在 API 不覆盖或需一次性 OAuth 授权时开，且只做那一步 | 五 |
 | 配额站（Semrush / Similarweb / Ahrefs）不传 `--session`；会话名不用 `$$` | 五、六 |
-| 任何页面不得有占位链接 / 文案 / 图片 | 十四 |
+| 发布页面不得有误导用户的占位链接 / 文案 / 图片 | 十四 |
+| 网站不得禁用任何 AI 爬虫；新 zone 关闭 AI 拦截并逐 UA 实测 | [`cloudflare-stack.md`](references/cloudflare-stack.md) §8.5、§8.8；[`checklists.md`](references/checklists.md) 段 5 |
 | 做任何功能、任何页面，UI 只准来自脚手架的 shadcn 组件库或同生态现成组件；缺的先装，不许手写基础控件 | 十六 |
 | 漏了不会变红的收尾动作（IndexNow 等）焊进 ship 命令 | 九 |
 | 接入必须线上实测，不采信勾；批 A/批 B 接入看板逐行由 `scripts/review.mjs` 断言 | 十 |
@@ -229,6 +240,7 @@ Day-1 清单里最容易漏、也最贵的三条单列在这里，其余见 `lif
 | 面板 / 网页操作与文档对不上：先过五层分诊（重跑、浏览器与会话、额度配额、人眼截图、跨时段），确认是平台变了才改 Skill 原文档；环境问题只记项目 `journal/` | 十五 |
 | IndexNow 推送默认 diff（只推新增 URL），全量用 `--all` 显式触发 | 十七 |
 | ID / token / 密钥等标识符必须从页面 DOM 或复制按钮获取，禁止从截图、记忆、转录中抄录 | 十八 |
+| 省 token 工作流（verify-live 验收、排查派便宜模型、换乘新会话、防 rtk 篡改循环） | 二十 |
 
 ## 主线：维护 checklist，使用 checklist
 
@@ -265,7 +277,7 @@ Day-1 清单里最容易漏、也最贵的三条单列在这里，其余见 `lif
 
 ### `rankup review`
 
-review 不是「查 `.rankup/` 缺哪个文件」，是对这个站本身做一次全面体检。编排在 [`playbooks/site-review.md`](references/playbooks/site-review.md) 第一节：先摸前提，再一条消息并行派七组 sub agent（技术 SEO / 速度 / GEO / 关键词长尾 SERP / 哥飞二次意见 / 市场规模 / 接入与记忆），最后汇总回写。**A 组（技术 SEO）含 AITDK 全站报告**，Issues 与未满分项一律进必修清单，判据 [`checklists.md`](references/checklists.md) 段 4「闸门 4c」。`.rankup/` 不存在、站没上线、拿不到 GSC 三个分支都写死在 playbook 里，不要停下来先 init。**段 3 Day-1 清单与段 4 内页清单做到位时，review 应该只剩「补漏」；review 若发现 Day-1 项本该在脚手架当天做却缺失，先把它回流进这两份清单，再回去修站**——否则同一个坑会在下一个项目原样重演。
+review 不是「查 `.rankup/` 缺哪个文件」，是对这个站本身做一次全面体检。编排在 [`playbooks/site-review.md`](references/playbooks/site-review.md) 第一节：先摸前提，再把可独立运行的组按可用并发派给子 Agent（技术 SEO / 速度 / GEO / 关键词长尾 SERP / 哥飞官方 Skill 数据复核 / 市场规模 / 接入与记忆），最后由主 Agent 汇总回写。**A 组（技术 SEO）可纳入 AITDK 报告**，Issues 与未满分项先核对真实影响再决定修复范围，判据 [`checklists.md`](references/checklists.md) 段 4「闸门 4c」。`.rankup/` 不存在、站没上线、拿不到 GSC 三个分支都写死在 playbook 里，不要停下来先 init。**段 3 Day-1 清单与段 4 内页清单做到位时，review 应该只剩「补漏」；review 若发现 Day-1 项本该在脚手架当天做却缺失，先把它回流进这两份清单，再回去修站**——否则同一个坑会在下一个项目原样重演。
 
 G 组那条线：`scripts/review.mjs --project-root .` 出五块报告；再挖会话记录 `scripts/sessions.mjs --project-root . --days 14 --new-only`（`--dump` 出浓缩稿，消化完才 `--mark`）。**默认加 `--new-only`**，水位线记在 `.rankup/review-state.json`，不加会把同样的对话重读一遍。浓缩稿里找四类东西：用户的纠正、验证过的结论、踩过的坑与根因、已推翻旧记录的事实（**修订**原条目，不并列）。
 之后：三方对账 → 过全部闸门补缺口 → 接入清单线上实测 → 筛 `experience.md` → 剥离站点后仍成立的规则回流本 Skill → 补脚本 → 刷新登记表 → 一页结论。能当场修的直接修。
@@ -277,17 +289,28 @@ G 组那条线：`scripts/review.mjs --project-root .` 出五块报告；再挖�
 3. **三方对账门禁**：回答「接下来做什么」或宣称任何进度之前，交叉核对 `git log --oneline -25`、真实路由清单、线上 `sitemap.xml` 全量 `<loc>`。`plan.md` 的勾选、`progress.md`、autopilot 状态都是滞后指标；外部状态（Cloudflare、GSC、Stripe、索引、外链）以当前查询为准。不一致先回写 `.rankup/` 再继续。
 4. 读 [`references/checklists.md`](references/checklists.md) 与 `.rankup/checks.md` 定段，不凭印象；需要可复用操作先查跨项目登记表。
 5. 做完更新 `.rankup/` 事实、决策、计划；把本轮过掉的 check 逐条记进 `checks.md`，动过线上 URL 的把标「动了 URL」的打回 ⬜。
-6. **沉淀义务与是否调用本 Skill 无关**：只要项目里有 `.rankup/`，任何任务完成后都要回写可复用结论，判据是「下次能否少走一遍」。
+6. **收尾闸门**：结束前对照下文「可复用操作必须落成脚本」过一遍；没沉淀成脚本、报告里没有「沉淀的脚本」一节，本轮就不算完成。
+7. **沉淀义务与是否调用本 Skill 无关**：只要项目里有 `.rankup/`，任何任务完成后都要回写可复用结论，判据是「下次能否少走一遍」。
 
 ## 经验库：规划与迭代之前先翻一遍
 
 [`references/experiences/`](references/experiences/INDEX.md) 是经验层，回答「该怎么判断、别人踩过什么坑」；方法层回答「怎么操作」。挖需求读 [`demand-discovery.md`](references/experiences/demand-discovery.md)；规划排优先级读 [`zero-to-one.md`](references/experiences/zero-to-one.md)；上线后决定改什么读 [`conversion.md`](references/experiences/conversion.md)；技术 SEO / 站群 / 多语言 / 索引读 [`webcafe-experiences.md`](references/experiences/webcafe-experiences.md) 与 [`webcafe-topics.md`](references/experiences/webcafe-topics.md)；往里加东西看 [`INDEX.md`](references/experiences/INDEX.md) 收录规则。
 三条硬约束：经验层不带任何项目信息；每条必须有出处与证据等级（【实测】/【经验】/【猜测】，猜测不得当结论执行）；这些是从业者单点实践，采纳前先问「我们的前提一样吗」，小步验证后写回项目侧。
 
-## 可复用操作必须落成脚本
+## 可复用操作必须落成脚本（硬闸门，不需要用户督促）
 
-任何需要第二次执行的操作，第一次跑通就固化成脚本，不允许下次重新摸索——每次重试都在烧上下文，且结果不可比。判定：「会再做一次」或「换个站换个词就要重跑」。
-固化到 `<project>/.rankup/scripts/<动词-对象>.mjs`，参数化（property、日期、词、国家），在 `.rankup/INDEX.md` 登记用途、参数、登录态依赖、已验证日期。脚本失败时**修脚本**，不绕过；失败原因写进脚本头部。登录态、property ID、账号配置属于项目侧，不进本 Skill。
+**本节是完成条件，不是建议。** 本轮执行中凡是满足下面任一条件的操作，本轮结束前必须存成脚本，否则本轮任务判为**未完成**，不得向用户或主线程报「已完成」：
+
+- 会再做一次，或者换个站、换个词、换个日期就要重跑（GSC/Semrush/Similarweb/Trends 取数、索引检查、体检、部署核验等）；
+- 驱动登录态浏览器超过约 5 步才拿到结果；
+- 同一串命令本轮手敲了 2 次以上。
+
+执行规则：
+1. **动手前先查现成脚本**：本 Skill `scripts/`、backlink skill `scripts/`（Semrush/Similarweb）、opencli adapter、跨项目登记表（`registry.mjs list`）。已有的就直接调用，不许重新手工摸一遍；脚本不好用就**修脚本**，不许绕过。
+2. **没有就边做边写**：第一次跑通的那条链路当场整理成参数化脚本，不要等「做完再说」。通用的（换站只改参数）放本 Skill `scripts/<动词-对象>.mjs`，头部注释写清用途、参数、登录态依赖、已知坑、验证日期；只属于某个项目的，放 `<project>/.rankup/scripts/`，登记进 `.rankup/INDEX.md`。登录态、property ID、账号配置只作为参数或项目侧配置，不写死进 Skill。
+3. **写完用真实参数跑一次**，把结果当作本轮产出。脚本没跑通不算沉淀。
+4. **交付报告必须有「## 沉淀的脚本」一节**：列出新建或修改的脚本路径和验证命令；如果本轮确实没有可复用操作，写「无，理由：…」。主线程或 checker 看到缺这一节，就把任务打回。
+5. 编码本身按全局派单规则交给第三方模型（Codex 等），但沉淀这件事的责任在当前执行者，不能甩掉。
 
 ## 跨项目资产登记表
 

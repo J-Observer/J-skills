@@ -2,7 +2,7 @@
 name: opencli
 description: 用 OpenCLI 驱动用户本机那个真实的、已登录的 Chrome，或调用它的 160+ 站点 adapter。任何需要登录态的页面操作都从这里开始——读登录后的后台、抓没有 API 的表格、填表提交、跑一个站点命令、把页面数据取回来。也覆盖会话命名与租约纪律（"我的标签页被别人抢了"）、批量取数与落盘、adapter 的编写与自修复、opencli doctor 排障。用户提到 opencli、浏览器自动化、用我的浏览器、驱动 Chrome、登录态、抓后台数据、抓表格、导出报表、填表、自动点击、截图、adapter、doctor 报错、session 撞名、标签页被抢、tab 泄漏，或说"打开这个页面看看""帮我登录后台查一下""这个站没有 API"时，务必使用本 Skill。也在需要判断"这件事该不该开浏览器"时使用——本 Skill 第零节就是那张判断表（要不要登录态、有没有现成脚本或 adapter、配额站能不能动手、什么时候该转给 agent-reach 或业务 Skill）。只要动作会落在浏览器上，先读这里再动手。
 metadata:
-  version: "1.5.0"
+  version: "1.8.0"
 ---
 
 # OpenCLI
@@ -40,6 +40,23 @@ OpenCLI 把任意网站、Electron 桌面应用和外部 CLI 收敛成一条 `op
 
 **一句话判据**：*无痕窗口打开它，还是不是同一个东西？* 不是 → 必须走用户真实的
 Chrome（也就是本 Skill）；是 → 先找 API 或现成脚本。
+
+
+---
+
+## 零点五、硬规则：跑通即沉淀成脚本（完成条件，不需要用户督促）
+
+现场驱动浏览器是最贵的操作：每一步都要截图、读页面、再判断。**同一条链路绝不允许让 agent 手工走第二遍。**所以本节是完成条件，不是建议：
+
+1. **开浏览器之前**，先查有没有现成脚本或 adapter：`opencli list` / `opencli <site> --help`、本 Skill `scripts/`、rankup `scripts/`（GSC 收录、移除、导出）、backlink `scripts/`（Semrush/Similarweb）。有就直接跑；跑不通就**修脚本**，不许绕开它重新手点。
+2. **没有现成的，边驱动边记录**。满足下面任一条就必须沉淀：会再做一次、换个参数就要重跑、驱动超过约 5 步、同一串命令手敲了 2 次以上。第一次跑通后，当场整理成参数化脚本（`.mjs`，调用 `opencli browser` / batch，用 try/finally 归还会话）：
+   - 属于某个业务 Skill 领域的（SEO 取数归 rankup，外链和竞品归 backlink），放进那个 Skill 的 `scripts/`；
+   - 通用的站点能力写成 opencli adapter，或放本 Skill `scripts/`；
+   - 只属于某个项目的，放 `<project>/.rankup/scripts/`。
+   脚本头部写清用途、参数、登录态依赖、已知坑（页面懒加载、行数上限、配额）和验证日期。
+3. **写完用真实参数跑一次**，跑通才算沉淀。
+4. **交付报告必须有「## 沉淀的脚本」一节**：写脚本路径和验证命令；没有可沉淀的，写「无，理由：…」。缺这一节，任务判为未完成，主线程会打回。
+5. 写脚本这件事按全局派单规则可以交给第三方模型（Codex 等），但「必须沉淀」的责任在当前执行者，不能甩掉。
 
 ---
 
@@ -184,7 +201,7 @@ tools-share 锁被谁拿着、那个 pid 还活着吗，然后给 `go` / `wait` 
 | **一次访问 = 一个 batch**（`openAndExtract`） | 「含任一写操作的混合 batch 整体按写处理」，所以整包是原子的，别人插不进来——这正是共用名字仍然安全的原因 |
 | **禁止 open 一次隔几轮对话再读** | 会话一直占着，后面全在排队。实测 daemon.log 一天 1016 条 busy 轮询 |
 | **采集写成顺序循环**（`sequentialCrawl`），不要扇出 | 排队是兜底不是调度器：daemon 默认只等 10 分钟，20 个词顺序跑就快贴到上限 |
-| **间隔用 `sleepStep()`，不要用 `wait time`** | `wait time 5` 在 1.8.7 是坏的：报 "Waited 5s"，实测 928ms 就返回。写错了整套节流静默失效 |
+| **间隔用 `sleepStep()`** | 它生成 `{ cmd: 'wait', args: { seconds } }`，在 batch 中按秒等待 |
 | **撞上限的第一动作是 `close`，不是 `sleep`** | 释放标签页本身就是退避。当成「页面没加载好」去重试只会再开一个，越retry越糟 |
 
 **daemon 排队只串行化单条命令 / 单个 batch，保护不了跨多条命令的整轮采集。**
@@ -566,6 +583,53 @@ opencli browser "$S" batch --commands '[
 
 返回 `{cmd, index, ok, result?, error?}` 数组；默认遇错继续，`--stop-on-error` 改为中止。
 **条件逻辑**（每一步决定下一步）用顺序调用，不要硬塞进 batch。
+
+### 多层导航、甚至整张表单交给 JEV 挑，agent 不用逐步参与（省 token）
+
+上游 OpenCLI **没有**内置模型驱动浏览器的功能（2026-09-25 核对并已合并上游）。
+我们 fork 在 `feat/jev-auto` 分支（2026-09-26，CLI 1.12.0，尚未合入 `fork/main`）加了原生子命令：
+
+```bash
+opencli browser "$S" auto --goal "<目标>" \
+  [--data payload.json] [--max-steps 20] [--min-confidence 0.55] \
+  [--allow-submit] [--confirm-terms] [--dry-run] [--json]
+```
+
+给一个目标，每步由 TypeSafe 的 JEV 从当前页面的可点元素 + 待填表单字段里选一个动作
+（choice 题型），OpenCLI 执行，循环直到 JEV 判定 DONE、置信度跌破阈值、步数耗尽或
+安全闸门触发——全程不需要 agent 逐步参与。`--data` 给一个 JSON 文件，JEV 负责判断
+「这个表单字段该填 data 里的哪个 key」（语义匹配，key 名不需要和字段名一致），
+但值只能来自这个文件，没匹配到就跳过、不编造。
+
+**安全闸门（默认全部生效，未经显式选项不能绕过）**：
+
+| 闸门 | 默认行为 | 放行方式 |
+|---|---|---|
+| 提交/支付/发送/删除/确认/创建账号类关键词 + `type=submit` | 从候选菜单剔除，剩下的都执行完就停在 `awaiting_submit` | `--allow-submit` |
+| terms/consent/隐私政策复选框 | 整组排除出候选（不是「没匹配就不勾」，是不出现） | `--confirm-terms` |
+| CAPTCHA/Turnstile 检测 | 每步零成本 DOM 探针命中即停（`captcha_detected`），不解验证码 | 没有旁路，人工处理 |
+| 登录墙检测（`input[type=password]` / `form[action*=login]`） | 命中即停（`login_wall_detected`），不建账号不输密码 | 没有旁路，人工处理 |
+| `--allow-submit` 点击命中后的提交结果 | 正反双证据校验（表单是否还在、是否回显了原值、confirmation 文案是否在表单之外），只有双证据判定 `submitted` 才报 `completed`，否则 `submit_unverified` 交人工复核 | 无——JEV 的 noul 判断只作辅助展示，不参与这个分类 |
+
+实测（2026-09-26，会话 `jev-auto-test`）：example.com → IANA Root Zone Management
+页 4 步全自动完成（4 次 JEV 调用，4010 输入 token，~5.5s）；httpbin.org/forms/post
+真实填表+提交，`custname`/`custtel`/`custemail` 等六个字段用故意不同名的 data key
+（`name`→`custname` 之类）全部语义匹配正确，不带 `--allow-submit` 时正确停在
+「已填好待提交」，带 `--allow-submit` 提交后页面回显核对一致。CAPTCHA/登录墙/
+terms 三道闸在本地测试页与真实站点均按预期拦截。
+
+**已知限制**：`--min-confidence` 的默认阈值对「多个字段都可以先填、顺序不重要」
+的长表单偏严——JEV 对着 5-6 个同样合法的候选时，概率会打散到 0.25~0.35，没有
+一个单选能过 0.55；`auto` 已经改成「取 JEV 自身 confidence 和候选里所有
+fill/select/check 候选累计概率质量两者较大值」来缓解，但仍可能需要按同一个
+`--data` 重跑几次（幂等，不会重复填已经正确的字段）才能填完一张字段很多的表单。
+文件上传、非原生 `<select>`（Radix/shadcn 一类自定义下拉）、字段映射结果落盘复用
+尚未实现，见下方「已知限制与后续方案」。
+
+打字、填表值、提交决策的最终把关仍然是 agent/用户的责任——`auto` 只是把「选哪个
+按钮/填哪个字段」这一步的判断成本降到 JEV 的价位。`opencli browser <session> auto`
+的完整用法、四道安全闸门、已知限制和设计取舍见
+[`references/model-driven.md`](references/model-driven.md)。
 
 ---
 

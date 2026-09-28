@@ -9,6 +9,8 @@
 // 子命令:
 //   run       跑单个任务,可以同时开多个进程/多个终端各自 run 不同模型实现并发
 //   run-many  从一个 JSON 文件读一批任务,内部真正并发跑完,一次性拿到全部结果
+//   judge     JEV(typesafe-systemone 协议)模型专用的结构化判断
+//   tail      查看 ~/.agent-fleet/runs 下最近一次运行的进度日志
 //   list-models  列出 models.config.json 里配置了哪些模型,以及各自的密钥是否已配置
 //
 // 本文件只负责:解析参数、装配 config/env、调用 src/ 下的核心逻辑、格式化输出。
@@ -19,42 +21,50 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve as resolvePath } from 'node:path';
 
 import { loadEnvFile } from '../src/env.mjs';
-import { loadModelsConfig, defaultConfigPath, resolveModel, ConfigError } from '../src/config.mjs';
+import { loadModelsConfig, defaultConfigPath, ConfigError } from '../src/config.mjs';
 import { runTask } from '../src/run-task.mjs';
 import { runMany } from '../src/run-many.mjs';
+import { judgeTask } from '../src/judge-task.mjs';
+import { createProgress } from '../src/progress.mjs';
+import { tailLatestLog } from '../src/tail-log.mjs';
+import { DEFAULT_BRIEF_LINES, renderManyOutput, renderRunOutput } from '../src/brief.mjs';
+import { collectStatus, deliverSay, formatStatusHuman, requestStop } from '../src/control.mjs';
+import { readPidRecord, resolveRunId } from '../src/pid.mjs';
+import { shortRunOptions, splitShortArgs, resolveBrief } from '../src/shortcuts.mjs';
+import { runCode } from '../src/code-runner.mjs';
 
 const PKG_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const PKG_VERSION = JSON.parse(readFileSync(join(PKG_ROOT, 'package.json'), 'utf8')).version;
 
-const HELP_TEXT = `agent-fleet ${PKG_VERSION} — 通用多模型子任务执行工具
+const HELP_TEXT = `fleet ${PKG_VERSION} — 简短任务入口
 
-用法:
-  agent-fleet run --model <友好名字> --prompt "<任务描述>" [选项]
-  agent-fleet run-many --config <batch.json> [选项]
-  agent-fleet list-models
-  agent-fleet --help | --version
+  fleet copy|grok|bulk|gpt <brief文件或文本> [--cwd dir] [--verbose]
+  fleet code <brief文件或文本> [--low] [--review] [--cwd dir]
+  fleet judge <state文件> <questions文件> [--json]
+  fleet run --model name --prompt "任务" [--cwd dir] [--max-turns 500]
+  fleet run-many --config batch.json | status | tail [--follow]
+  fleet say <id|latest> "消息" | stop <id|latest> | resume <id|latest>
+  fleet list-models | help | --version
 
-run 选项:
-  --model <name>          必填。models.config.json 里的友好名字(如 deepseek-v4-flash)
-  --prompt <text>          必填。任务描述
-  --cwd <dir>               Agent 读写文件/跑 bash 的工作目录,默认当前目录
-  --max-turns <n>           限制最大工具调用轮数
-  --system-prompt <text>    追加的系统提示
-  --json                    输出结构化 JSON 而不是人类可读文本
-
-run-many 选项:
-  --config <path>           必填。批量任务文件,JSON 数组,每项 { model, prompt, cwd? }
-  --cwd <dir>               任务没写 cwd 时的默认工作目录
-  --json                    输出结构化 JSON 而不是人类可读文本
-
-全局选项:
-  --models-config <path>    覆盖默认的 models.config.json 路径
-
-示例:
-  agent-fleet run --model deepseek-v4-flash --prompt "帮我调研一下 XX 竞品有哪些定价策略"
-  agent-fleet run --model kimi --prompt "把 README 翻译成英文" --cwd ~/some-project --json
-  agent-fleet run-many --config batch.json
+run 默认 500 轮、安静、当前目录；--verbose 显示进度。--quiet、--max-turns、--cwd、
+--system-prompt、--json、--full、--brief-lines、--expect-changes、--judge 可选。
+code 的 --review 使用只读沙箱与内置审查提示词；旧 agent-fleet 长命令继续可用。
 `;
+
+/** 去掉 `--flag value` / `--flag` 后剩下的位置参数。 */
+function positionalArgs(argv) {
+  const out = [];
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (!arg.startsWith('--')) {
+      out.push(arg);
+      continue;
+    }
+    const next = argv[i + 1];
+    if (next !== undefined && !next.startsWith('--')) i++;
+  }
+  return out;
+}
 
 /** 从 argv 里手动摘取形如 `--flag value` 和布尔开关 `--flag` 的参数,不引入额外依赖。 */
 function parseFlags(argv) {
@@ -74,23 +84,21 @@ function parseFlags(argv) {
   return flags;
 }
 
-function printResultHuman(res) {
-  console.log(`\n${'='.repeat(60)}`);
-  console.log(`模型: ${res.model}${res.resolvedModel ? ` (${res.resolvedModel})` : ''}`);
-  if (res.cwd) console.log(`工作目录: ${res.cwd}`);
-  console.log(`状态: ${res.ok ? '成功' : '失败'}`);
-  if (res.ok) {
-    console.log(`耗时: ${res.durationMs}ms | 轮数: ${res.numTurns} | 预估成本: $${res.totalCostUsd?.toFixed?.(4) ?? res.totalCostUsd}`);
-    console.log(`${'-'.repeat(60)}`);
-    console.log(res.result ?? '(没有文本结果)');
-  } else {
-    console.log(`错误: ${res.error ?? res.errors?.join('; ') ?? '未知错误'}`);
-  }
-  console.log('='.repeat(60));
+function outputOptions(flags, config) {
+  const n = flags['brief-lines'] === undefined ? DEFAULT_BRIEF_LINES : Number(flags['brief-lines']);
+  return {
+    json: Boolean(flags.json),
+    full: Boolean(flags.full),
+    briefLines: Number.isFinite(n) && n >= 0 ? n : DEFAULT_BRIEF_LINES,
+    expectChanges: Boolean(flags['expect-changes']),
+    judge: Boolean(flags.judge),
+    config,
+  };
 }
 
 async function cmdRun(argv) {
   const flags = parseFlags(argv);
+  if (flags.help) { console.log(HELP_TEXT); return; }
   if (!flags.model || !flags.prompt) {
     console.error('缺少必填参数。用法: agent-fleet run --model <name> --prompt "<text>" [选项]');
     process.exitCode = 1;
@@ -98,21 +106,22 @@ async function cmdRun(argv) {
   }
 
   const config = loadModelsConfig(flags['models-config'] ? resolvePath(flags['models-config']) : undefined);
+  // 进度行实时打到 stderr,并同步写进 ~/.agent-fleet/runs/<ISO时间>-<模型名>.log(tail 的
+  // 数据源);--quiet 时 stderr 静音,文件照写。日志文件路径在启动时已由进度对象打到 stderr。
+  const progress = createProgress({ quiet: !flags.verbose || Boolean(flags.quiet), label: String(flags.model) });
   const result = await runTask({
     friendlyModel: flags.model,
     prompt: flags.prompt,
     cwd: flags.cwd ? resolvePath(flags.cwd) : process.cwd(),
     config,
-    maxTurns: flags['max-turns'] ? Number(flags['max-turns']) : undefined,
+    maxTurns: flags['max-turns'] === undefined ? 500 : Number(flags['max-turns']),
     systemPrompt: flags['system-prompt'],
+    progress,
   });
 
-  if (flags.json) {
-    console.log(JSON.stringify(result, null, 2));
-  } else {
-    printResultHuman(result);
-  }
-  process.exitCode = result.ok ? 0 : 1;
+  process.stdout.write(await renderRunOutput(result, outputOptions(flags, config)));
+  // 退出码:成功 0;失败 1;失败且是上游 402/credit budget 用尽(不重试、立即停)2。
+  process.exitCode = result.ok ? 0 : result.fatal402 ? 2 : 1;
 }
 
 async function cmdRunMany(argv) {
@@ -144,21 +153,185 @@ async function cmdRunMany(argv) {
 
   let results;
   try {
-    results = await runMany(tasks, { config, defaultCwd });
+    const maxTurns = flags['max-turns'] === undefined ? 500 : Number(flags['max-turns']);
+    results = await runMany(tasks.map((task) => ({ ...task, maxTurns: task.maxTurns ?? maxTurns })), {
+      config, defaultCwd, quiet: !flags.verbose || Boolean(flags.quiet),
+    });
   } catch (err) {
     console.error(`batch 任务格式错误: ${err.message}`);
     process.exitCode = 1;
     return;
   }
 
-  if (flags.json) {
-    console.log(JSON.stringify(results, null, 2));
-  } else {
-    for (const res of results) printResultHuman(res);
-    const failed = results.filter((r) => !r.ok).length;
-    console.log(`\n共 ${results.length} 个任务,成功 ${results.length - failed} 个,失败 ${failed} 个。`);
-  }
+  process.stdout.write(await renderManyOutput(results, outputOptions(flags, config)));
   process.exitCode = results.some((r) => !r.ok) ? 1 : 0;
+}
+
+function printJudgeResultHuman(res) {
+  console.log(`\n${'='.repeat(60)}`);
+  console.log(`模型: ${res.model}${res.resolvedModel ? ` (${res.resolvedModel})` : ''}`);
+  console.log(`状态: ${res.ok ? '成功' : '失败'}`);
+  if (res.ok) {
+    console.log(`耗时: ${res.durationMs}ms | input_tokens: ${res.usage?.input_tokens ?? '?'} | output_tokens: ${res.usage?.output_tokens ?? '?'}`);
+    console.log(`${'-'.repeat(60)}`);
+    console.log(JSON.stringify(res.answers, null, 2));
+  } else {
+    console.log(`错误: ${res.error ?? '未知错误'}`);
+  }
+  console.log('='.repeat(60));
+}
+
+async function cmdJudge(argv) {
+  const flags = parseFlags(argv);
+  if (!flags.model || !flags['state-file'] || !flags['questions-file']) {
+    console.error(
+      '缺少必填参数。用法: agent-fleet judge --model <name> --state-file <path> --questions-file <path> [选项]',
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const stateFilePath = resolvePath(flags['state-file']);
+  const questionsFilePath = resolvePath(flags['questions-file']);
+  if (!existsSync(stateFilePath)) {
+    console.error(`找不到 state 文件: ${stateFilePath}`);
+    process.exitCode = 1;
+    return;
+  }
+  if (!existsSync(questionsFilePath)) {
+    console.error(`找不到 questions 文件: ${questionsFilePath}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const rawState = readFileSync(stateFilePath, 'utf8');
+  // state 允许是纯文本,也允许是结构化 JSON(比如一份聊天记录/记录数组)——
+  // 按文件扩展名决定怎么解析,而不是"能 parse 就当 JSON",避免一段碰巧长得像
+  // JSON 的自然语言文本被静默误解析。
+  const state = stateFilePath.endsWith('.json') ? JSON.parse(rawState) : rawState;
+
+  let questions;
+  try {
+    questions = JSON.parse(readFileSync(questionsFilePath, 'utf8'));
+  } catch (err) {
+    console.error(`questions 文件不是合法 JSON: ${err.message}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const config = loadModelsConfig(flags['models-config'] ? resolvePath(flags['models-config']) : undefined);
+  const result = await judgeTask({ friendlyModel: flags.model, state, questions, config });
+
+  if (flags.json) {
+    console.log(JSON.stringify(result, null, 2));
+  } else {
+    printJudgeResultHuman(result);
+  }
+  process.exitCode = result.ok ? 0 : 1;
+}
+
+/** tail 子命令:打印 ~/.agent-fleet/runs 下最新一次运行的进度日志;--follow 持续跟随到 done 行。 */
+async function cmdTail(argv) {
+  const flags = parseFlags(argv);
+  const outcome = await tailLatestLog({ follow: Boolean(flags.follow) });
+  if (!outcome.ok) {
+    console.error(outcome.error);
+    process.exitCode = 1;
+  }
+}
+
+function matchCwd(flags) {
+  return flags.cwd ? resolvePath(flags.cwd) : process.cwd();
+}
+
+function cmdStatus(argv) {
+  const flags = parseFlags(argv);
+  const rows = collectStatus(flags.cwd ? { cwd: resolvePath(flags.cwd) } : {});
+  process.stdout.write(formatStatusHuman(rows));
+}
+
+function cmdSay(argv) {
+  const flags = parseFlags(argv);
+  const positionals = positionalArgs(argv);
+  const spec = positionals[0];
+  const text = positionals.slice(1).join(' ').trim();
+  try {
+    const { runId } = deliverSay(spec, text, { cwd: matchCwd(flags) });
+    console.log(`已投递到 ${runId}`);
+  } catch (err) {
+    console.error(err.message);
+    process.exitCode = 1;
+  }
+}
+
+async function cmdStop(argv) {
+  const flags = parseFlags(argv);
+  const spec = positionalArgs(argv)[0];
+  if (!spec) {
+    console.error('缺少 run-id。用法: agent-fleet stop <run-id|latest> [--grace 60]');
+    process.exitCode = 1;
+    return;
+  }
+  try {
+    const outcome = await requestStop(spec, {
+      grace: flags.grace === undefined ? 60 : Number(flags.grace),
+      cwd: matchCwd(flags),
+    });
+    const extra = outcome.skippedSignal ? ` (${outcome.skippedSignal})` : '';
+    console.log(`已请求停止 ${outcome.runId}${outcome.signaled ? ' 并发送信号' : extra}`);
+  } catch (err) {
+    console.error(err.message);
+    process.exitCode = 1;
+  }
+}
+
+async function cmdResume(argv) {
+  const flags = parseFlags(argv);
+  const positionals = positionalArgs(argv);
+  const spec = positionals[0];
+  if (!spec) {
+    console.error('缺少 run-id。用法: agent-fleet resume <run-id> ["追加指令"] [选项]');
+    process.exitCode = 1;
+    return;
+  }
+  let runId;
+  try {
+    runId = resolveRunId(spec, matchCwd(flags));
+  } catch (err) {
+    console.error(err.message);
+    process.exitCode = 1;
+    return;
+  }
+  const rec = readPidRecord(runId);
+  if (!rec) {
+    console.error(`找不到任务 ${runId} 的 pid.json`);
+    process.exitCode = 1;
+    return;
+  }
+  if (!rec.sessionId) {
+    console.error(`任务 ${runId} 的 pid.json 没有 sessionId,无法 resume。`);
+    process.exitCode = 1;
+    return;
+  }
+  const extra = typeof flags.prompt === 'string' ? flags.prompt : positionals.slice(1).join(' ').trim();
+  const prompt = extra || '继续完成上次未完成的工作，简要说明当前进度并给出结果。';
+  const config = loadModelsConfig(flags['models-config'] ? resolvePath(flags['models-config']) : undefined);
+  const model = flags.model || rec.model;
+  const cwd = flags.cwd ? resolvePath(flags.cwd) : rec.cwd || process.cwd();
+  const progress = createProgress({ quiet: !flags.verbose || Boolean(flags.quiet), label: String(model) });
+  const result = await runTask({
+    friendlyModel: model,
+    prompt,
+    cwd,
+    config,
+    maxTurns: flags['max-turns'] === undefined ? 500 : Number(flags['max-turns']),
+    systemPrompt: flags['system-prompt'],
+    progress,
+    resume: rec.sessionId,
+    resumedFrom: runId,
+  });
+  process.stdout.write(await renderRunOutput(result, outputOptions(flags, config)));
+  process.exitCode = result.ok ? 0 : result.fatal402 ? 2 : 1;
 }
 
 function cmdListModels(argv) {
@@ -179,9 +352,13 @@ function cmdListModels(argv) {
     // 也不应该把真实密钥回显到终端历史或日志里。
     const keyStatus = process.env[def.apiKeyEnv] ? 'present' : 'missing';
     const gatewayNote = def.requiresGateway && !def.baseURL ? ' [需要自备网关,baseURL 未填]' : '';
-    console.log(`- ${name}${gatewayNote}`);
+    const protocolNote = def.protocol === 'typesafe-systemone' ? ' [typesafe-systemone 协议,只能用 judge,不支持 run/run-many]' : '';
+    console.log(`- ${name}${gatewayNote}${protocolNote}`);
     console.log(`    model: ${def.model || '(未填)'}  baseURL: ${def.baseURL || '(未填)'}`);
     console.log(`    apiKeyEnv: ${def.apiKeyEnv} (${keyStatus})`);
+    // subagentModel 不是密钥,只是一个模型 ID 字符串,照常打印——用户需要知道 Agent/Task 工具
+    // 派出去的子 agent 实际会用哪个模型(见 README「子 agent 模型映射」一节)。
+    console.log(`    subagentModel: ${def.subagentModel ?? '(未配置,子 agent 原样继承主 model)'}`);
     // 自定义请求头同样只报告"头名 + 指向的变量名 + 有没有值",绝不打印头值本身——
     // 这类头的值往往就是网关认证口令,和 API key 同级。
     for (const [headerName, envName] of Object.entries(def.headerEnvs ?? {})) {
@@ -191,12 +368,47 @@ function cmdListModels(argv) {
   }
 }
 
+function flagArgs(flags, omitted = []) {
+  return Object.entries(flags)
+    .filter(([key, value]) => !omitted.includes(key) && value !== undefined)
+    .flatMap(([key, value]) => value === true ? [`--${key}`] : [`--${key}`, String(value)]);
+}
+
+async function cmdShortRun(command, argv) {
+  const options = shortRunOptions(command, argv);
+  await cmdRun(['--model', options.model, '--prompt', options.prompt, ...flagArgs(options.flags, ['model', 'prompt'])]);
+}
+
+async function cmdCode(argv) {
+  const { positionals, flags } = splitShortArgs(argv);
+  const prompt = resolveBrief(flags.prompt ?? positionals[0]);
+  const cwd = flags.cwd ? resolvePath(flags.cwd) : process.cwd();
+  const result = await runCode({
+    prompt, cwd, low: Boolean(flags.low), review: Boolean(flags.review),
+    onFallback: async (reason, fullPrompt) => {
+      console.error(`${reason}，改走 kollab-gateway-gpt-sol。`);
+      await cmdRun(['--model', 'kollab-gateway-gpt-sol', '--prompt', fullPrompt,
+        ...flagArgs(flags, ['prompt', 'low', 'review', 'model'])]);
+      return null;
+    },
+  });
+  if (!result) return;
+  process.stdout.write(await renderRunOutput(result, outputOptions(flags)));
+  process.exitCode = result.ok ? 0 : 1;
+}
+
+async function cmdShortJudge(argv) {
+  const { positionals, flags } = splitShortArgs(argv);
+  await cmdJudge(['--model', 'jev', '--state-file', positionals[0] ?? '', '--questions-file', positionals[1] ?? '',
+    ...flagArgs(flags, ['model', 'state-file', 'questions-file'])]);
+}
+
 async function main() {
   loadEnvFile(join(PKG_ROOT, '.env'));
 
   const [command, ...rest] = process.argv.slice(2);
 
-  if (!command || command === '--help' || command === '-h') {
+  if (!command || command === 'help' || command === '--help' || command === '-h') {
     console.log(HELP_TEXT);
     return;
   }
@@ -207,14 +419,42 @@ async function main() {
 
   try {
     switch (command) {
+      case 'copy':
+      case 'grok':
+      case 'bulk':
+      case 'gpt':
+        await cmdShortRun(command, rest);
+        break;
+      case 'code':
+        await cmdCode(rest);
+        break;
+      case 'judge':
+        if (rest.some((arg) => arg === '--model' || arg === '--state-file' || arg === '--questions-file')) await cmdJudge(rest);
+        else await cmdShortJudge(rest);
+        break;
       case 'run':
         await cmdRun(rest);
         break;
       case 'run-many':
         await cmdRunMany(rest);
         break;
+      case 'tail':
+        await cmdTail(rest);
+        break;
       case 'list-models':
         cmdListModels(rest);
+        break;
+      case 'status':
+        cmdStatus(rest);
+        break;
+      case 'say':
+        cmdSay(rest);
+        break;
+      case 'stop':
+        await cmdStop(rest);
+        break;
+      case 'resume':
+        await cmdResume(rest);
         break;
       default:
         console.error(`未知子命令: ${command}\n`);

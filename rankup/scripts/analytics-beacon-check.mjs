@@ -9,6 +9,7 @@
 import { execFileSync } from '../../backlink/scripts/lib-opencli-process.mjs';
 import { resolve as resolvePath } from "node:path";
 import { realpath } from "node:fs/promises";
+import { setTimeout as delay } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import { newEvidenceDir, captureScene, writeManifest, sessionSuffix } from "./lib-scene.mjs";
 
@@ -30,7 +31,23 @@ function isEntryPoint(key, value) {
   // The Clarity tag loader legitimately adds scripts.clarity.ms/<version>/clarity.js.
   if (key === "clarity") return ["clarity.ms", "www.clarity.ms"].includes(url.hostname) && /^\/tag\/[^/]+\/?$/.test(url.pathname);
   if (key === "ahrefs") return url.hostname === "analytics.ahrefs.com" && url.pathname === "/analytics.js";
+  return isCfBeaconScript(url);
+}
+/** CF WA loader: beacon.min.js plus a hashed follow-up (beacon.min.js/<hash>) is one chain. */
+function isCfBeaconScript(url) {
   return url.hostname === "static.cloudflareinsights.com" && /^\/beacon\.min\.js(?:\/[^/]+)?$/.test(url.pathname);
+}
+function isCfBeaconRoot(value) {
+  const url = parsedUrl(value);
+  return Boolean(url && url.hostname === "static.cloudflareinsights.com" && url.pathname === "/beacon.min.js");
+}
+function collapseCfBeaconScripts(urls) {
+  const roots = urls.filter(isCfBeaconRoot);
+  if (roots.length) return roots;
+  return urls.length ? [urls[0]] : [];
+}
+function collapseProviderScripts(key, urls) {
+  return key === "cfWebAnalytics" ? collapseCfBeaconScripts(urls) : urls;
 }
 function safeUrl(value) {
   const url = parsedUrl(value);
@@ -59,7 +76,7 @@ export function classifyBeacons(observation) {
   const network = data.network || [];
   const result = {};
   for (const [key, { label, host }] of Object.entries(HOST_PATTERNS)) {
-    const scripts = legacy ? null : (data.scripts || []).filter(url => isEntryPoint(key, url));
+    const scripts = legacy ? null : collapseProviderScripts(key, (data.scripts || []).filter(url => isEntryPoint(key, url)));
     const requests = resources.filter(entry => onHost(entry.url, host));
     const scriptResponses = [...requests, ...network].filter(entry => isEntryPoint(key, entry.url));
     const scriptLoaded = scriptResponses.some(entry => successful(entry.responseStatus ?? entry.status) &&
@@ -74,10 +91,15 @@ export function classifyBeacons(observation) {
     const sendingStatus = sends.some(entry => (entry.status ?? entry.responseStatus) >= 400) ? "failed" :
       sends.some(entry => successful(entry.status ?? entry.responseStatus)) ? "verified" : "not_verified";
     const duplicate = scripts != null && scripts.length > 1;
+    const tagLoadedNoCollect = key === "clarity" && !duplicate && !scriptFailed &&
+      scripts?.length === 1 && scriptLoaded && sendingStatus === "not_verified";
     const status = duplicate || scriptFailed || sendingStatus === "failed" ? "fail" :
+      tagLoadedNoCollect ? "tag-loaded-no-collect" :
       scripts?.length === 1 && scriptLoaded && sendingStatus === "verified" ? "pass" : "needs-verification";
     result[key] = {
       label, host, status,
+      warning: tagLoadedNoCollect ? "tag-loaded-no-collect" : null,
+      hint: tagLoadedNoCollect ? "tag 已加载但超时内没有 *.clarity.ms/collect，可能是扩展拦截" : null,
       // `loaded` remains for callers, now means confirmed script response, not a DOM match.
       loaded: scriptLoaded,
       scriptCount: scripts?.length ?? null,
@@ -115,22 +137,27 @@ export function assessScenario(initial, afterNavigation, navigation = {}) {
 }
 
 export function formatBeaconTable(classified) {
-  return Object.values(classified).map(c =>
-    `${c.status === "pass" ? "✅" : c.status === "fail" ? "❌" : "?"} ${c.label}: ${c.status}; DOM=${c.scriptCount ?? "unknown"}; script=${c.scriptLoadStatus}; sending=${c.sendingStatus}`,
-  ).join("\n");
+  return Object.values(classified).map(c => {
+    const mark = c.status === "pass" ? "✅" : c.status === "fail" ? "❌" : c.status === "tag-loaded-no-collect" ? "⚠" : "?";
+    const hint = c.hint ? `; ${c.hint}` : "";
+    return `${mark} ${c.label}: ${c.status}; DOM=${c.scriptCount ?? "unknown"}; script=${c.scriptLoadStatus}; sending=${c.sendingStatus}${hint}`;
+  }).join("\n");
 }
 
 let url, sessionPrefix;
-let waitSeconds = 7, interactWaitSeconds = 3;
+let waitSeconds = 7, interactWaitSeconds = 3, waitSlotSeconds = 600;
 let interact = false, both = false, keepSession = false, json = false;
 let navigateSelector = null, navigatePath = null;
 function usage() {
   console.log(`用法: node analytics-beacon-check.mjs <url> [--wait 7] [--interact | --both] [--json]
   --interact-wait <秒>    交互后等待，默认 3
+  --wait-slot <秒>        dedicated 窗口无空闲 slot 时等待重试，默认 600（10 分钟）；0 表示不等待
   --navigate-selector <CSS> --navigate-path </目标pathname>
                          同会话真实点击站内链接，等待路径变化并验证 SPA
   --session <前缀>        独立会话前缀；--keep-session 保留会话
-缺导航输入或实际发送证据：needs-verification / exit 2；明确失败 exit 1；完整通过 exit 0。`);
+缺导航输入或实际发送证据：needs-verification / exit 2；明确失败 exit 1；完整通过 exit 0。
+Clarity 超时内只有 tag 没有 collect：tag-loaded-no-collect（warning，不算 fail）。
+CF WA 的 beacon.min.js 加带 hash 的第二段脚本是同一加载链，不算重复；成功看 /cdn-cgi/rum。`);
 }
 function parseArgs(argv) {
   if (!argv.length || ["-h", "--help"].includes(argv[0])) { usage(); return false; }
@@ -139,6 +166,7 @@ function parseArgs(argv) {
     const arg = argv[i];
     if (arg === "--wait" && argv[i + 1]) waitSeconds = Number(argv[++i]);
     else if (arg === "--interact-wait" && argv[i + 1]) interactWaitSeconds = Number(argv[++i]);
+    else if (arg === "--wait-slot" && argv[i + 1]) waitSlotSeconds = Number(argv[++i]);
     else if (arg === "--session" && argv[i + 1]) sessionPrefix = argv[++i];
     else if (arg === "--navigate-selector" && argv[i + 1]) navigateSelector = argv[++i];
     else if (arg === "--navigate-path" && argv[i + 1]) navigatePath = argv[++i];
@@ -152,6 +180,9 @@ function parseArgs(argv) {
   for (const seconds of [waitSeconds, interactWaitSeconds]) {
     if (!Number.isFinite(seconds) || seconds < 1 || seconds > 60) throw new Error("wait must be 1–60 seconds");
   }
+  if (!Number.isFinite(waitSlotSeconds) || waitSlotSeconds < 0 || waitSlotSeconds > 3600) {
+    throw new Error("--wait-slot must be 0–3600 seconds");
+  }
   if (navigatePath && (!navigatePath.startsWith("/") || navigatePath.startsWith("//") || /[?#]/.test(navigatePath))) {
     throw new Error("--navigate-path must be a pathname such as /how-to-play");
   }
@@ -159,11 +190,37 @@ function parseArgs(argv) {
 }
 
 /* Keep the existing OpenCLI/scene path; use argument arrays rather than shell interpolation. */
+function opencliError(error) {
+  return (error.stderr?.toString() || error.stdout?.toString() || error.message || "").trim();
+}
+function isDedicatedPoolExhausted(text) {
+  return /dedicated-pool-exhausted|no (?:idle |available )?slot|pool (?:is )?(?:full|exhausted)|capacity exceeded/i.test(text);
+}
 function cli(session, args, timeout = 30000) {
   try {
     return execFileSync("opencli", ["browser", session, "--window", "dedicated", ...args],
       { encoding: "utf8", timeout, stdio: ["pipe", "pipe", "pipe"] }).trim();
-  } catch { throw new Error(`OpenCLI ${args[0]} failed; observation not verified`); }
+  } catch (error) {
+    const detail = opencliError(error);
+    throw new Error(`OpenCLI ${args[0]} failed; observation not verified${detail ? `: ${detail}` : ""}`);
+  }
+}
+async function openPage(session, pageUrl) {
+  const deadline = Date.now() + waitSlotSeconds * 1000;
+  let lastErr = "";
+  while (true) {
+    try {
+      return cli(session, ["open", pageUrl], 45000);
+    } catch (error) {
+      lastErr = error.message || String(error);
+      if (!isDedicatedPoolExhausted(lastErr)) throw error;
+      const remaining = deadline - Date.now();
+      if (waitSlotSeconds <= 0 || remaining <= 0) {
+        throw new Error(`dedicated 窗口无空闲 slot，已等待 ${waitSlotSeconds}s 仍不可用。可用 --wait-slot <秒> 调整（默认 600）。上次错误: ${lastErr}`);
+      }
+      await delay(Math.min(20000, remaining));
+    }
+  }
 }
 function evalJs(session, js) { return cli(session, ["eval", `(()=>{${js}})()`]); }
 function readJson(raw) {
@@ -201,7 +258,7 @@ function scene(session, tag, extra) {
 async function runScenario(scenario) {
   const session = `${sessionPrefix || `abc-${sessionSuffix()}`}-${scenario}`;
   try {
-    cli(session, ["open", url]);
+    await openPage(session, url);
     if (scenario === "interaction") cli(session, ["click", "body"]);
     settle(session, scenario === "interaction" ? interactWaitSeconds : waitSeconds);
     const initial = readObservation(session);

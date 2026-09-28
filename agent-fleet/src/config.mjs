@@ -24,7 +24,25 @@ export function defaultConfigPath() {
   return join(PKG_ROOT, 'models.config.json');
 }
 
-const VALID_AUTH_HEADERS = new Set(['x-api-key', 'auth-token']);
+const VALID_AUTH_HEADERS = new Set(['x-api-key', 'auth-token', 'bearer-raw']);
+
+/**
+ * 支持的模型协议。
+ *   - anthropic-messages(默认,不写这个字段就是它):上游实现 Anthropic Messages 协议,
+ *     能被 Claude Agent SDK 的 query() 直接驱动——`run`/`run-many` 委派一整个自主任务
+ *     给它,多轮读写文件、跑 bash、工具调用直到完成。
+ *   - typesafe-systemone:Typesafe JEV/System One 的自有协议(POST {baseURL},
+ *     body 是 { state, model, questions },不是 messages 数组)。这类模型**不生成文本、
+ *     不支持多轮工具调用**,只接受一段 state + 若干类型化 questions(noul/choice/score),
+ *     返回校准过的结构化判断——2026-09-25 用真实 API 调用验证过(见 README「JEV 验证记录」):
+ *     `POST https://api.typesafe.ai/v1/messages` 返回 404,证实它完全没有实现 Anthropic
+ *     Messages 协议,所以这类模型**不能**通过 run/run-many 委派任务,只能用 `judge` 子命令
+ *     (见 src/judge-task.mjs)按它自己的协议调用。authHeader 固定用 `bearer-raw`,表示
+ *     "judge 命令直接拼 `Authorization: Bearer <key>`",不走 isolated-env.mjs 那套
+ *     Claude-Code-CLI 专用的 x-api-key/auth-token 环境变量映射(那套映射只对 Claude Agent
+ *     SDK 的上游生效,typesafe-systemone 协议不经过 SDK,不需要也不应该套用它)。
+ */
+const VALID_PROTOCOLS = new Set(['anthropic-messages', 'typesafe-systemone']);
 
 /** RFC 7230 的 header field-name 允许字符集。用来挡住带空格/冒号/换行的畸形头名。 */
 const HEADER_NAME_RE = /^[A-Za-z0-9!#$%&'*+\-.^_`|~]+$/;
@@ -127,6 +145,49 @@ function validateEntry(name, def) {
       `models.config.json 里的 "${name}" 的 authHeader 只能是 ${[...VALID_AUTH_HEADERS].join(' / ')} 之一,当前是 "${authHeader}"。`,
     );
   }
+
+  // subagentModel(可选):子 agent 实际应该发给同一个 baseURL/apiKey 的模型 ID。
+  //
+  // 【为什么需要这个字段 —— 真实复现过的崩溃】
+  // Claude Agent SDK 的 Agent/Task 工具默认让子 agent"继承主循环的 model 字符串"。当主循环
+  // model 是网关自己的模型 ID(比如 "gemini-3.8-flash")而不是 Claude 官方模型名时,子 agent
+  // 一旦被(前台同步)调用,Claude Code 本地的模型名校验会判定这个字符串"unrecognized",
+  // 2026-09-26 用 kollab-gateway-copy 真实跑出过 `[claude-code:unrecognized_model]
+  // {"model":"gemini-3.8-flash","query_source":"sdk"}` 之后整个进程被 SIGKILL、父任务一起
+  // 失败(日志: ~/.agent-fleet/runs/2026-09-26T01-50-12-213Z-kollab-gateway-copy.log)。
+  // 这个字段就是"子 agent 应该实际用哪个模型 ID"——同一个网关、同一把 key,只是 model
+  // 字段可能换一个(可以和主模型相同,也可以是同网关下更便宜/更可靠的模型)。
+  //
+  // 【怎么落地 —— 不是绕过校验,是用 Claude Code 自己支持的映射机制】
+  // isolated-env.mjs 会把这个值通过两个 Claude Code CLI 原生支持的环境变量落地:
+  // CLAUDE_CODE_SUBAGENT_MODEL=sonnet(让子 agent 走一个本地认识的档位别名,不再原样
+  // 继承那个网关模型 ID)+ ANTHROPIC_DEFAULT_SONNET_MODEL=<这里的值>(把"sonnet"这个别名
+  // 解析到网关真实认的模型 ID)。这两个变量名和用途是从已安装的 SDK 原生二进制
+  // (node_modules/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude)反汇编字符串常量核实出来的,
+  // 不是凭记忆猜的环境变量名。不设这个字段就是当前行为(子 agent 原样继承主 model 字符串)。
+  let subagentModel;
+  if ('subagentModel' in def) {
+    if (typeof def.subagentModel !== 'string' || def.subagentModel.length === 0) {
+      throw new ConfigError(`models.config.json 里的 "${name}" 的 subagentModel 必须是非空字符串(子 agent 实际要发给上游的模型 ID)。`);
+    }
+    subagentModel = def.subagentModel;
+  }
+
+  const protocol = def.protocol ?? 'anthropic-messages';
+  if (!VALID_PROTOCOLS.has(protocol)) {
+    throw new ConfigError(
+      `models.config.json 里的 "${name}" 的 protocol 只能是 ${[...VALID_PROTOCOLS].join(' / ')} 之一,当前是 "${protocol}"。`,
+    );
+  }
+  // typesafe-systemone 协议不经过 isolated-env.mjs 的 x-api-key/auth-token 映射
+  // (那套映射是 Claude Agent SDK 专用的),强制用 bearer-raw 避免有人以为配了
+  // x-api-key/auth-token 就能拿去跑 run/run-many。
+  if (protocol === 'typesafe-systemone' && authHeader !== 'bearer-raw') {
+    throw new ConfigError(
+      `models.config.json 里的 "${name}" protocol 是 "typesafe-systemone",authHeader 必须是 "bearer-raw",当前是 "${authHeader}"。`,
+    );
+  }
+
   return {
     name,
     description: def.description ?? '',
@@ -134,8 +195,10 @@ function validateEntry(name, def) {
     model: def.model,
     apiKeyEnv: def.apiKeyEnv,
     authHeader,
+    protocol,
     headerEnvs: validateHeaderEnvs(name, def),
     requiresGateway: Boolean(def.requiresGateway),
+    ...(subagentModel ? { subagentModel } : {}),
   };
 }
 

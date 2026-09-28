@@ -30,8 +30,8 @@
           "description": "guestbook-engine and publish-platform behave differently enough that they are not merged: an engine covers many host sites at once."
         },
         "scope": {
-          "enum": ["single-site", "engine"],
-          "description": "engine means one codebase across many independent hosts. Engine records describe mechanics only; per-host settings (robots, anti-bot questions, moderation) must be probed per host and never generalised from one sample."
+          "enum": ["single-site", "engine", "own-property"],
+          "description": "engine means one codebase across many independent hosts. Engine records describe mechanics only; per-host settings (robots, anti-bot questions, moderation) must be probed per host and never generalised from one sample. own-property means a page controlled by the publisher, such as a public repository."
         },
         "homepage": { "type": "string", "format": "uri" },
         "urlPattern": {

@@ -64,11 +64,21 @@
 **2026-09-12 复测通过（扩展 1.1.1，两站 16 个 URL 全部 15/15 section）**——修的是上面那条 1.1.0 已知回归。
 
 ```bash
-bash <rankup-skill-dir>/scripts/aitdk-opencli.sh <url> [session-name] [output.json] [--skip-panel]
+bash <rankup-skill-dir>/scripts/aitdk-opencli.sh <url> [session-name] [output.json] [options]
 ```
 
-- `session-name` 默认 `aitdk`；`output.json` 默认 `./aitdk-report-<domain>-<时间戳>.json`。
+- `session-name` 默认自动生成（URL 哈希 + 时间戳，不是固定字面量），两次不传会话名的并发调用不会撞同一个标签页；`output.json` 默认 `./aitdk-report-<domain>-<时间戳>.json`。
 - `--skip-panel` 只跑 Part A（页面自身 HTML/robots/sitemap/whois），不碰扩展——**没装扩展、或只想要页面事实时走这条**。
+- `--window dedicated`（默认，2026-09-25 起）| `--window foreground`（兜底）：见下方「窗口模式：dedicated 默认、真并发的边界」。多个 URL 用 `scripts/aitdk-batch.sh`，不要手写循环调这条命令。
+
+### 窗口模式：dedicated 默认、真并发的边界（【实测 2026-09-25】）
+
+2026-09-25 之前这条脚本硬编码 `--window foreground`——每次跑都会把用户的 Chrome 窗口抬到前台、切走他正在看的标签页，命中 [`discipline.md`](discipline.md)「四条最常被违反的」第 3 条红线。改成默认 `--window dedicated`（OpenCLI 专用窗口：不聚焦、不进用户窗口，标签页在自己的窗口里保持 `visible`）后实测：
+
+- **AITDK 在 dedicated 窗口里工作正常，和 foreground 没有差别**：morsecodebox.com 全量单跑，15/15 section 有内容、0 错误、**2 分 13 秒**（对照旧版 foreground 基线 2 分 08 秒，同一量级）；全程 `osascript` 读前台 App 名字保持 `Claude` 不变——**零抢焦点**，用户的窗口、标签页全程未被触碰。
+- **同一台单屏机器上，真正同时可见的 dedicated 窗口上限是 1，不是脚本能调的**：OpenCLI 扩展在创建第 2 个专用窗口前会做一次容量检查（`assertDedicatedCapacity`，`extension/src/background.ts`），按显示器面积 ÷ 硬编码的 900×620 最小格算出 `capacity`；**这条检查不认 `--window-bounds`**——即使调用方显式给了更小的、互不重叠的坐标，第 2 个窗口照样在创建那一步直接报错 `dedicated-pool-exhausted`，不是「挤出来一个更小的窗口」。本机单屏 1512×949（point，对应 3024×1964 physical Retina）算出来的 `capacity` 就是 1；`opencli browser <s> window status -f json` 的 `pool.capacity` 是权威数字，改不了（没有对应的 env/flag，改要动 OpenCLI 扩展源码，不在本 Skill 范围内）。
+- **`scripts/aitdk-batch.sh` 已经按这个事实设计**：跑前先查 `pool.capacity`，请求的 `--concurrency` 大于真实容量就自动下调并打印原因，不会无脑发起注定失败的并发请求；单屏机器上因此表现为**安全串行**（一个一个跑，不抢焦点），不是失败。哪怕并发数已经正确下调到 1，如果这台机器上**同时还有别的 opencli 会话在用专用窗口**（哪怕只是一个空闲未关的窗口——`assertDedicatedCapacity` 数的是"窗口存在"不是"窗口忙"），仍会报同一个错；脚本对这个错单独识别、退避 20 秒再重试，而不是立刻按普通失败处理。
+- **真正的多窗口并发需要第二块（哪怕是虚拟的）显示器**：OpenCLI 的专用窗口机制原生支持 `--window-display` 把不同 slot 分别钉到不同显示器，每块显示器各自单独算 `capacity`；只要有一块够大的（或几块都过 900×620 门槛的）第二显示器，`aitdk-batch.sh` 现成的分块摆放逻辑无需改动就能生效。本机确认没有现成的虚拟屏（`system_profiler SPDisplaysDataType` 只有内建屏；`betterdisplaycli` 已装但 `/Applications/BetterDisplay.app` 缺失，是个没装完的 brew cask，需要 `brew reinstall --cask betterdisplay` 才能用）——这是系统级、影响整台共享机器桌面的改动，本次没有动，留给用户/主线程决定要不要开。
 
 **前置条件（少一条就白跑）：**
 
@@ -84,6 +94,14 @@ bash <rankup-skill-dir>/scripts/aitdk-opencli.sh <url> [session-name] [output.js
 **故意不抓**：Settings / Archive（本地 UI）、Similarweb / Semrush / Ahrefs / PageSpeed / Twitter（点了会跳外站，不是面板内容）。
 
 **实测成绩**：nonogram-game.com，15/15 有内容、0 错误、2 分 08 秒，结束后无残留会话（脚本自己关面板、关 session）。**每抓完一个 section 落盘一次**，所以中途被打断也留得下半份结果。
+
+### 多个 URL：`scripts/aitdk-batch.sh`（不要手写循环）
+
+```bash
+bash <rankup-skill-dir>/scripts/aitdk-batch.sh [--concurrency N] [--out-dir DIR] [--retries N] [--skip-panel] <url...>
+```
+
+`--concurrency` 默认 3，但会按上一节「窗口模式」实测的真实容量（`pool.capacity`）自动下调——单屏机器上这意味着实际是安全串行，不是并发失败；有第二块显示器时同一份代码不需要改动就能真正并发。每个 URL 独立输出 JSON + 独立日志，失败重试一次（`--retries` 可调），产出 `manifest.json`（每 URL 的 `status`/`duration_sec`/`output`/`error`，失败记具体原因，不写成 0 分）。即便在单屏机器上只能串行，也比手写循环调 `aitdk-opencli.sh` 好：默认 `--window dedicated` 不抢用户焦点（旧脚本的 `--window foreground` 每次都会抢），失败自动重试、有汇总，不用自己攒这套逻辑。
 
 **输出 JSON 的形状：**
 
@@ -120,8 +138,8 @@ node "$RANKUP/scripts/aitdk-triage.mjs" report1.json report2.json --out '<output
   `raw` 只有五个分类名重复两遍、没有任何数字（`bodyLength` 看起来有 190 左右，不算「空」，触发不了
   上面通用的空内容重试）；有时结构齐全，但最上面的总分停在 `0 / 100`（动画还没播完）。两种情况脚本
   都不报错，此前会被原样写进报告。`aitdk-opencli.sh` 现在对 GEO 单独做了稳定性重试（`geo_score_from_text()`：
-  找 `GEO Score` 之后几行内第一个纯数字行，非空且不是 `0` 才收，最多等 5 次 × 5 秒）；仍然拿不到，
-  `aitdkPanel.errors` 里会留一条 `geo: score unsettled after retries...`，消费报告前先查这条，
+  找 `GEO Score` 之后几行内第一个纯数字行，非空且不是 `0` 才收，最多等 18 次 × 10 秒）；仍然拿不到，
+  `aitdkPanel.errors` 里会留一条 `geo: score unsettled after retries...`，且 `aitdkPanel.ok` 为 `false`，消费报告前先查这条，
   不要直接把 0 分或空分当成真实结果。
 
 判读时的规矩不变：**脚本只采集，判读归你**；`fields` 空 ≠ 这项没问题，先看 `raw`。
@@ -436,7 +454,7 @@ grep -oiE '(gtag|googletagmanager|clarity\.ms|cloudflareinsights|plausible|umami
 区间最宽，只筛明显异常）。仓里另有两把口径不同的尺——`seo-webcafe.mjs string`
 的 30–60 / 70–160（按近似展示宽度计长）与 Ahrefs 的 110–160——三者的对照与
 「说超长时必须点名是哪把尺」的规矩，见
-[`seo-webcafe.md`](seo-webcafe.md) 「本地命令数值判读指引」的
+[`seo-webcafe.md`](seo-webcafe.md) （仅作工具入口）的
 「`string` 的判读：三套 TDK 长度口径，别混着引」小节。
 
 密度（unigrams/bigrams/trigrams）没有「正确值」：它是给判读者看「这页在向搜索引擎

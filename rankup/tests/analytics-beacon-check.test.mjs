@@ -28,6 +28,32 @@ test("same-URL duplicate DOM nodes survive resource classification and fail", ()
   assert.equal(c.cfWebAnalytics.status, "fail");
 });
 
+test("CF WA beacon.min.js plus hashed follow-up is one loader chain, not a duplicate", () => {
+  const hashed = "https://static.cloudflareinsights.com/beacon.min.js/vcd15cbeee25f4484be67cf61b1bfb5071718122128715";
+  const c = classifyBeacons(snapshot({
+    scripts: [...scripts, hashed],
+    resources: [
+      ...snapshot().resources,
+      { url: hashed, initiatorType: "script", responseStatus: 200 },
+    ],
+  }));
+  assert.equal(c.cfWebAnalytics.scriptCount, 1);
+  assert.equal(c.cfWebAnalytics.status, "pass");
+  assert.equal(c.cfWebAnalytics.sendingStatus, "verified");
+});
+
+test("Clarity tag without collect is a warning, not fail", () => {
+  const c = classifyBeacons(snapshot({
+    network: sends.filter(url => !url.includes("clarity.ms")).map(url => ({ url, method: "POST", status: 204 })),
+    resources: scripts.map(url => ({ url, initiatorType: "script", responseStatus: 200 })),
+  }));
+  assert.equal(c.clarity.status, "tag-loaded-no-collect");
+  assert.equal(c.clarity.warning, "tag-loaded-no-collect");
+  assert.match(c.clarity.hint, /扩展拦截/);
+  assert.equal(c.ga4.status, "pass");
+  assert.match(formatBeaconTable(c), /tag-loaded-no-collect/);
+});
+
 test("normal SDK children and a separate GTM loader are not duplicate entrypoints", () => {
   const children = ["https://scripts.clarity.ms/0.8.69/clarity.js", "https://www.googletagmanager.com/gtm.js?id=GTM-PRIVATE"];
   const c = classifyBeacons(snapshot({ scripts: [...scripts, ...children], resources: [
