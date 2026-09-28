@@ -328,11 +328,9 @@ function reuseExisting() {
   )
   settle(2500)
   scene("data-streams")
-  const ids = extractMeasurementIds()
-  if (ids.length) return ids[0]
   try {
     stampAndClick(
-      `[...document.querySelectorAll('mat-row,[role="row"],a,button')].find(el => new RegExp(${JSON.stringify(domain.replace(".", "\\."))},'i').test(el.innerText||'') && (el.innerText||'').length < 400 && el.offsetParent)`,
+      `[...document.querySelectorAll('mat-row,[role="row"]')].find(el => (el.innerText||'').split('\\n').some(t => ['https://','http://'].some(prefix => t.trim() === prefix + ${JSON.stringify(domain)})) && el.offsetParent)`,
       "已有数据流",
       "data-rankup-row",
     )
@@ -365,7 +363,7 @@ function createProperty() {
   settle(400)
 
   stampAndClick(
-    `[...document.querySelectorAll('time-zone-selector button.menu-open-button, button.menu-open-button')].find(b => b.offsetParent && (b.innerText||'').trim().length > 0 && (b.innerText||'').trim().length < 20 && !/下一步|返回|Next|Back/.test(b.innerText||''))`,
+    `document.querySelector('searchable-select.country-selector button.menu-open-button')`,
     "时区国家",
   )
   settle(600)
