@@ -1,8 +1,8 @@
 ---
 name: opencli
-description: 用 OpenCLI 驱动用户本机那个真实的、已登录的 Chrome，或调用它的 160+ 站点 adapter。任何需要登录态的页面操作都从这里开始——读登录后的后台、抓没有 API 的表格、填表提交、跑一个站点命令、把页面数据取回来。也覆盖会话命名与租约纪律（"我的标签页被别人抢了"）、批量取数与落盘、adapter 的编写与自修复、opencli doctor 排障。用户提到 opencli、浏览器自动化、用我的浏览器、驱动 Chrome、登录态、抓后台数据、抓表格、导出报表、填表、自动点击、截图、adapter、doctor 报错、session 撞名、标签页被抢、tab 泄漏，或说"打开这个页面看看""帮我登录后台查一下""这个站没有 API"时，务必使用本 Skill。也在需要判断"这件事该不该开浏览器"时使用——本 Skill 第零节就是那张判断表（要不要登录态、有没有现成脚本或 adapter、配额站能不能动手、什么时候该转给 agent-reach 或业务 Skill）。只要动作会落在浏览器上，先读这里再动手。
+description: 用 OpenCLI 驱动用户本机那个真实的、已登录的 Chrome，或调用它的 160+ 站点 adapter。任何需要登录态的页面操作都从这里开始——读登录后的后台、抓没有 API 的表格、填表提交、跑一个站点命令、把页面数据取回来。也覆盖会话命名与租约纪律（"我的标签页被别人抢了"）、批量取数与落盘、adapter 的编写与自修复、opencli doctor 排障。用户提到 opencli、浏览器自动化、用我的浏览器、驱动 Chrome、登录态、抓后台数据、抓表格、导出报表、填表、自动点击、截图、测试自己的网站、E2E、截图比对、adapter、doctor 报错、session 撞名、标签页被抢、tab 泄漏，或说"打开这个页面看看""帮我登录后台查一下""这个站没有 API"时，务必使用本 Skill。也在需要判断"这件事该不该开浏览器"时使用——本 Skill 第零节就是那张判断表（要不要登录态、有没有现成脚本或 adapter、配额站能不能动手、什么时候该转给 agent-reach 或业务 Skill）。只要动作会落在浏览器上，先读这里再动手。
 metadata:
-  version: "1.8.0"
+  version: "1.8.1"
 ---
 
 # OpenCLI
@@ -26,6 +26,7 @@ OpenCLI 把任意网站、Electron 桌面应用和外部 CLI 收敛成一条 `op
 
 | 用户大概会这么说 | 该走哪条 | 为什么 |
 |---|---|---|
+| 「测试/验收自己的网站」「跑 E2E」「截图比对」「走一遍支付测试」 | **用**（`opencli browser`，dedicated 窗口） | 浏览器里的真实页面和操作都从本机 Chrome 验收 |
 | 「帮我登录后台查一下」「看我的 GSC / 数据面板」 | **用**（`opencli browser`） | 需要身份。沙箱浏览器要么跳登录页，要么以匿名身份返回**更少的字段、更低的配额** |
 | 「这个站没有 API，把表格给我」 | **用**，但先看第四节有没有 adapter | adapter 里封装过的坑，现场驱动要重踩一遍 |
 | 「填一下这个表单」「帮我提交」 | **用**，但提交动作归业务 Skill 管 | 本 Skill 只负责把浏览器开对；能不能按提交见 `backlink` 的三道闸 |
@@ -40,6 +41,18 @@ OpenCLI 把任意网站、Electron 桌面应用和外部 CLI 收敛成一条 `op
 
 **一句话判据**：*无痕窗口打开它，还是不是同一个东西？* 不是 → 必须走用户真实的
 Chrome（也就是本 Skill）；是 → 先找 API 或现成脚本。
+沙箱浏览器（Playwright / agent-browser / headless）在本机不作为选项，只有用户明确点名时才用。
+
+最小操作示例（选择本地或预览 URL，`state` 返回的输入框引用也可替代 CSS 选择器）：
+
+```bash
+opencli browser site-acceptance open http://localhost:3000 --window dedicated
+opencli browser site-acceptance upload 'input[type="file"]' /path/to/file.png
+opencli browser site-acceptance click --role button --name '提交'
+opencli browser site-acceptance network --since 30s
+opencli browser site-acceptance screenshot /tmp/site-acceptance.png
+opencli browser site-acceptance close
+```
 
 
 ---

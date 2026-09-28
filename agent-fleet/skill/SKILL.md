@@ -74,6 +74,7 @@ description: 按全局 CLAUDE.md §2 路由表默认使用：大部分任务（�
 
 - 开头说明目标和真实交付物。
 - 写明允许改的文件、不可碰的范围、并行工作边界。
+- 涉及浏览器的步骤必须写「用 opencli（`opencli browser <会话名>`），禁止 Playwright/agent-browser」。
 - 写明必须跑的检查和完成标准。
 - 需要改文件时加 `--expect-changes`。
 - 最终回复要列出改动与验证结果，不能只说“已完成”。

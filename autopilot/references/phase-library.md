@@ -65,9 +65,9 @@ Autopilot 根据分类结果加载对应模板，用调查发现填充具体内�
   </phase>
 
   <phase id="e2e-1" order="6" mandatory="true">
-    <skill>项目 test skill + agent-browser</skill>
+    <skill>项目 test skill + opencli</skill>
     <goal>第一轮 E2E 验证——每个 issue 现象真实消失（独立 checker subagent）</goal>
-    <gate>agent-browser 截图/操作结果证明现象消失 + 无回归</gate>
+    <gate>opencli browser 截图/操作结果证明现象消失 + 无回归</gate>
     <done-when>所有子问题验证通过，无回归</done-when>
     <on-fail>分类失败原因后 loop 回对应上游 phase</on-fail>
     <skip-forbidden>本地测试只验证逻辑，E2E 验证部署后真实行为</skip-forbidden>
@@ -92,9 +92,9 @@ Autopilot 根据分类结果加载对应模板，用调查发现填充具体内�
   </phase>
 
   <phase id="e2e-2" order="9" mandatory="true">
-    <skill>项目 test skill + agent-browser</skill>
+    <skill>项目 test skill + opencli</skill>
     <goal>二次 E2E 验证（独立 checker subagent）</goal>
-    <gate>agent-browser 截图/操作结果确认功能正常</gate>
+    <gate>opencli browser 截图/操作结果确认功能正常</gate>
     <done-when>验证通过</done-when>
     <on-fail>分类失败原因后 loop 回对应上游 phase</on-fail>
     <skip-forbidden>确保 review 修改没有破坏任何东西</skip-forbidden>
@@ -201,9 +201,9 @@ Autopilot 根据分类结果加载对应模板，用调查发现填充具体内�
   </phase>
 
   <phase id="e2e-1" order="5" mandatory="true">
-    <skill>项目 test skill + agent-browser</skill>
+    <skill>项目 test skill + opencli</skill>
     <goal>端到端验证功能正常（独立 checker subagent）</goal>
-    <gate>agent-browser 操作/截图确认功能可用 + 无回归</gate>
+    <gate>opencli browser 操作/截图确认功能可用 + 无回归</gate>
     <done-when>功能正常工作，无回归</done-when>
     <on-fail>分类失败原因后 loop 回对应上游 phase</on-fail>
     <skip-forbidden>本地 build 通过不等于部署后功能正常</skip-forbidden>
@@ -227,9 +227,9 @@ Autopilot 根据分类结果加载对应模板，用调查发现填充具体内�
   </phase>
 
   <phase id="e2e-2" order="8" mandatory="true">
-    <skill>项目 test skill + agent-browser</skill>
+    <skill>项目 test skill + opencli</skill>
     <goal>二次 E2E 验证（独立 checker subagent）</goal>
-    <gate>agent-browser 确认功能正常</gate>
+    <gate>opencli browser 操作/截图确认功能正常</gate>
     <done-when>验证通过</done-when>
     <on-fail>分类失败原因后 loop 回对应上游 phase</on-fail>
   </phase>
@@ -400,9 +400,9 @@ Autopilot 根据分类结果加载对应模板，用调查发现填充具体内�
   </phase>
 
   <phase id="verify" order="3" mandatory="true">
-    <skill>项目 test skill + agent-browser</skill>
+    <skill>项目 test skill + opencli</skill>
     <goal>部署后验证功能正常（独立 checker subagent）</goal>
-    <gate>agent-browser 操作/截图确认关键功能可用</gate>
+    <gate>opencli browser 操作/截图确认关键功能可用</gate>
     <done-when>关键功能正常，无回归</done-when>
     <on-fail>回退或修复后重部署</on-fail>
   </phase>
