@@ -72,7 +72,7 @@ for (let i = 1; i < argv.length; i++) {
 
 function usage() {
   console.log(`用法:
-  node ga4-setup.mjs status
+  node ga4-setup.mjs status [--domain <域名>]
   node ga4-setup.mjs create --domain <域名> [--name <媒体资源名>] [--country 冰岛|巴西] [--timezone UTC] [--currency USD]
   --timezone-country 是 --country 的别名。时区列表没有 UTC 时用 --country/--timezone 显式指定。
   已有同域名媒体资源则复用，输出 Measurement ID（形如 G-XXXXXXXXXX）。`)
@@ -80,7 +80,7 @@ function usage() {
 
 if (!["status", "create"].includes(action)) { usage(); process.exit(1) }
 if (action === "create" && !domain) { console.error("错误：create 需要 --domain"); process.exit(1) }
-if (action === "create" && !name) name = domain.split(".")[0]
+if (domain && !name) name = domain.split(".")[0]
 domain = domain ? domain.replace(/^https?:\/\//, "").replace(/\/.*$/, "") : domain
 
 function cli(args, { timeout = 30000 } = {}) {
@@ -149,6 +149,7 @@ function evidenceDir() {
 }
 let sceneN = 0
 function scene(tag, extra) {
+  if (action === "status") return
   sceneN++
   return captureScene({
     dir: evidenceDir(),
@@ -159,7 +160,7 @@ function scene(tag, extra) {
   })
 }
 function bail(stopReason, msg, extra) {
-  try {
+  if (action !== "status") try {
     scene(`fail-${stopReason}`, extra)
     writeManifest(evidenceDir(), { script: "ga4-setup", action, domain, name, stopReason, finishedAt: new Date().toISOString() })
     console.error(`现场已落盘：${evidenceDir()}`)
@@ -258,7 +259,29 @@ function pickerText() {
   `)
 }
 
-function doStatus() {
+async function doStatus() {
+  if (domain) {
+    goAdmin()
+    openPicker()
+    fillVisibleFilter(name.slice(0, 3))
+    const match = pageText(10000).split("\n").find(line =>
+      /GA4 媒体资源|GA4 property/i.test(line) &&
+      line.toLowerCase().replace(/[^a-z0-9]/g, "").includes(name.toLowerCase()))
+    const id = match?.match(/(?:GA4 媒体资源|GA4 property)\s*(\d+)/i)?.[1]
+    const account = evalJs("return location.href").match(/a(\d+)p\d+/)?.[1]
+    if (!id || !account) {
+      const html = await fetch(`https://${domain}/`).then(r => r.ok ? r.text() : "").catch(() => "")
+      console.log(/G-[A-Z0-9]{6,}/.test(html)
+        ? `${domain} 线上已部署 GA4 Measurement ID（当前账号列表未显示资源）`
+        : `${domain} 未找到网站数据流`)
+      return
+    }
+    open(`https://analytics.google.com/analytics/web/#/a${account}p${id}/admin/streams/table`)
+    waitFor(`return /数据流|Data streams/.test(document.body.innerText||'') && /${domain.replaceAll(".", "\\.")}/i.test((document.body.innerText||'').split('©')[0])`, 25)
+    const found = pageText(5000).split("©")[0].includes(domain)
+    console.log(found ? `${domain} 已找到网站数据流` : `${domain} 未找到网站数据流`)
+    return
+  }
   goAdmin()
   openPicker()
   scene("picker", { text: pickerText() })
@@ -484,7 +507,7 @@ function doCreate() {
 }
 
 try {
-  if (action === "status") doStatus()
+  if (action === "status") await doStatus()
   else doCreate()
 } catch (e) {
   bail("execution-error", e.message)
