@@ -2,7 +2,7 @@
 name: rankup
 description: 管理网站和原生 App 的需求验证、立项、开发、上线及增长。用户明确提到 rankup，或任务涉及选词、SERP、SEO/GEO、索引、搜索平台、流量、网站体检、建站、接支付/选支付商（Stripe、Anyway、PayPal）、付费与变现及增长时使用。先定位项目与具体问题，再按七段生命周期加载对应参考文件；单纯写文案、做设计或问通用开发问题，不因关键词碰巧出现就强制启动完整流程。
 metadata:
-  version: "3.26.2"
+  version: "3.27.0"
 ---
 
 # Rankup 3.0
@@ -25,6 +25,7 @@ metadata:
 
 | 用户会说的话 | 段 | 入口 |
 |---|---|---|
+| 「继续」「/rankup 继续接下来的任务工作」「接着上次做」「上次做到哪了」 | 当前段 | [`project-memory.md` 接力协议](references/project-memory.md#接力协议任务随时可能中断新会话必须立即接上)：定位项目 → 读 `INDEX.md`「接力」→ 查后台任务与未提交改动 → 对账后直接执行下一条动作，不反问 |
 | 「看下这批数据有没有能做的关键词」「找几个关键词」「挖点需求」「最近有什么能做的」 | 1 | [`playbooks/research.md`](references/playbooks/research.md)（P0 分流 → 词根调研） |
 | 「调研一下这个词」「调研一下这关键词」「调研的关键词」「这个词能不能做站」「这词难不难」「帮我扩词」 | 1 | `research.md` **P2 词根调研**：任何词都是词根，先直接搜再扩树（旧 P3 已并入 P2，不再有单独的扩词流水线） |
 | 「找个 xxx 关键词需求」「找个 xxx 的词」「xxx 这块有什么词能做」「帮我找 xxx 的需求」 | 1 | xxx 当词根进 `research.md` P2，按[「五个取数动作与编排」](references/playbooks/research.md#五个取数动作与编排探索循环)编排①全自动跑完（词→站看 SERP → 词→词浅扩 → 站→词反查竞品 → 站→站 → 取量/KD/CPC → 筛子 → 社区 → 意图 → 折成钱），不反问、不只在种子词上换后缀 |
@@ -288,7 +289,7 @@ G 组那条线：`scripts/review.mjs --project-root .` 出五块报告；再挖�
 2. 读 `.rankup/INDEX.md` 与 `.rankup/skill-state.json`；不存在按 [`project-memory.md`](references/project-memory.md) 初始化，不重建技术栈。只读任务相关文件，不无差别加载日志目录。**本轮要碰的每个词、方向、功能、渠道、域名先 `grep -i` 一遍 `.rankup/rejected.md`**，命中的只有跳过并引用、或写明复活条件已满足两种处置。
 3. **三方对账门禁**：回答「接下来做什么」或宣称任何进度之前，交叉核对 `git log --oneline -25`、真实路由清单、线上 `sitemap.xml` 全量 `<loc>`。`plan.md` 的勾选、`progress.md`、autopilot 状态都是滞后指标；外部状态（Cloudflare、GSC、Stripe、索引、外链）以当前查询为准。不一致先回写 `.rankup/` 再继续。
 4. 读 [`references/checklists.md`](references/checklists.md) 与 `.rankup/checks.md` 定段，不凭印象；需要可复用操作先查跨项目登记表。
-5. 做完更新 `.rankup/` 事实、决策、计划；把本轮过掉的 check 逐条记进 `checks.md`，动过线上 URL 的把标「动了 URL」的打回 ⬜。
+5. **随做随记，不等收尾**：开工先写 `INDEX.md`「接力」，每个里程碑、每次派出或收回后台任务都覆盖更新（缓存最长 1 小时，会话随时可能断，见 [`project-memory.md` 接力协议](references/project-memory.md#接力协议任务随时可能中断新会话必须立即接上)）。做完更新 `.rankup/` 事实、决策、计划；把本轮过掉的 check 逐条记进 `checks.md`，动过线上 URL 的把标「动了 URL」的打回 ⬜。
 6. **收尾闸门**：结束前对照下文「可复用操作必须落成脚本」过一遍；没沉淀成脚本、报告里没有「沉淀的脚本」一节，本轮就不算完成。
 7. **沉淀义务与是否调用本 Skill 无关**：只要项目里有 `.rankup/`，任何任务完成后都要回写可复用结论，判据是「下次能否少走一遍」。
 
