@@ -326,11 +326,24 @@ async function main() {
   // the real button, and the click is silently swallowed. Poll client-side
   // until elementFromPoint at the button's center resolves to the button
   // itself before clicking it.
+  //
+  // `elementFromPoint` only ever resolves against the current *viewport* —
+  // it ignores content scrolled out of view entirely (returns whatever is
+  // actually painted at that x/y, which can be a totally unrelated element,
+  // the <body>, or null). On short browser windows (observed: viewport
+  // height ~702px, button top ~1006px) the button sits below the fold on
+  // page load, so `top` never equals `btn` and this loop spins to the 30s
+  // deadline every time even though the button is real, enabled, and would
+  // be clickable if scrolled into view. Fixed 2026-09-29: scroll the button
+  // to the vertical center of the viewport on every iteration (cheap,
+  // idempotent, and self-correcting if a re-render moves it again) before
+  // doing the elementFromPoint hit-test.
   const submitReadyJs =
     `(async()=>{const start=Date.now();const deadline=start+30000;` +
     `while(Date.now()<deadline){` +
     `const btn=document.querySelector('[data-testid=hosted-payment-submit-button]');` +
-    `if(btn){const r=btn.getBoundingClientRect();` +
+    `if(btn){btn.scrollIntoView({block:'center',inline:'center'});` +
+    `const r=btn.getBoundingClientRect();` +
     `const top=document.elementFromPoint(r.left+r.width/2, r.top+r.height/2);` +
     `if(top===btn||btn.contains(top)){return JSON.stringify({ready:true,waitedMs:Date.now()-start});}}` +
     `await new Promise(res=>setTimeout(res,300));}` +
