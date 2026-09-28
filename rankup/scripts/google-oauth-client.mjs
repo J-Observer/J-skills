@@ -547,7 +547,7 @@ function tryExtractCredentials() {
       const dialog = document.querySelector('[role=dialog], mat-dialog-container');
       if (!dialog) return 'null';
       const text = dialog.innerText || '';
-      const idMatch = text.match(/[\\d-]+\\.apps\\.googleusercontent\\.com/);
+      const idMatch = text.match(/\\d+-[a-z0-9_-]+\\.apps\\.googleusercontent\\.com/);
       const inputs = Array.from(dialog.querySelectorAll('input')).map(i => i.value).filter(Boolean);
       const secretGuess = inputs.find(v => v && !v.includes('.apps.googleusercontent.com') && v.length > 10);
       if (!idMatch || !secretGuess) return 'null';
