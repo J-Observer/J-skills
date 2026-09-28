@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * clarity-setup.mjs —— 在 Microsoft Clarity 里创建项目并拿到追踪 ID，
- * 驱动用户已登录的浏览器，不需要 API key。
+ * clarity-setup.mjs —— 列出 Clarity 项目或创建项目并拿到追踪 ID；
+ * 驱动用户已登录的浏览器，不需要 API key。status 只读，默认关会话。
  *
  * 用法：
  *   # 查看当前账号下所有项目（只读）
@@ -39,7 +39,11 @@
  *
  * 这段代码是公开值（会出现在页面 HTML 里），不是秘密。
  *
- * 已验证：2026-08-23（中文界面）
+ * 已验证：2026-09-28（中文界面，status 实际列出项目；三个项目仪表板最近 3 天可读）。
+ * 已知坑：/projects 会恢复上次的仪表板；直接打开 /projects/view/<id>
+ * 曾得到 "Confirmation Type not supported!"，应从真实列表点击项目行。status
+ * 检查列表 DOM 与登录/授权/验证码，绝不把仪表板或异常页误报为项目列表。
+ * 本脚本不操作 Bing 或 Google 账户选择器；对应默认行为属于各自接入脚本。
  *
  * ── 双证人化（2026-08-30，截图链路已实盘验证）────────────────
  * 每步截图落 `.rankup/evidence/clarity-setup-<ts>/`；`execSync("sleep")` 革除；
@@ -217,15 +221,23 @@ function selectIndustry(wanted) {
 // ── status：列出所有项目 ──────────────────────────────────
 async function doStatus() {
   open("https://clarity.microsoft.com/projects")
-  waitPageReady(20)
+  if (!waitPageReady(20)) bail("page-not-ready", "Clarity 页面未加载完成。")
+  const loginWall = `return /\\/(?:login|sign-in|signin)(?:[/?#]|$)/i.test(location.pathname) || !!document.querySelector('input[type="password"],form[action*="login"],iframe[src*="captcha"],iframe[src*="consent"]')`
+  if (waitFor(loginWall, 1)) bail("login-or-challenge", "Clarity 出现登录或验证页面，停止操作。")
 
-  const text = pageText(8000)
-  if (text.includes("Sign in") || text.includes("登录")) {
-    bail("login-text-seen", "页面文本命中 Sign in/登录——多半未登录 Clarity（也可能是撞词，看截图）。请先在浏览器中登录 clarity.microsoft.com")
+  // /projects restores the last dashboard. Use the real header button to return.
+  if (evalJs(`return !!document.querySelector('[data-clarity-id="addNewProjectButton"]')`) !== "true") {
+    if (evalJs(`return !!document.querySelector('button[class*="myProjectsButton"]')`) !== "true") {
+      bail("projects-navigation-missing", "找不到 Clarity 的“我的项目”按钮，停止操作。")
+    }
+    cli('click "button[class*="myProjectsButton"]"')
   }
-
+  if (!waitFor(`return location.pathname==='/projects' && !!document.querySelector('[data-clarity-id="addNewProjectButton"]') && !!document.querySelector('table')`, 30)) {
+    bail("projects-not-rendered", "Clarity 项目列表未加载，不把仪表板或异常页误报为列表。")
+  }
+  if (evalJs(loginWall) === "true") bail("login-or-challenge", "Clarity 出现登录或验证页面，停止操作。")
   console.log("── Clarity 项目列表 ──")
-  console.log(text)
+  console.log(pageText(20000))
 }
 
 // ── create：新建项目 ──────────────────────────────────────

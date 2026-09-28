@@ -86,7 +86,8 @@
 #
 # Options:
 #   --skip-panel          skip Part B (AITDK extension panel) entirely, Part A only
-#   --window <mode>       dedicated (default) | foreground — see "window modes" below
+#   --geo-only            capture Overview, Issues, GEO only for targeted rechecks
+#   --window <mode>       dedicated (default) | background | foreground — see "window modes" below
 #   --slot <name>         pin this run to a named OpenCLI dedicated window slot
 #                         (`^[A-Za-z0-9_.-]{1,40}$`). Omit it for a one-off call — the
 #                         session then borrows an idle window from OpenCLI's own pool
@@ -153,6 +154,7 @@ OPENCLI_BIN="${OPENCLI_BIN:-node /Users/kcsx/Project/kcsx/opencli/dist/src/main.
 # aitdk-batch.sh can append --window/--slot/--window-bounds after the three
 # positional args without disturbing them.
 SKIP_PANEL=0
+GEO_ONLY=0
 WINDOW_MODE="dedicated"
 SLOT=""
 WINDOW_BOUNDS=""
@@ -160,11 +162,12 @@ POSITIONAL=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --skip-panel) SKIP_PANEL=1; shift ;;
+    --geo-only) GEO_ONLY=1; shift ;;
     --window) WINDOW_MODE="${2:-}"; shift 2 ;;
     --slot) SLOT="${2:-}"; shift 2 ;;
     --window-bounds) WINDOW_BOUNDS="${2:-}"; shift 2 ;;
     -h|--help)
-      echo "Usage: $(basename "$0") <url> [session-name] [output-file] [--skip-panel] [--window dedicated|foreground] [--slot <name>] [--window-bounds x,y,w,h]" >&2
+      echo "Usage: $(basename "$0") <url> [session-name] [output-file] [--skip-panel|--geo-only] [--window dedicated|background|foreground] [--slot <name>] [--window-bounds x,y,w,h]" >&2
       exit 0 ;;
     --) shift; while [[ $# -gt 0 ]]; do POSITIONAL+=("$1"); shift; done ;;
     -*) echo "Unknown option: $1 (see --help)" >&2; exit 1 ;;
@@ -182,12 +185,12 @@ OUTFILE_GIVEN=0
 [[ -n "$OUTFILE" ]] && OUTFILE_GIVEN=1
 
 if [[ -z "$URL" ]]; then
-  echo "Usage: $(basename "$0") <url> [session-name] [output-file] [--skip-panel] [--window dedicated|foreground] [--slot <name>] [--window-bounds x,y,w,h]" >&2
+  echo "Usage: $(basename "$0") <url> [session-name] [output-file] [--skip-panel|--geo-only] [--window dedicated|background|foreground] [--slot <name>] [--window-bounds x,y,w,h]" >&2
   exit 1
 fi
 
-if [[ "$WINDOW_MODE" != "dedicated" && "$WINDOW_MODE" != "foreground" ]]; then
-  echo "--window must be 'dedicated' or 'foreground' (got: $WINDOW_MODE)" >&2
+if [[ "$WINDOW_MODE" != "dedicated" && "$WINDOW_MODE" != "background" && "$WINDOW_MODE" != "foreground" ]]; then
+  echo "--window must be 'dedicated', 'background' or 'foreground' (got: $WINDOW_MODE)" >&2
   exit 1
 fi
 if [[ -n "$SLOT" && ! "$SLOT" =~ ^[A-Za-z0-9_.-]{1,40}$ ]]; then
@@ -672,10 +675,14 @@ log "Part B: driving the AITDK extension panel (frame-eval path)"
 # Sections to read, in sidebar order. These are the exact button labels inside
 # the panel iframe. Deliberately omitted: Settings, Archive (local UI),
 # Similarweb / Semrush / Ahrefs / PageSpeed / Twitter (navigate off-site).
-PANEL_SECTIONS=(
-  Overview Traffic Backlinks Adsense Issues GEO SERP Density
-  Headings Images Links Social Hreflangs Structured Whois
-)
+if [[ "$GEO_ONLY" -eq 1 ]]; then
+  PANEL_SECTIONS=(Overview Issues GEO)
+else
+  PANEL_SECTIONS=(
+    Overview Traffic Backlinks Adsense Issues GEO SERP Density
+    Headings Images Links Social Hreflangs Structured Whois
+  )
+fi
 # Sections that fetch remote data and need a longer settle.
 SLOW_SECTIONS=" Traffic Backlinks Adsense GEO SERP "
 
