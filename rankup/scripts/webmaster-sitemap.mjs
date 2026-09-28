@@ -57,7 +57,7 @@
  * 4. **登录态失效的样子不是登录页，是一个空白/骨架页。** 判据是页面里找不到
  *    任何一条已知文案；此时只能由用户自己去浏览器里重新登录，脚本不代填密码。
  *
- * 已验证：2026-08-23（GSC status/submit、Bing status/submit 中文界面；Yandex status/submit 英文界面）
+ * 已验证：2026-09-28（status 只读；submit 保留截图和 manifest）
  * 已验证：2026-09-12（Bing 中文 UI 支持修复：LABELS.bing 的「站点地图」是误译，
  * Bing 实际中文文案是「网站地图」——status 只读复测 crossword-game.com /
  * nonogram-game.com 两站，均读出 sitemap 行状态「正在处理」、提交日期 2026/9/12）
@@ -228,6 +228,7 @@ function evidenceDir() {
 }
 /** 一幕现场 = 截图 + 页面文本，各自失败都不抛（错误进 manifest）。 */
 function scene(tag, extra) {
+  if (action === "status") return
   return captureScene({
     dir: evidenceDir(),
     tag,
@@ -249,13 +250,13 @@ function bail(stopReason, msg, extra) {
   try {
     stateSummary = pageText(500).replace(/\n{2,}/g, "\n").trim() || "（页面文本为空）"
   } catch { /* 页面可能正在导航，摘要拿不到也不影响主报错 */ }
-  try {
+  if (action !== "status") try {
     scene(`fail-${stopReason}`, extra)
     writeManifest(evidenceDir(), { script: "webmaster-sitemap", platform, action, stopReason, finishedAt: new Date().toISOString() })
   } catch (e) { console.error(`（取证失败：${String(e?.message || e).slice(0, 200)}）`) }
   console.error(msg)
   console.error(`── 当前页面文本摘要（前 500 字符）──\n${stateSummary}`)
-  console.error(`现场已落盘：${evidenceDir()}（判读以截图与页面文本为准；--keep-session 可留标签页）`)
+  if (action !== "status") console.error(`现场已落盘：${evidenceDir()}（判读以截图与页面文本为准；--keep-session 可留标签页）`)
   if (!keepSession) { try { cli("close") } catch { /* ignore */ } }
   process.exit(1)
 }

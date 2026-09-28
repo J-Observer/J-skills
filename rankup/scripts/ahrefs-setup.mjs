@@ -231,6 +231,7 @@ function evidenceDir() {
 }
 let sceneN = 0
 function scene(tag, extra) {
+  if (action === "status") return
   sceneN++
   return captureScene({
     dir: evidenceDir(),
@@ -242,7 +243,7 @@ function scene(tag, extra) {
 }
 /** 失败退出：现场 → manifest(stopReason) → 关会话 → exit 1。 */
 function bail(stopReason, msg, extra) {
-  try {
+  if (action !== "status") try {
     scene(`fail-${stopReason}`, extra)
     writeManifest(evidenceDir(), { script: "ahrefs-setup", action, site, stopReason, finishedAt: new Date().toISOString() })
     console.error(`现场已落盘：${evidenceDir()}`)

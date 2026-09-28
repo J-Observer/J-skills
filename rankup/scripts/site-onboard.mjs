@@ -1,17 +1,19 @@
 #!/usr/bin/env node
 /**
- * 已部署 Cloudflare 站点的上线接入总入口；顺序查询并调用现有脚本。
+ * 已部署 Cloudflare 站点的上线接入总入口；--check 只读，统计需在线上 HTML 回读。
  * 用法：node scripts/site-onboard.mjs --domain example.com --repo <仓库> [--session 名] [--only cf,ga4,...] [--skip cf,ga4,...] [--check]
  * 依赖：cf-analytics-setup、ga4-setup、clarity-setup、indexnow-submit、gsc-domain-verify、
  * bing-import-from-gsc、yandex-setup、ahrefs-setup、webmaster-sitemap（均在同目录）。
  * 登录态：OpenCLI 所连接的 Chrome 已登录 GA4、Clarity、GSC、Bing、Yandex、Ahrefs；
  * Cloudflare API 凭据沿用各脚本。Bing 掉线时点「使用 Google 登录」；Ahrefs 冻结项目
  * 会挡新建，GSC 验证不过才考虑 DNS；Google 账户下拉默认选第一项。
+ * 统计资源创建后写入 Workers Builds trigger env；需 push 重建部署后复查。
  * 验证日期：2026-09-28。
  */
 import { execFileSync } from "node:child_process"
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join, resolve } from "node:path"
+import { cfAuthHeaders, resolveCfAccountId } from "./lib-cf-auth.mjs"
 
 const argv = process.argv.slice(2)
 if (argv.includes("--help") || argv.includes("-h")) {
@@ -38,19 +40,81 @@ const browser = name => ["--session", `${session}-${name}`]
 const has = (name, args, pattern) => pattern.test(run(name, ...args))
 const sitemap = (platform, id, value) => has("webmaster-sitemap",
   [platform, "status", id, value, ...browser(platform)], /sitemap\.xml/i)
+let html
+const homepage = async () => html ??= await fetch(`${site}/`).then(r => r.ok ? r.text() : "")
+const live = async (name, id) => Boolean(id) && (await homepage()).includes(id) &&
+  (name !== "cf" || /beacon\.min\.js/.test(await homepage()))
+const ids = {}
+function skillEnv() {
+  const file = join(new URL("..", import.meta.url).pathname, ".env")
+  if (!existsSync(file)) return
+  for (const line of readFileSync(file, "utf8").split("\n")) {
+    const match = line.match(/^([A-Z_]+)=(.*)$/)
+    if (match && !process.env[match[1]]) process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, "")
+  }
+}
+async function cfApi(method, path, body) {
+  const response = await fetch(`https://api.cloudflare.com/client/v4${path}`, {
+    method, headers: { ...cfAuthHeaders(), "Content-Type": "application/json" },
+    body: body && JSON.stringify(body),
+  })
+  const json = await response.json()
+  if (!json.success) throw new Error(`Cloudflare ${method} ${path} → HTTP ${response.status}`)
+  return json.result
+}
+async function cfToken() {
+  skillEnv()
+  const account = await resolveCfAccountId({ headers: cfAuthHeaders() })
+  const zones = await cfApi("GET", `/zones?name=${encodeURIComponent(domain)}`)
+  const sites = await cfApi("GET", `/accounts/${account}/rum/site_info/list?per_page=100`)
+  return sites.find(s => s.ruleset?.zone_tag === zones[0]?.id)?.site_token
+}
+async function buildTrigger() {
+  skillEnv()
+  const account = await resolveCfAccountId({ headers: cfAuthHeaders() })
+  const config = readFileSync(join(repo, "apps/web/wrangler.jsonc"), "utf8")
+  const worker = config.match(/"name"\s*:\s*"([^"]+)"/)?.[1]
+  const service = await cfApi("GET", `/accounts/${account}/workers/services/${worker}`)
+  const triggers = await cfApi("GET", `/accounts/${account}/builds/workers/${service.default_environment.script_tag}/triggers`)
+  return { account, trigger: triggers[0].trigger_uuid }
+}
+async function buildEnv() {
+  const { account, trigger } = await buildTrigger()
+  return cfApi("GET", `/accounts/${account}/builds/triggers/${trigger}/environment_variables`)
+}
+async function wireAnalytics() {
+  const { account, trigger } = await buildTrigger()
+  const variables = Object.fromEntries(Object.entries(ids).map(([name, value]) => [name, { is_secret: false, value }]))
+  await cfApi("PATCH", `/accounts/${account}/builds/triggers/${trigger}/environment_variables`, variables)
+}
 let submittedIndexNow = false
 const steps = {
   cf: {
-    done: () => has("cf-analytics-setup", ["status", domain], /Web Analytics 已启用/),
-    apply: () => run("cf-analytics-setup", "enable", domain),
+    done: async () => has("cf-analytics-setup", ["status", domain], /Web Analytics 已启用/) &&
+      await live("cf", ids.CF_WEB_ANALYTICS_TOKEN || await cfToken()),
+    apply: async () => {
+      run("cf-analytics-setup", "enable", domain)
+      ids.CF_WEB_ANALYTICS_TOKEN = await cfToken()
+      await wireAnalytics()
+    },
   },
   ga4: {
-    done: () => has("ga4-setup", ["status", "--domain", domain, ...browser("ga4")], /已找到网站数据流|线上已部署 GA4 Measurement ID/),
-    apply: () => run("ga4-setup", "create", "--domain", domain, ...browser("ga4")),
+    done: async () => has("ga4-setup", ["status", "--domain", domain, ...browser("ga4")], /已找到网站数据流|线上已部署 GA4 Measurement ID/) &&
+      await live("ga4", ids.GA4_MEASUREMENT_ID || (await buildEnv()).GA4_MEASUREMENT_ID?.value),
+    apply: async () => {
+      ids.GA4_MEASUREMENT_ID = run("ga4-setup", "create", "--domain", domain, ...browser("ga4")).match(/ID:\s*(G-[A-Z0-9]{6,})/)?.[1]
+      if (!ids.GA4_MEASUREMENT_ID) throw new Error("GA4 未返回 Measurement ID")
+      await wireAnalytics()
+    },
   },
   clarity: {
-    done: () => has("clarity-setup", ["status", ...browser("clarity")], new RegExp(domain.replaceAll(".", "\\."), "i")),
-    apply: () => run("clarity-setup", "create", "--site", domain, ...browser("clarity")),
+    done: async () => has("clarity-setup", ["status", ...browser("clarity")], new RegExp(domain.replaceAll(".", "\\."), "i")) &&
+      await live("clarity", ids.CLARITY_PROJECT_ID || (await buildEnv()).CLARITY_PROJECT_ID?.value),
+    apply: async () => {
+      ids.CLARITY_PROJECT_ID = run("clarity-setup", "create", "--site", domain, ...browser("clarity")).match(/ID:\s*([a-z0-9]+)/)?.[1]
+      if (!ids.CLARITY_PROJECT_ID) throw new Error("Clarity 未返回 Project ID")
+      await wireAnalytics()
+    },
   },
   indexnow: {
     async done() {
@@ -62,7 +126,16 @@ const steps = {
       const online = response.status === 200 && (await response.text()).trim() === key
       const record = join(repo, ".rankup/integrations.md")
       return online && (submittedIndexNow || (existsSync(record) &&
-        /IndexNow[^\n]*(?:HTTP 20[02]|返回[^\n]*20[02]|推送[^\n]*20[02])/i.test(readFileSync(record, "utf8"))))
+        readFileSync(record, "utf8").split("\n").some(line => {
+          if (!/IndexNow[^\n]*(?:HTTP 20[02]|返回[^\n]*20[02]|推送[^\n]*20[02])/i.test(line)) return false
+          if (line.includes(file)) return true
+          const commit = line.match(/commit `([a-f0-9]{7,40})`/i)?.[1]
+          if (!commit) return false
+          try {
+            execFileSync("git", ["cat-file", "-e", `${commit}:apps/web/public/${file}`], { cwd: repo, stdio: "ignore" })
+            return true
+          } catch { return false }
+        })))
     },
     async apply() {
       const dir = join(repo, "apps/web/public")
@@ -130,9 +203,11 @@ for (const name of names) {
       console.log(`${name}: 未完成`)
     } else {
       await steps[name].apply()
-      if (!await steps[name].done()) throw new Error("执行后状态仍未完成")
-      result.push([name, "本次完成"])
-      console.log(`${name}: 本次完成`)
+      const deployed = await steps[name].done()
+      const status = !deployed && ["cf", "ga4", "clarity"].includes(name)
+        ? "需重建部署后复查" : deployed ? "本次完成" : "失败（执行后状态仍未完成）"
+      result.push([name, status])
+      console.log(`${name}: ${status}`)
     }
   } catch (error) {
     const reason = (error.stderr?.toString() || error.message).trim().split("\n").at(-1)
