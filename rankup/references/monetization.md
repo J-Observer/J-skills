@@ -29,14 +29,18 @@
 （[`experiences/webcafe-topics.md`](experiences/webcafe-topics.md) 八·一），本地币展示的决策树在
 [`seo-growth.md`](seo-growth.md) 五 2026-07-17 Stripe 那条。
 
-## 二、PayPal：主通道的备份，不是第二主通道
+## 二、Anyway 与 PayPal：Web/站外直销的可选通道
+
+Anyway 是 Merchant of Record 模式：由服务商承担其覆盖交易的间接税与托管结账；Stripe 直连则由商家自行处理销售主体与相关税务责任。选型、接入步骤和脚本见 [`payments-anyway.md`](payments-anyway.md)。PayPal 仍可作为独立备份，按目标地区、审核和真实支付链路决定组合。
+
+### PayPal：备份通道
 
 ### 为什么要有
 
 风控关户不是小概率事件。经验库里的原话：「Stripe 子账号被关闭时，PayPal 还正常」
 （[`experiences/webcafe-topics.md`](experiences/webcafe-topics.md) 八·一，出处 `/topic/hfmlrubo6b`），
 同一节还记了 Paddle 大规模关户只留 30 天提现窗口。**收款通道只有一条时，关户等于收入归零且无申辩窗口。**
-所以段 7 的第一件事是 Stripe + PayPal 两条都通，而不是把 Stripe 做精。
+所以段 7 要为所选主通道准备可用备份；Stripe + PayPal 是一种组合，Anyway 也是可评估的选项。
 
 ### 接入路径（路由，不写代码）
 
@@ -115,7 +119,7 @@ macOS、iOS、iPad App与浏览器扩展的分发渠道；macOS还可直销。�
 | 读数 | 看哪里 | 触发「开下一棵树」的状态 |
 |---|---|---|
 | 流量 | GSC 查询表 + 国家分布（每轮必看，[`seo-growth.md`](seo-growth.md) 四·1） | 主词族排名进前三页且 CTR 已按 TDK 调过一轮——本树的收割空间见顶 |
-| 收入 | Stripe / PayPal 订单表按周 | 连续四周环比持平，且定价页曝光已按 conversion.md 调过——不是转化问题是流量问题 |
+| 收入 | 所用支付通道的订单表按周 | 连续四周环比持平，且定价页曝光已按 conversion.md 调过——不是转化问题是流量问题 |
 | 索引 | GSC 索引覆盖 + `site:` | 已提交页 90% 以上进索引、无「已抓取未编入索引」堆积——再加页边际收益递减 |
 
 三条线的共同点：**本站能做的动作已经做完一轮，剩下的杠杆在新的需求**。此时不要给本站硬加功能，

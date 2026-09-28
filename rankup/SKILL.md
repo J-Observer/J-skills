@@ -2,7 +2,7 @@
 name: rankup
 description: 管理网站和原生 App 的需求验证、立项、开发、上线及增长。用户明确提到 rankup，或任务涉及选词、SERP、SEO/GEO、索引、搜索平台、流量、网站体检、建站和增长时使用。先定位项目与具体问题，再按七段生命周期加载对应参考文件；单纯写文案、做设计或问通用开发问题，不因关键词碰巧出现就强制启动完整流程。
 metadata:
-  version: "3.25.1"
+  version: "3.26.0"
 ---
 
 # Rankup 3.0
@@ -59,7 +59,7 @@ metadata:
 | 「把 Ahrefs 的检验结果都修了」「全站内链失效」「重定向链」 | 5→4 | `scripts/ahrefs-site-audit.mjs` 取清单，`scripts/ahrefs-issues-recheck.mjs <导出的issues.json>` 线上复核哪些已经不存在、哪些仍存在、哪些需要浏览器或 PSI 判（报告常滞后于最近部署，别假设报告永远反映当前状态），修完按段 4 全套重跑 |
 | 「帮我搞点外链」「去哪发外链」「竞品的外链哪来的」「这些外链有没有毒」 | 6 | `backlink` Skill + [`webcafe-topics.md`](references/experiences/webcafe-topics.md) 五 |
 | 「发个 Product Hunt」「上架发布平台」 | 6 | [`product-launch.md`](references/product-launch.md) |
-| 「访客不注册」「没人付费」「定价怎么定」「接 PayPal」「AdSense 被拒」 | 7 | [`monetization.md`](references/monetization.md)、[`conversion.md`](references/experiences/conversion.md) |
+| 「访客不注册」「没人付费」「定价怎么定」「接 PayPal / 接 Anyway / 选支付商」「AdSense 被拒」 | 7 | [`monetization.md`](references/monetization.md)、[`payments-anyway.md`](references/payments-anyway.md)、[`conversion.md`](references/experiences/conversion.md) |
 | 「流量掉了」「排名没了」「是不是被 K 了」 | 7 | [`webcafe-experiences.md`](references/experiences/webcafe-experiences.md) 十七～十九 |
 | 「现在该做什么」「到哪一步了」「本轮还差什么」 | check | 本文 `rankup check` → `site-review.md` 二 |
 | 「review 一下我的站」「帮我看看这个站有什么问题」「查漏补缺」「这项目脱轨了」 | review | 本文 `rankup review` → `site-review.md` 一 |
@@ -207,11 +207,11 @@ Day-1 清单里最容易漏、也最贵的三条单列在这里，其余见 `lif
 ### 7 变现与监控
 
 - **触发**：「没人付费」「定价怎么定」「接 PayPal」「AdSense 被拒」「流量掉了」「排名没了」。
-- **入口**：[`monetization.md`](references/monetization.md)（Stripe / PayPal / 广告 / 订阅 / 商店上架）、[`conversion.md`](references/experiences/conversion.md)、[`evolution.md`](references/evolution.md)；掉量排查 [`webcafe-experiences.md`](references/experiences/webcafe-experiences.md) 十七～十九。常用：`scripts/is-agentic.mjs diff`、`scripts/review.mjs`。转化文案与定价页用 `/marketing-psychology`（锚定、社会认同、损失厌恶、默认效应），找新渠道用 `/marketing-ideas`；两者只给角度，采不采纳按 `conversion.md` 的可采纳分档判，暗黑模式不采。
+- **入口**：[`monetization.md`](references/monetization.md)（Stripe / Anyway / PayPal / 广告 / 订阅 / 商店上架）、[`conversion.md`](references/experiences/conversion.md)、[`evolution.md`](references/evolution.md)；掉量排查 [`webcafe-experiences.md`](references/experiences/webcafe-experiences.md) 十七～十九。常用：`scripts/is-agentic.mjs diff`、`scripts/review.mjs`。转化文案与定价页用 `/marketing-psychology`（锚定、社会认同、损失厌恶、默认效应），找新渠道用 `/marketing-ideas`；两者只给角度，采不采纳按 `conversion.md` 的可采纳分档判，暗黑模式不采。
 
 | 硬规则 | 为什么 |
 |---|---|
-| **Web/站外直销支付有备份**：优先 Stripe + PayPal；App商店按目标市场当前IAP/买断/订阅规则 | 按分发方式验证支付，不强制原生App接网页支付 |
+| **Web/站外直销支付有备份**：Stripe 直连、Anyway 与 PayPal 按支付责任和目标市场选用；App商店按目标市场当前IAP/买断/订阅规则 | 按分发方式验证支付，不强制原生App接网页支付 |
 | 广告（AdSense / Adsterra）、订阅、商店上架后续沉淀；AdSense 先传 `ads.txt` 再申请审核 | 每条通道各有过审与关户的坑，边做边写回 `monetization.md` |
 | 动页面之前先查上游流量意图 | 转化率低常常是词选错了，不是按钮颜色 |
 | 流量掉了先查 GSC 与 TDK / canonical 有没有被改坏；退款全退不部分退 | 被 K 与被拦是不同的死法，先分清再动手；部分退款制造争议 |
