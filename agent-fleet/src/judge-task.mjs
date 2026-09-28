@@ -12,6 +12,49 @@
 
 import { resolveModel, ConfigError } from './config.mjs';
 
+const TYPES = 'noul|choice|score';
+const EXAMPLE = '合法 questions.json 示例: {"is_urgent":{"type":"noul","instructions":"这条消息是否紧急？"}}';
+const TYPE_HINTS = {
+  boolean: 'noul', bool: 'noul', yesno: 'noul', yes_no: 'noul', binary: 'noul',
+  enum: 'choice', select: 'choice', multiple_choice: 'choice',
+  rating: 'score', number: 'score', scale: 'score',
+};
+const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
+const hasContent = (value) => typeof value === 'string' ? value.trim().length > 0
+  : (Array.isArray(value) || isObject(value)) && Object.keys(value).length > 0;
+
+function validateQuestions(questions) {
+  if (!isObject(questions) || Object.keys(questions).length === 0) {
+    return `questions 必须是非空对象，收到 ${JSON.stringify(questions)}。允许的 type: ${TYPES}。${EXAMPLE}`;
+  }
+  for (const [key, question] of Object.entries(questions)) {
+    const type = question?.type;
+    const error = (detail) => `题目 ${JSON.stringify(key)}: ${detail}。允许的 type: ${TYPES}。${EXAMPLE}`;
+    if (!isObject(question)) return error(`题目必须是对象，收到 ${JSON.stringify(question)}`);
+    if (!['noul', 'choice', 'score'].includes(type)) {
+      const hint = Object.hasOwn(TYPE_HINTS, type) ? `；请改用 ${TYPE_HINTS[type]}` : '';
+      return error(`type ${JSON.stringify(type)} 无效${hint}`);
+    }
+    if (typeof question.instructions !== 'string' || !question.instructions.trim()) {
+      return error(`instructions 必须是非空字符串，收到 ${JSON.stringify(question.instructions)}`);
+    }
+    if (type === 'choice') {
+      const criteria = question.criteria;
+      if (!isObject(criteria) || Object.keys(criteria).length === 0 || Object.keys(criteria).length > 255 ||
+          Object.values(criteria).some((value) => value !== null && !hasContent(value))) {
+        return error(`choice 的 criteria 必须是含 1–255 个选项的对象，选项说明须为非空文本或结构化内容（也可为 null），收到 ${JSON.stringify(criteria)}`);
+      }
+    }
+    if (type === 'score') {
+      const criteria = question.criteria;
+      if (!Array.isArray(criteria) || criteria.length < 2 || criteria.length > 10 || criteria.some((value) => !hasContent(value))) {
+        return error(`score 的 criteria 必须是含 2–10 个非空等级说明的数组，收到 ${JSON.stringify(criteria)}`);
+      }
+    }
+  }
+  return null;
+}
+
 /**
  * 调用一个 typesafe-systemone 协议的模型。
  *
@@ -24,6 +67,9 @@ import { resolveModel, ConfigError } from './config.mjs';
  */
 export async function judgeTask({ friendlyModel, state, questions, config }) {
   const startedAt = Date.now();
+
+  const questionsError = validateQuestions(questions);
+  if (questionsError) return { ok: false, model: friendlyModel, error: questionsError, durationMs: Date.now() - startedAt };
 
   // 协议检查放在 resolveModel() 之前(用 config 里的原始条目直接看 protocol 字段):
   // 「用错命令」和「密钥没配」是两类不同的错误,前者应该无论密钥配没配都立刻、清楚地
@@ -52,15 +98,6 @@ export async function judgeTask({ friendlyModel, state, questions, config }) {
   if (state === undefined || state === null || state === '') {
     return { ok: false, model: friendlyModel, error: '缺少 state(要评估的内容,不能为空)。', durationMs: Date.now() - startedAt };
   }
-  if (!questions || typeof questions !== 'object' || Array.isArray(questions) || Object.keys(questions).length === 0) {
-    return {
-      ok: false,
-      model: friendlyModel,
-      error: '缺少 questions,必须是一个非空对象: { 问题key: { type, instructions, criteria? } }。',
-      durationMs: Date.now() - startedAt,
-    };
-  }
-
   const body = JSON.stringify({ state, model: resolved.model, questions });
 
   let res;
@@ -103,7 +140,7 @@ export async function judgeTask({ friendlyModel, state, questions, config }) {
       resolvedModel: resolved.model,
       baseURL: resolved.baseURL,
       httpStatus: res.status,
-      error: `上游返回 HTTP ${res.status}: ${parsed ? JSON.stringify(parsed) : text}`,
+      error: `上游返回 HTTP ${res.status}: ${parsed ? JSON.stringify(parsed) : text}${res.status === 400 ? `。检查 questions 的 type（${TYPES}）和 state 格式` : ''}`,
       durationMs: Date.now() - startedAt,
     };
   }
