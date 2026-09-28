@@ -23,16 +23,16 @@ Anyway 官方将 Business 定义为 Merchant of Record（MoR）：对其覆盖�
 
 ## 脚本
 
-路径均相对 rankup Skill 根目录。`--env stg|prod` 优先于 `ANYWAY_ENV`，默认 stg。API key 查找顺序：进程环境变量 `ANYWAY_STG_API_KEY` / `ANYWAY_API_KEY` → Skill 根目录 `.env` → `--env-file <项目侧路径>`；环境之间不互借 key。`.env` 已被 Skill 的 `.gitignore` 忽略。OpenCLI 会话默认 `anyway-dashboard` 或 `anyway-paytest`，调用后关闭会话。
+路径均相对 rankup Skill 根目录。`--env stg|prod` 优先于 `ANYWAY_ENV`，默认 stg。推荐将 `ANYWAY_STG_API_KEY` / `ANYWAY_API_KEY` 配在 Skill 根目录 `.env`（已被 `.gitignore` 忽略），配置一次后所有项目都无需传 `--env-file`。API key 查找顺序：进程环境变量 → Skill 根目录 `.env` → `--env-file <项目侧路径>`；环境之间不互借 key。OpenCLI 会话默认 `anyway-dashboard` 或 `anyway-paytest`，调用后关闭会话。
 
 ```bash
-node scripts/anyway/anyway.mjs --env stg --env-file <项目侧.env> me
-node scripts/anyway/anyway.mjs --env stg --env-file <项目侧.env> products list
-node scripts/anyway/scripts/create-product.mjs --env stg --env-file <项目侧.env> --name <商品名> --description <描述> --price <金额> --currency USD --success-url <返回地址>
+node scripts/anyway/anyway.mjs --env stg me
+node scripts/anyway/anyway.mjs --env stg products list
+node scripts/anyway/scripts/create-product.mjs --env stg --name <商品名> --description <描述> --price <金额> --currency USD --success-url <返回地址>
 node scripts/anyway/scripts/create-webhook.mjs --env stg --url https://example.com/hook
 node scripts/anyway/scripts/create-webhook.mjs --env stg --url <端点> --events "订单已付款" --commit
 node scripts/anyway/scripts/stg/webhook-capture.mjs --evidence-dir <项目侧证据目录>
-node scripts/anyway/scripts/stg/pay-test.mjs --env stg --env-file <项目侧.env> --link <stg支付链接> --ref <项目侧引用> --email <测试邮箱> --evidence-dir <项目侧证据目录>
+node scripts/anyway/scripts/stg/pay-test.mjs --env stg --link <stg支付链接> --ref <项目侧引用> --email <测试邮箱> --evidence-dir <项目侧证据目录>
 ```
 
 `anyway.mjs help` 列出只读查询和 webhook 验签命令。`create-product.mjs`、`create-webhook.mjs` 可用 `--env prod` 指向生产后台；前者会实际创建商品，后者只有 `--commit` 才提交。`pay-test.mjs` 在 stg 自动提交测试卡；`--env prod` 指向生产支付链接，卡号、有效期和 CVC 只从进程环境变量 `ANYWAY_CARD_NUMBER`、`ANYWAY_CARD_EXPIRY`、`ANYWAY_CARD_CVC` 读取。生产付款会产生真实交易，须由项目发布流程决定是否执行；本次只验证 stg 的只读命令和 dry-run。

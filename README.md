@@ -24,7 +24,7 @@ npx skills add yan-labs/yan-skills -g --all
 
 | | 管什么 | 一句话 |
 |---|---|---|
-| [`rankup`](rankup/) | 网站的**全生命周期** | 从「这个词能不能做」到「上线三个月后该改哪一页」 |
+| [`rankup`](rankup/) | 网站的**全生命周期** | 从选词建站到接支付（Stripe / Anyway / PayPal）与上线后增长；含 Anyway 脚本和 Worker 验签参考 |
 | [`backlink`](backlink/) | 外链与**登录态数据** | 去哪发、能不能发、发完有没有真的生效 |
 | [`opencli`](opencli/) | 浏览器与**取数的底层** | 怎么把用户那个已登录的 Chrome 开对，怎么不让两个任务抢同一个标签页 |
 | [`imagegen`](imagegen/) | 网站的**视觉素材** | logo、吉祥物、og 图、内页配图、用户场景图、手绘插画——真实生成，页面上不许留占位图 |
@@ -45,7 +45,7 @@ npx skills add yan-labs/yan-skills -g --all
 |---|---|
 | 「我想做个新站」「这个词能不能做」「帮我选词」「挖点需求」 | [`rankup`](rankup/) |
 | 「网站没流量」「排名掉了」「GSC 里这条什么意思」「现在该做什么/到哪一步了」 | [`rankup`](rankup/) |
-| 「部署到 Cloudflare」「接个支付」「上线前检查」 | [`rankup`](rankup/) |
+| 「部署到 Cloudflare」「接支付/选支付商（Stripe / Anyway / PayPal）」「上线前检查」 | [`rankup`](rankup/)：含 Anyway 脚本与 Worker 验签参考 |
 | 「AI 搜索怎么优化」「怎么被 ChatGPT 引用」「llms.txt」 | [`rankup`](rankup/) |
 | 「帮我搞点外链」「去哪发」「提交目录」「评论外链」 | [`backlink`](backlink/) |
 | 「这些外链有没有毒」「要不要 disavow」「竞品的外链哪来的」 | [`backlink`](backlink/) |
@@ -71,7 +71,7 @@ npx skills add yan-labs/yan-skills -g --all
 
 ## `rankup` — 网站全生命周期总控
 
-版本 `3.26.1`。Rankup 负责调研、建设、上线与增长决策；查关键词、竞品、域名、页面和哥飞经验时，按[哥飞工具箱指南](rankup/references/seo-webcafe.md)安装并加载官方 Skill 包，直接调用其工具。五个探索动作（词→词、词→问题、词→站、站→词、站→站）与市场证据闸门仍由 Rankup 执行。
+版本 `3.26.2`。Rankup 负责调研、建设、上线与增长决策；查关键词、竞品、域名、页面和哥飞经验时，按[哥飞工具箱指南](rankup/references/seo-webcafe.md)安装并加载官方 Skill 包，直接调用其工具。五个探索动作（词→词、词→问题、词→站、站→词、站→站）与市场证据闸门仍由 Rankup 执行。
 
 登录态数据平台可以直接走薄 CLI，把一次探路沉淀成可续跑清单：
 
