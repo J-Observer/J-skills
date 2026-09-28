@@ -52,6 +52,19 @@ def git(root, *args):
     return command(['git', *args], root)
 
 
+def ensure_cloud_schedule(repo):
+    repository = 'J-Observer/J-skills'
+    workflow = 'sync-upstream.yml'
+    state = command(['gh', 'api', f'repos/{repository}/actions/workflows/{workflow}', '--jq', '.state'], repo)
+    if state == 'active':
+        return state
+    if state == 'disabled_inactivity':
+        command(['gh', 'workflow', 'enable', workflow, '--repo', repository], repo)
+        command(['gh', 'workflow', 'run', workflow, '--repo', repository], repo)
+        return 'reenabled-after-inactivity'
+    raise RuntimeError(f'Cloud workflow is {state}; preserve an intentional pause and request attention.')
+
+
 def digest(data):
     return hashlib.sha256(data.replace(b'\r\n', b'\n')).hexdigest()
 
@@ -261,6 +274,7 @@ def update(args):
         if not args.install_current:
             if git(repo, 'remote', 'get-url', 'origin').removesuffix('.git') != 'https://github.com/J-Observer/J-skills':
                 raise RuntimeError('Unexpected origin; update skipped.')
+            status['cloudWorkflow'] = ensure_cloud_schedule(repo)
             git(repo, 'fetch', '--no-tags', 'origin', 'main')
             target = git(repo, 'rev-parse', 'origin/main')
             git(repo, 'merge-base', '--is-ancestor', old_head, target)

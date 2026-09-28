@@ -4,6 +4,7 @@ This fork retains the Windows adaptations while following `yan-labs/yan-skills/m
 
 - GitHub checks daily at **09:17 Asia/Hong_Kong** (`01:17 UTC`). The workflow can also be run manually. GitHub may delay scheduled jobs and may disable them after 60 days of repository inactivity.
 - The Windows task checks daily at **11:17 Asia/Hong_Kong**. A login after that time catches up if the day's check was missed. A persisted date prevents additional network checks that day.
+- The local check detects GitHub's `disabled_inactivity` state, re-enables the workflow and dispatches a catch-up run. The resulting cloud update is picked up on the next local daily check. A manually disabled workflow stays paused and is reported instead.
 - The source checkout uses `origin = J-Observer/J-skills` and `upstream = yan-labs/yan-skills`.
 - GitHub merges and runs the offline update gate before a normal push. Conflicts, failed checks or concurrent pushes leave `main` unchanged and create/update one GitHub issue. Workflow failures also appear in Actions notifications according to the account's notification settings.
 - Locally, dirty source files, divergence or edited installed files block the update. A temporary checkout is tested before the source advances. Only this repository's skills and shared `scripts`, `docs`, `platforms` directories are installed. Other skills are untouched.

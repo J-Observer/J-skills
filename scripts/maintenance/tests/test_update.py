@@ -6,10 +6,21 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from update_local import assert_unchanged, digest, layout, deploy, write_json
+from update_local import assert_unchanged, digest, layout, deploy, write_json, ensure_cloud_schedule
 
 
 class UpdateTests(unittest.TestCase):
+    def test_cloud_inactivity_recovers_but_manual_pause_is_preserved(self):
+        with patch('update_local.command', side_effect=['disabled_inactivity', '', '']) as calls:
+            self.assertEqual(ensure_cloud_schedule(Path.cwd()), 'reenabled-after-inactivity')
+            self.assertEqual(calls.call_count, 3)
+            self.assertIn('enable', calls.call_args_list[1].args[0])
+            self.assertIn('run', calls.call_args_list[2].args[0])
+        with patch('update_local.command', return_value='disabled_manually') as calls:
+            with self.assertRaisesRegex(RuntimeError, 'intentional pause'):
+                ensure_cloud_schedule(Path.cwd())
+            self.assertEqual(calls.call_count, 1)
+
     def test_nested_skill_and_shared_resources(self):
         skills, units, files = layout({'agent-fleet/skill/SKILL.md': b'x',
                                       'rankup/SKILL.md': b'y', 'platforms/a.md': b'z',
