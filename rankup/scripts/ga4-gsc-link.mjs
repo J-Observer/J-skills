@@ -59,7 +59,7 @@ function click(js, label) {
 const button = label => `[...document.querySelectorAll('button,[role="button"]')].find(x=>x.offsetParent && (x.innerText||'').trim()===${JSON.stringify(label)})`
 function linked() {
   const rows = JSON.parse(evaluate(`return JSON.stringify([...document.querySelectorAll('tr,[role="row"],mat-row')].map(x=>[...x.querySelectorAll('td,mat-cell,[role="cell"]')].map(c=>(c.innerText||'').trim())))`))
-  return rows.some(c => c[0] === domain && c[2] === domain)
+  return rows.some(c => c[0] === domain)
 }
 function discover() {
   const out = execFileSync(process.execPath, [new URL("./ga4-setup.mjs", import.meta.url).pathname, "status", "--domain", domain],
