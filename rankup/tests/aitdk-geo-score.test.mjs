@@ -14,12 +14,13 @@
 // is what this test actually exercises.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+const bash = process.platform === 'win32' ? path.join(process.env.ProgramFiles, 'Git', 'bin', 'bash.exe') : 'bash';
 const scriptPath = path.join(here, '../scripts/aitdk-opencli.sh');
 const scriptSrc = readFileSync(scriptPath, 'utf8').replace(/\r\n/g, '\n');
 
@@ -75,7 +76,7 @@ test('geo_score_from_text: only picks up a digit within a few lines of the marke
 test('geo_score_is_stable: animated non-zero readings are not accepted', () => {
   const run = (...scores) => {
     try {
-      execFileSync('bash', ['-c', `${geoStableFn}\ngeo_score_is_stable "$1" "$2" "$3"`, '--', ...scores]);
+      execFileSync(bash, ['-c', `${geoStableFn}\ngeo_score_is_stable "$1" "$2" "$3"`, '--', ...scores]);
       return true;
     } catch { return false; }
   };
@@ -86,8 +87,10 @@ test('geo_score_is_stable: animated non-zero readings are not accepted', () => {
   assert.equal(run('0', '0', '0'), false);
 });
 
-test('write_panel: an unsettled GEO score cannot be marked ok', () => {
-  const output = execFileSync('bash', ['-c', `
+test('write_panel: an unsettled GEO score cannot be marked ok', {
+  skip: spawnSync(bash, ['-c', 'command -v jq'], { encoding: 'utf8' }).status !== 0 ? 'jq is not installed' : false,
+}, () => {
+  const output = execFileSync(bash, ['-c', `
     PANEL_SECTIONS_JSON='{}'
     FRAME_IDX=0
     panel_errors=('geo: score unsettled')

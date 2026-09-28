@@ -9,7 +9,7 @@ import { runsDir } from './progress.mjs';
 const REVIEW_REFERENCE = fileURLToPath(new URL('../skill/references/codex-coding.md', import.meta.url));
 
 export function reviewPrompt() {
-  const source = readFileSync(REVIEW_REFERENCE, 'utf8');
+  const source = readFileSync(REVIEW_REFERENCE, 'utf8').replace(/\r\n/g, '\n');
   const match = source.match(/## 可直接使用的 review 提示词\s+```text\n([\s\S]*?)\n```/);
   if (!match) throw new Error('找不到 codex-coding.md 中的 review 提示词');
   return match[1];
@@ -22,7 +22,7 @@ export function codexFallbackReason(error, log) {
   return null;
 }
 
-export async function runCode({ prompt, cwd = process.cwd(), low = false, review = false, codexBin = process.env.FLEET_CODEX_BIN || 'codex', onFallback }) {
+export async function runCode({ prompt, cwd = process.cwd(), low = false, review = false, codexBin = process.env.FLEET_CODEX_BIN || 'codex', codexArgs = [], onFallback }) {
   const workdir = resolve(cwd);
   const fullPrompt = review ? `${reviewPrompt()}\n\n${prompt}` : prompt;
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -36,7 +36,7 @@ export async function runCode({ prompt, cwd = process.cwd(), low = false, review
   const args = ['exec', '--skip-git-repo-check', '-m', 'gpt-6-sol', '-c', `model_reasoning_effort=${low ? 'low' : 'medium'}`, '--sandbox', review ? 'read-only' : 'workspace-write', '-C', workdir, '-o', resultPath, '-'];
   let child;
   try {
-    child = spawn(codexBin, args, { stdio: ['pipe', fd, fd] });
+    child = spawn(codexBin, [...codexArgs, ...args], { stdio: ['pipe', fd, fd] });
   } finally {
     closeSync(fd);
   }

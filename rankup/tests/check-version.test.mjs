@@ -44,6 +44,22 @@ test("compareSemver orders semantic versions", () => {
   assert.equal(compareSemver("2.0.0", "2.0.0"), 0);
 });
 
+test('daily-managed installation never fetches or self-updates independently', async () => {
+  await withTempProject(async (projectRoot) => {
+    const executingSkillDirectory = path.join(projectRoot, 'rankup');
+    await mkdir(executingSkillDirectory);
+    await writeFile(path.join(projectRoot, '.j-skills-managed.json'), JSON.stringify({
+      source: 'J-Observer/J-skills', commit: 'verified-commit',
+    }));
+    const result = await checkForUpdate({ projectRoot, manifest: localManifest,
+      executingSkillDirectory, apply: true,
+      fetchManifest: () => { throw new Error('must not fetch'); },
+      runUpdate: () => { throw new Error('must not install'); },
+    });
+    assert.equal(result.reason, 'managed-by-daily-sync');
+  });
+});
+
 test("isCheckDue enforces a 24 hour interval", () => {
   const now = new Date("2026-07-30T12:00:00.000Z");
   assert.equal(isCheckDue(null, now), true);

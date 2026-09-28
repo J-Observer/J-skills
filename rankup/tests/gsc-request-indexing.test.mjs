@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -182,7 +182,8 @@ test("shq 生成的单引号字符串经真实 shell 求值后还原原始文本
     "",
   ];
   for (const s of cases) {
-    const out = execSync(`printf '%s' ${shq(s)}`, { encoding: "utf8" });
+    const bash = process.platform === 'win32' ? join(process.env.ProgramFiles, 'Git', 'bin', 'bash.exe') : 'bash';
+    const out = execFileSync(bash, ['-c', `printf '%s' ${shq(s)}`], { encoding: "utf8" });
     assert.equal(out, s, `shq 往返失败: ${JSON.stringify(s)}`);
   }
 });

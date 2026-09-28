@@ -208,7 +208,7 @@ function selectIndustry(wanted) {
     hit.setAttribute("data-rankup-target", "1");
     return textOf(hit);
   `)
-  cli('click "[data-rankup-target=\\"1\\"]"')
+  cli(['click', '[data-rankup-target="1"]'])
   evalJs(`document.querySelector('[data-rankup-target]')?.removeAttribute('data-rankup-target')`)
   scene("industry-selected", { industry: wanted })
   settle(400)

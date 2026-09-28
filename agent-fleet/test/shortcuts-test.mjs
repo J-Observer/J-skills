@@ -38,24 +38,19 @@ try {
     },
   });
   assert(fallback === 'mock-gateway' && fallbackCalls === 1, '回退只调用一次 mock 网关');
-  const mockCodex = join(scratch, 'mock-codex');
+  const mockCodex = join(scratch, 'mock-codex.mjs');
   const captured = join(scratch, 'captured.txt');
   const capturedArgs = join(scratch, 'args.txt');
-  writeFileSync(mockCodex, `#!/bin/sh
-printf '%s\n' "$@" > "$FLEET_TEST_ARGS"
-out=
-while [ "$#" -gt 0 ]; do
-  if [ "$1" = "-o" ]; then shift; out=$1; fi
-  shift
-done
-cat > "$FLEET_TEST_CAPTURE"
-printf '审查完成\n' > "$out"
-printf 'mock codex log\n'
-`);
+  writeFileSync(mockCodex, `import {readFileSync,writeFileSync} from 'node:fs';
+const args=process.argv.slice(2);
+writeFileSync(process.env.FLEET_TEST_ARGS,args.join('\\n'));
+writeFileSync(process.env.FLEET_TEST_CAPTURE,readFileSync(0));
+writeFileSync(args[args.indexOf('-o')+1],'审查完成\\n');
+console.log('mock codex log');`);
   chmodSync(mockCodex, 0o755);
   process.env.FLEET_TEST_CAPTURE = captured;
   process.env.FLEET_TEST_ARGS = capturedArgs;
-  const code = await runCode({ prompt: '检查文件', cwd: scratch, codexBin: mockCodex, review: true });
+  const code = await runCode({ prompt: '检查文件', cwd: scratch, codexBin: process.execPath, codexArgs: [mockCodex], review: true });
   assert(code.ok && code.model === 'gpt-6-sol' && code.result.trim() === '审查完成', '模拟 Codex 正常结束并读取 result');
   assert(readFileSync(captured, 'utf8').startsWith(reviewPrompt()) && readFileSync(captured, 'utf8').endsWith('检查文件'), 'review 模板拼在 brief 前');
   assert(readFileSync(code.logPath, 'utf8').includes('mock codex log'), 'Codex stdout 写入同名 log');

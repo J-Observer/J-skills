@@ -410,6 +410,18 @@ export async function checkForUpdate({
     };
   }
   const selectedScope = scope ?? autoScope;
+  // A managed installation is updated as one tested repository by the daily job.
+  // Do not let an individual skill bypass that gate or query upstream again.
+  try {
+    const managed = JSON.parse(await readFile(
+      path.join(path.dirname(resolvedSkillDirectory), '.j-skills-managed.json'), 'utf8'));
+    if (managed.source === 'J-Observer/J-skills' && managed.commit) {
+      return { status: 'skipped', reason: 'managed-by-daily-sync',
+        installedVersion: manifest.version, latestVersion: manifest.version, scope: selectedScope };
+    }
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
   const state = await loadOrCreateState(
     resolvedRoot,
     manifest,
