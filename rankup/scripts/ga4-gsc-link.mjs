@@ -4,7 +4,7 @@
  * 用法：node scripts/ga4-gsc-link.mjs list [--json]
  *       node scripts/ga4-gsc-link.mjs status|link --domain example.com [--account <账号号>] [--property <媒体资源号>]
  *       node scripts/ga4-gsc-link.mjs link --all [--exclude a.com,b.com]
- * 通用参数：[--session <名>] [--window-slot <slot>] [--screenshot <路径>] [--keep-session]
+ * 通用参数：[--session <名>] [--window dedicated|background] [--window-slot <slot>] [--screenshot <路径>] [--keep-session]
  * 依赖：OpenCLI 连接的 Chrome 已登录 GA4，且账号有目标 GSC 资源权限。
  * 已知坑：GA4 hash URL 直接 open 可能报 Navigation rejected；先开 /analytics/web/ 再改 hash。
  * 验证日期：2026-09-29。
@@ -18,11 +18,12 @@ import { sessionSuffix } from "./lib-scene.mjs"
 const argv = process.argv.slice(2)
 const action = argv[0]
 if (argv.includes("--help") || argv.includes("-h")) {
-  console.log("用法：node scripts/ga4-gsc-link.mjs list [--json] | status|link --domain <域名> | link --all [--exclude a.com,b.com] [--account <号>] [--property <号>] [--session <名>] [--window-slot <slot>] [--screenshot <路径>]")
+  console.log("用法：node scripts/ga4-gsc-link.mjs list [--json] | status|link --domain <域名> | link --all [--exclude a.com,b.com] [--account <号>] [--property <号>] [--session <名>] [--window dedicated|background] [--window-slot <slot>] [--screenshot <路径>]")
   process.exit(0)
 }
 let domain, account, property, screenshot, exclude = ""
 let session = `ga4-gsc-link-${sessionSuffix()}`
+let windowMode = "dedicated", explicitWindow = false
 let windowSlot = null
 let keepSession = false
 let all = false, json = false
@@ -32,6 +33,7 @@ for (let i = 1; i < argv.length; i++) {
   if (a === "--account") { account = argv[++i]; continue }
   if (a === "--property") { property = argv[++i]; continue }
   if (a === "--session") { session = argv[++i]; continue }
+  if (a === "--window") { windowMode = argv[++i]; explicitWindow = true; continue }
   if (a === "--window-slot") { windowSlot = argv[++i]; continue }
   if (a === "--screenshot") { screenshot = argv[++i]; continue }
   if (a === "--exclude") { exclude = argv[++i]; continue }
@@ -51,10 +53,15 @@ const requestedAccount = account, requestedProperty = property
 
 function cli(args, timeout = 30000) {
   try {
-    return execFileSync("opencli", ["browser", session, "--window", "dedicated", ...(windowSlot ? ["--window-slot", windowSlot] : []), ...args],
+    return execFileSync("opencli", ["browser", session, "--window", windowMode, ...(windowMode === "dedicated" && windowSlot ? ["--window-slot", windowSlot] : []), ...args],
       { encoding: "utf8", timeout, stdio: ["pipe", "pipe", "pipe"] }).trim()
   } catch (e) {
-    throw new Error((e.stderr?.toString() || e.stdout?.toString() || e.message).trim())
+    const message = (e.stderr?.toString() || e.stdout?.toString() || e.message).trim()
+    if (!explicitWindow && windowMode === "dedicated" && /dedicated-pool-exhausted/.test(message)) {
+      windowMode = "background"
+      return cli(args, timeout)
+    }
+    throw new Error(message)
   }
 }
 const evaluate = js => cli(["eval", `(()=>{${js}})()`])
