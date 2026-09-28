@@ -88,6 +88,7 @@ function properties() {
   const accounts = JSON.parse(evaluate(`return JSON.stringify([...document.querySelector('cdk-virtual-scroll-viewport').querySelectorAll('li[role="option"][value]')].filter(x=>/^\\d+$/.test(x.getAttribute('value')||'')).map(x=>x.getAttribute('value')))`))
   const found = new Map()
   for (const a of accounts) {
+    let complete = false
     if (evaluate("return !!document.querySelector('cdk-virtual-scroll-viewport')") === "false") click("document.querySelector('button.gmp-popup-button')", "账号选择器")
     click(`document.querySelector('cdk-virtual-scroll-viewport li[role="option"][value="${a}"] button')`, "GA 账号")
     for (let n = 0; n < 40; n++) {
@@ -96,12 +97,14 @@ function properties() {
         const ids = href.match(/a(\d+)p(\d+)/)
         if (ids) found.set(ids[2], { account: ids[1], property: ids[2] })
       }
-      if (result.end) break
+      if (result.end) { complete = true; break }
       cli(["scroll", "down", "--amount", "300"])
       pause(150)
       if (evaluate(`return [...document.querySelectorAll('cdk-virtual-scroll-viewport')].at(-1).scrollTop>${result.top}`) !== "true") throw new Error("GA 媒体资源选择器未滚动，列表不完整")
     }
+    if (!complete) throw new Error(`GA 账号 ${a} 的媒体资源列表不完整`)
   }
+  click("document.querySelector('button.gmp-popup-button')", "关闭账号选择器")
   return [...found.values()]
 }
 function streams(a, p) {
@@ -206,8 +209,8 @@ function run() {
     const rows = list(matches, available).map(x=>({ ...x, result: excluded.has(x.domain) ? "排除" : x.linked ? "已关联" : x.properties.length !== 1 ? x.properties.length ? "歧义，未提交" : "无匹配，未提交" : "待关联" }))
     for (const x of rows.filter(x=>x.result==="待关联")) {
       domain = x.domain
-      resolve(matches, domain)
-      x.result = link()
+      try { resolve(matches, domain); x.result = link() }
+      catch (e) { x.result = `失败：${e.message}`; process.exitCode = 1 }
     }
     printTable(rows, true)
     return
