@@ -30,6 +30,7 @@
  */
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -233,7 +234,7 @@ async function writeReceipt(outDir, receipt) { await writeFile(path.join(outDir,
 export function lockKeys(session, tool) { return ['opencli-session-' + session, tool]; }
 export async function selfTest() {
   const { mkdtemp, rm } = await import('node:fs/promises');
-  const temporary = await mkdtemp(path.join(process.env.TMPDIR || '/tmp', 'tools-share-evidence-test-'));
+  const temporary = await mkdtemp(path.join(tmpdir(), 'tools-share-evidence-test-'));
   try {
     const request = requestIdentity({ tool: 'semrush', report: 'organic-pages', target: 'example.com', db: 'us', url: 'https://sem.3ue.co/analytics/?q=example.com&__gmitm=secret' });
     for (const name of ARTIFACTS) await writeArtifact(temporary, name, name);
