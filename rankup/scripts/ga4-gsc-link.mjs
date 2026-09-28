@@ -7,6 +7,7 @@
  * 通用参数：[--session <名>] [--window dedicated|background] [--window-slot <slot>] [--screenshot <路径>] [--keep-session]
  * 依赖：OpenCLI 连接的 Chrome 已登录 GA4，且账号有目标 GSC 资源权限。
  * 已知坑：GA4 hash URL 直接 open 可能报 Navigation rejected；先开 /analytics/web/ 再改 hash。
+ * 主机名比较有意去掉前导 www.：GSC 网域资源 example.com 可对应 www 数据流。
  * 验证日期：2026-09-29。
  */
 import { execFileSync } from "node:child_process"
@@ -82,16 +83,26 @@ function click(js, label) {
 const button = label => `[...document.querySelectorAll('button,[role="button"]')].find(x=>x.offsetParent && (x.innerText||'').trim()===${JSON.stringify(label)})`
 function linked() {
   const rows = JSON.parse(evaluate(`return JSON.stringify([...document.querySelectorAll('tr,[role="row"],mat-row')].map(x=>[...x.querySelectorAll('td,mat-cell,[role="cell"]')].map(c=>(c.innerText||'').trim())))`))
-  return rows.some(c => host(c[0] || "") === domain)
+  const matches = rows.filter(c => host(c[0] || "") === domain)
+  if (!matches.length) return false
+  if (matches.some(c => /^https?:\/\//i.test(c[2] || "") && host(c[2]) === domain)) return true
+  const ids = matches.filter(c => !/^https?:\/\//i.test(c[2] || "")).map(c => (c[3] || "").trim())
+  if (ids.some(id => !/^\d+$/.test(id))) throw new Error(`${domain} 的关联数据流 ID 无法确认`)
+  const details = streams(account, property, true)
+  goToLinks()
+  if (details.some(x => ids.includes(x.id) && host(x.url) === domain)) return true
+  if (ids.some(id => !details.some(x => x.id === id && x.url))) throw new Error(`${domain} 的关联数据流 URL 无法确认`)
+  return false
 }
 function openHome() {
   try { cli(["open", "https://analytics.google.com/analytics/web/"], 45000) }
   catch (e) { if (!/Navigation rejected/i.test(e.message)) throw e }
   waitFor("return /管理|Admin|媒体资源/.test(document.body.innerText||'')", 40)
 }
-function properties() {
+function properties(strict = false) {
   waitFor("return !!document.querySelector('button[aria-label*=\"通用选择器\"],button.gmp-popup-button')", 40)
   click("document.querySelector('button[aria-label*=\"通用选择器\"],button.gmp-popup-button')", "账号选择器")
+  if (strict && evaluate("const v=document.querySelector('cdk-virtual-scroll-viewport');return v.scrollHeight>v.clientHeight+2") === "true") throw new Error("GA 账号列表未读全，停止提交")
   const accounts = JSON.parse(evaluate(`return JSON.stringify([...document.querySelector('cdk-virtual-scroll-viewport').querySelectorAll('li[role="option"][value]')].filter(x=>/^\\d+$/.test(x.getAttribute('value')||'')).map(x=>x.getAttribute('value')))`))
   const found = new Map()
   for (const a of accounts) {
@@ -114,13 +125,14 @@ function properties() {
   click("document.querySelector('button.gmp-popup-button')", "关闭账号选择器")
   return [...found.values()]
 }
-function streams(a, p) {
+function streams(a, p, withIds = false) {
   evaluate(`location.hash=${JSON.stringify(`#/a${a}p${p}/admin/streams/table`)};return true`)
   waitFor("return /添加数据流|Add stream/.test(document.body.innerText||'')", 30)
-  return JSON.parse(evaluate(`return JSON.stringify([...document.querySelectorAll('mat-row,[role="row"]')].map(x=>[...x.querySelectorAll('mat-cell,[role="cell"]')].flatMap(c=>(c.innerText||'').split(/\\n/)).find(t=>/^https?:\\/\\//i.test(t))||'').filter(Boolean))`))
+  const rows = JSON.parse(evaluate(`return JSON.stringify([...document.querySelectorAll('mat-row,[role="row"]')].map(x=>({id:(x.className||'').match(/stream-row-(\\d+)/)?.[1]||'',url:[...x.querySelectorAll('mat-cell,[role="cell"]')].flatMap(c=>(c.innerText||'').split(/\\n/)).find(t=>/^https?:\\/\\//i.test(t))||''})).filter(x=>x.url))`))
+  return withIds ? rows : rows.map(x=>x.url)
 }
-function discover() {
-  const available = account && property && action !== "list" && !all ? [{ account, property }] : properties()
+function discover(strict = false) {
+  const available = account && property && action !== "list" && !all ? [{ account, property }] : properties(strict)
   const matches = new Map()
   for (const item of available) for (const url of streams(item.account, item.property)) {
     const h = host(url)
@@ -140,21 +152,26 @@ function goToLinks() {
   waitFor("return /Search Console/.test(document.body.innerText||'') && /关联|Link/.test(document.body.innerText||'')", 40)
   pause(1500)
 }
-function drawer() {
+function drawer(strict = false) {
   click(button("关联"), "关联")
   waitFor("return /选择 Search Console 媒体资源/.test(document.body.innerText||'')")
   click(button("选择账号"), "选择账号")
   waitFor("return /关联到我管理的某个媒体资源/.test(document.body.innerText||'')")
   waitFor("return /每页项数/.test(document.body.innerText||'')")
   const rows = JSON.parse(evaluate(`return JSON.stringify([...document.querySelectorAll('tr,[role="row"],mat-row')].map(x=>({name:(x.querySelector('td,mat-cell,[role="cell"]')?.innerText||'').trim(),checkbox:!!x.querySelector('input[type="checkbox"],[role="checkbox"]')})).filter(x=>x.name))`))
+  if (strict) {
+    const page = JSON.parse(evaluate(`const p=document.querySelector('mat-paginator');const label=(p?.querySelector('[class*="paginator-range-label"]')?.innerText||'').trim();const next=p?.querySelector('button[class*="paginator-navigation-next"]');return JSON.stringify({label,next:!!next,disabled:next?.disabled||next?.getAttribute('aria-disabled')==='true'})`))
+    const counts = page.label.match(/([\d,]+)\s*[-–]\s*([\d,]+)[^\d]+([\d,]+)/)
+    if (!counts || !page.next || !page.disabled || Number(counts[1].replaceAll(',', '')) !== 1 || Number(counts[2].replaceAll(',', '')) !== Number(counts[3].replaceAll(',', '')) || rows.length !== Number(counts[3].replaceAll(',', ''))) throw new Error('GSC 资源列表未读全，停止提交')
+  }
   return rows.map(x=>({ name: x.name, domain: host(x.name), linked: !x.checkbox })).filter(x=>x.domain)
 }
-function list(matches, available) {
+function list(matches, available, strict = false) {
   for (const item of available) {
     account = item.account; property = item.property
     goToLinks()
     if (evaluate(`return ${button("关联")}?.getAttribute('aria-disabled')!=='true'`) !== "true") continue
-    return drawer().map(x=>({ ...x, properties: (matches.get(x.domain)||[]).map(p=>`p${p.property}`) }))
+    return drawer(strict).map(x=>({ ...x, properties: (matches.get(x.domain)||[]).map(p=>`p${p.property}`) }))
   }
   throw new Error("所有 GA 媒体资源的关联按钮均不可用，无法打开 GSC 选择抽屉")
 }
@@ -179,6 +196,7 @@ function judge(resultText) {
 function link() {
   goToLinks()
   if (linked()) return "已关联"
+  goToLinks()
   const choices = drawer().filter(x=>x.domain===domain)
   if (choices.length !== 1) throw new Error(`${domain} 的 GSC 资源匹配 ${choices.length} 个，停止提交`)
   if (choices[0].linked) throw new Error(`${domain} 已关联其他 GA4 媒体资源`)
@@ -206,14 +224,14 @@ function link() {
 }
 function run() {
   openHome()
-  const { available, matches } = discover()
+  const { available, matches } = discover(all && action === "link")
   if (action === "list") {
     const rows = list(matches, available)
     if (json) console.log(JSON.stringify(rows, null, 2)); else printTable(rows)
     return
   }
   if (all) {
-    const rows = list(matches, available).map(x=>({ ...x, result: excluded.has(x.domain) ? "排除" : x.linked ? "已关联" : x.properties.length !== 1 ? x.properties.length ? "歧义，未提交" : "无匹配，未提交" : "待关联" }))
+    const rows = list(matches, available, true).map(x=>({ ...x, result: excluded.has(x.domain) ? "排除" : x.linked ? "已关联" : x.properties.length !== 1 ? x.properties.length ? "歧义，未提交" : "无匹配，未提交" : "待关联" }))
     for (const x of rows.filter(x=>x.result==="待关联")) {
       domain = x.domain
       try { resolve(matches, domain); x.result = link() }
