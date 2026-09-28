@@ -38,7 +38,7 @@ export function shortRunOptions(command, argv) {
     model: flags.model ?? MODEL_ALIASES[command],
     prompt: resolveBrief(brief),
     cwd: flags.cwd ?? process.cwd(),
-    maxTurns: flags['max-turns'] === undefined ? 500 : Number(flags['max-turns']),
+    maxTurns: flags['max-turns'] === undefined ? undefined : Number(flags['max-turns']),
     quiet: !flags.verbose || Boolean(flags.quiet),
     systemPrompt: flags['system-prompt'],
     flags,

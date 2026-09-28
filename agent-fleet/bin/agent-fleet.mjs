@@ -41,12 +41,12 @@ const HELP_TEXT = `fleet ${PKG_VERSION} — 简短任务入口
   fleet copy|grok|bulk|gpt <brief文件或文本> [--cwd dir] [--verbose]
   fleet code <brief文件或文本> [--low] [--review] [--cwd dir]
   fleet judge <state文件> <questions文件> [--json]
-  fleet run --model name --prompt "任务" [--cwd dir] [--max-turns 500]
+  fleet run --model name --prompt "任务" [--cwd dir] [--max-turns N]
   fleet run-many --config batch.json | status | tail [--follow]
   fleet say <id|latest> "消息" | stop <id|latest> | resume <id|latest>
   fleet list-models | help | --version
 
-run 默认 500 轮、安静、当前目录；--verbose 显示进度。--quiet、--max-turns、--cwd、
+run 默认不限轮数、安静、当前目录；--verbose 显示进度。--quiet、--max-turns、--cwd、
 --system-prompt、--json、--full、--brief-lines、--expect-changes、--judge 可选。
 code 的 --review 使用只读沙箱与内置审查提示词；旧 agent-fleet 长命令继续可用。
 `;
@@ -114,7 +114,7 @@ async function cmdRun(argv) {
     prompt: flags.prompt,
     cwd: flags.cwd ? resolvePath(flags.cwd) : process.cwd(),
     config,
-    maxTurns: flags['max-turns'] === undefined ? 500 : Number(flags['max-turns']),
+    maxTurns: flags['max-turns'] === undefined ? undefined : Number(flags['max-turns']),
     systemPrompt: flags['system-prompt'],
     progress,
   });
@@ -153,7 +153,7 @@ async function cmdRunMany(argv) {
 
   let results;
   try {
-    const maxTurns = flags['max-turns'] === undefined ? 500 : Number(flags['max-turns']);
+    const maxTurns = flags['max-turns'] === undefined ? undefined : Number(flags['max-turns']);
     results = await runMany(tasks.map((task) => ({ ...task, maxTurns: task.maxTurns ?? maxTurns })), {
       config, defaultCwd, quiet: !flags.verbose || Boolean(flags.quiet),
     });
@@ -324,7 +324,7 @@ async function cmdResume(argv) {
     prompt,
     cwd,
     config,
-    maxTurns: flags['max-turns'] === undefined ? 500 : Number(flags['max-turns']),
+    maxTurns: flags['max-turns'] === undefined ? undefined : Number(flags['max-turns']),
     systemPrompt: flags['system-prompt'],
     progress,
     resume: rec.sessionId,
