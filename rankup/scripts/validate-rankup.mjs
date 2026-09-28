@@ -10,7 +10,7 @@ import { resolveRoots } from "./registry.mjs";
 const execFileAsync = promisify(execFile);
 
 const skillRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const expectedVersion = "3.24.0";
+const expectedVersion = "3.25.0";
 const requiredReferences = [
   "discipline.md",
   "monetization.md",
