@@ -1,21 +1,20 @@
 #!/usr/bin/env node
 /**
- * homepage-shots.mjs —— 未登录浏览器批量截取竞品营销官网首屏、整页及元信息。
+ * homepage-shots.mjs —— 用用户 Chrome 批量截取竞品营销官网首屏、整页及元信息。
  *
  * 参数：--urls <逗号分隔 URL> / --file <每行一个 URL>、--out <目录>、
- *   --engine agent-browser|opencli（默认 agent-browser）、--routes <JSON 文件>、
+ *   --engine opencli|agent-browser（默认 opencli；agent-browser 仅用户点名时）、--routes <JSON 文件>、
  *   --session <名称>、--window background|dedicated|isolated（仅 opencli）、
  *   --scrolls <屏数>（整页失败时分段截图）、--delay <加载等待毫秒数>、
  *   --color-scheme light|dark（默认 light，仅 agent-browser）、
  *   --resume（跳过 manifest 中已有的成功站点并重新生成对照图）。
  * --routes 是域名到营销页绝对 URL 的映射；自动发现的营销路由也写回此文件。
  *
- * 已知坑：已登录 Chrome 访问根域名常直达工作台，因此默认使用每站独立的
- * agent-browser 浏览器，先清 cookie/localStorage/sessionStorage 再重新加载。
+ * 已知坑：已登录 Chrome 访问根域名常直达工作台，可用 --routes 指定营销页。
+ * agent-browser 引擎仅在用户明确点名时使用。
  * Cookie 弹窗仅拒绝或关闭；动态 Canvas、视频、长页面可能需要较长等待，
- * 整页截图失败时改为分段截图。OpenCLI 是兼容旧流程的已登录浏览器模式，
- * 不保证能截到官网。同域名不同路径会追加路径 slug；slug 重复时追加序号。
- * OpenCLI 不支持此脚本的色彩模式设置。验证日期：2026-09-28。
+ * 整页截图失败时改为分段截图。同域名不同路径会追加路径 slug；slug 重复时追加序号。
+ * OpenCLI 不支持此脚本的色彩模式设置。上次验证日期：2026-09-28。
  */
 
 import { spawn } from "node:child_process";
@@ -32,7 +31,7 @@ function parseArgs(argv) {
   const options = {
     urls: [], file: null, routes: null,
     out: path.join(homedir(), "kollab-imagegen", "homepage-refs"),
-    engine: "agent-browser", session: "homepage-refs", window: "background",
+    engine: "opencli", session: "homepage-refs", window: "dedicated",
     scrolls: 3, delay: 4000, resume: false, colorScheme: "light",
   };
   for (let i = 2; i < argv.length; i++) {
@@ -262,7 +261,7 @@ sheet.save(target, 'JPEG', quality=88)
 async function main() {
   const options = parseArgs(process.argv);
   if (options.help) {
-    console.log(`homepage-shots.mjs\n  --urls <url1,url2,...>\n  --file <path>\n  --out <dir>\n  --engine agent-browser|opencli  (default: agent-browser)\n  --routes <routes.json>         (domain -> marketing URL; discoveries saved here)\n  --resume                       (preserve successful entries in manifest)\n  --session <name>\n  --window background|dedicated|isolated  (opencli only)\n  --color-scheme light|dark      (default: light; agent-browser only)\n  --scrolls <n>\n  --delay <ms>\n  --help`);
+    console.log(`homepage-shots.mjs\n  --urls <url1,url2,...>\n  --file <path>\n  --out <dir>\n  --engine opencli|agent-browser  (default: opencli; agent-browser only when requested)\n  --routes <routes.json>         (domain -> marketing URL; discoveries saved here)\n  --resume                       (preserve successful entries in manifest)\n  --session <name>\n  --window background|dedicated|isolated  (default: dedicated; opencli only)\n  --color-scheme light|dark      (default: light; agent-browser only)\n  --scrolls <n>\n  --delay <ms>\n  --help`);
     return;
   }
   if (options.file) {

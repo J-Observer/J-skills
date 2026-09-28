@@ -91,10 +91,10 @@
 1. **现有脚本**（`node scripts/xxx.mjs`）；
 2. **HTTP/REST API**（`fetch` / `curl`）→ 用完固化成脚本；
 3. **用户浏览器 + 现有自动化脚本**（底层走 OpenCLI）→ 没有 API 且需要登录态时；
-4. **用户浏览器 + 手动 OpenCLI 或 Claude in Chrome** → 一次性探路或脚本不覆盖时。
+4. **用户浏览器 + 手动 OpenCLI** → 一次性探路或脚本不覆盖时。
 
 每一级向下的**唯一理由**是「上一级确实不存在」，不是「我对下一级更熟」。
-沙箱浏览器不在这个阶梯上——它没有登录态，用它查需要登录的面板必然拿到错误数据。
+沙箱浏览器不作为本机选项——它没有登录态，用它查需要登录的面板必然拿到错误数据。
 
 **Cloudflare 特别提示**：Wrangler CLI 认 `CLOUDFLARE_EMAIL` + `CLOUDFLARE_API_KEY`（Global Key）
 或 `CLOUDFLARE_API_TOKEN`（scoped token）环境变量，**配好后不需要 `wrangler login`**。
@@ -105,7 +105,7 @@
 
 **这个阶梯管「取数」，不替代「亲眼看」。** 任何调研在动用任何一级之前，先去 Google、Bing 与目标市场的
 本地引擎把词搜一遍，记第一页的页面类型——数据平台给的是模型外推，首页是搜索引擎此刻真正端给用户的东西。
-公开搜索结果不需要登录态，**这是少数可以用沙箱浏览器的场景**，但地区与语言必须显式指定。
+公开 SERP 也用 `opencli browser <描述性会话名>` 驱动用户的 Chrome（dedicated 窗口），并显式指定地区与语言。
 
 ### 抓后台数据的顺序（曾经写反过）
 
@@ -161,11 +161,11 @@ stdout 看到醒目警告，不会悄悄发生。`kd` 例外：它走 Bearer 令
 
 ## 五、浏览器与取数：规则在 `opencli` Skill，这里只留判据
 
-**凡是需要登录态的页面操作，必须驱动用户本机那个真实的、已登录的浏览器，不得用运行环境自带的沙箱浏览器。**
+**一切浏览器动作（含测试、验收、E2E、截图和公开 SERP）一律用 OpenCLI 驱动用户本机的 Chrome（dedicated 窗口）；沙箱浏览器不作为本机选项。**
 沙箱没有用户的 cookie：要登录的目标要么跳登录页，要么以匿名身份返回**看起来正常但内容不同**的结果
 （配额更低、字段更少、国家库不同）。这种失败会伪装成「这个工具没有这项数据」，真相是「你没登录」。
 
-**判据：这个页面用无痕窗口打开，还是不是同一个东西？** 不是，就必须走用户的浏览器。
+公开搜索须显式指定地区与语言；登录态页面直接使用用户的浏览器。
 
 **这个「用户的浏览器」必须由 `opencli` 驱动，不是随便一个能操作到用户已登录浏览器的工具都算数。**
 即便是 Claude 自带的浏览器自动化工具（如 Claude in Chrome / `claude-in-chrome`），技术上同样能
@@ -290,7 +290,7 @@ Skill 集合不一样，文档只保证「该用什么」；遇缺就跳过会�
 | 用站内哥飞 AI 代做调研或审站 | 直接用 官方 `gefei` Skill 调开放接口，Rankup 自己判读；`tools` / `me` 先查价格和余额 | 实时工具目录覆盖选词、流量、SERP、页面等数据；旧聊天路径不再是默认流程 |
 | 用 Claude in Chrome / 手动 OpenCLI 操作 Similarweb、Semrush 面板 | `similarweb-query.mjs` / `semrush-overview.mjs` 等 | 脚本已存在，手操浪费上下文且不可复现 |
 | OpenCLI 会话名用通用常量如 `work` | JS 用 `defaultSession('base')`；shell 用描述性常量 | 多任务撞名 → 拿到别人的页面，零报错 |
-| 用沙箱浏览器访问需要登录的面板 | 用户的浏览器 | 沙箱没有 cookie，返回匿名态数据 |
+| 用沙箱浏览器访问页面 | `opencli browser <描述性会话名>` 驱动用户的 Chrome | 沙箱没有 cookie，登录面板会返回匿名态数据 |
 | 手工去 GSC / Bing 后台点「提交站点地图」 | `webmaster-sitemap.mjs <gsc\|bing\|yandex> submit` | 两个后台各有坑，手操每次重踩 |
 | 项目里维护「要推给 IndexNow 的 URL 数组」 | `indexnow-submit.mjs` 默认从线上 sitemap 取 | 硬编码数组必然漂移，方向永远是「新页面没推」 |
 | 把 IndexNow 推送写成「文档里的一条命令」交给人记 | 焊进项目自己的 `ship` 命令（第九节） | 漏推不会让任何东西变红 |
@@ -597,4 +597,3 @@ REST/静态 DOM、不再等待页面渲染解决，比“想办法保住前台�
 3. **排查与重活派便宜模型**：不让主线程亲自翻日志排查，派便宜模型（agent-fleet：写代码 Grok `kollab-gateway-research`，写作/翻译/校对 Gemini `kollab-gateway-copy`，判断 JEV judge），只读它的简报。
 4. **后台任务善用自动通知**：后台任务完成会自动通知，不要轮询进度；子 agent 用 Monitor 等待时写明退出条件和超时。
 5. **循环与精确取数防 rtk 篡改**：rtk 会把 `for … done` / `while read` 循环改坏（报 parse error near done），循环或精确取数命令前加 `RTK_DISABLED=1`。
-

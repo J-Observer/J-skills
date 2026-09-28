@@ -2,7 +2,7 @@
 name: rankup
 description: 管理网站和原生 App 的需求验证、立项、开发、上线及增长。用户明确提到 rankup，或任务涉及选词、SERP、SEO/GEO、索引、搜索平台、流量、网站体检、建站和增长时使用。先定位项目与具体问题，再按七段生命周期加载对应参考文件；单纯写文案、做设计或问通用开发问题，不因关键词碰巧出现就强制启动完整流程。
 metadata:
-  version: "3.26.0"
+  version: "3.26.1"
 ---
 
 # Rankup 3.0
@@ -227,7 +227,7 @@ Day-1 清单里最容易漏、也最贵的三条单列在这里，其余见 `lif
 | 全权委托：不请示、不问「要不要继续」、连锁任务做到底 | 一 |
 | 先查脚本清单，禁止现写等价实现或手点界面；脚本坏了修脚本 | 二 |
 | 花配额前先看档位，**以脚本打印为准**，不信文档默认值 | 三 |
-| 需要登录态一律用户的浏览器，沙箱浏览器只能看公开 SERP | 五 |
+| 一切浏览器动作（含测试自己的站、截图、公开 SERP）一律 OpenCLI 驱动用户的浏览器，不用沙箱浏览器 | 五 |
 | 有 API/CLI 且本机有凭据能证明，一律走 API/CLI，禁止开浏览器点后台；只在 API 不覆盖或需一次性 OAuth 授权时开，且只做那一步 | 五 |
 | 配额站（Semrush / Similarweb / Ahrefs）不传 `--session`；会话名不用 `$$` | 五、六 |
 | 发布页面不得有误导用户的占位链接 / 文案 / 图片 | 十四 |
@@ -319,7 +319,7 @@ G 组那条线：`scripts/review.mjs --project-root .` 出五块报告；再挖�
 
 ## 安装与版本
 
-先装 `opencli`（`npx skills add yan-labs/yan-skills --skill opencli -g -y`）：OpenCLI 本体要装我们自己的构建，不是应用商店版（商店版默认前台抢标签页，失败不报错）。`opencli doctor` 报扩展版本过低时照它说的做。**凡是碰用户已登录浏览器的动作，一律走它，不得用其他浏览器自动化工具（含 Claude 自带的 Claude in Chrome 一类）替代**——理由与判据见 [`discipline.md`](references/discipline.md) 五。
+先装 `opencli`（`npx skills add yan-labs/yan-skills --skill opencli -g -y`）：OpenCLI 本体要装我们自己的构建，不是应用商店版（商店版默认前台抢标签页，失败不报错）。`opencli doctor` 报扩展版本过低时照它说的做。**一切浏览器动作（含测试、验收、E2E、截图和公开 SERP）一律用 `opencli browser <描述性会话名>` 驱动用户的 Chrome，使用 dedicated 窗口，不用其他浏览器自动化工具**——理由与判据见 [`discipline.md`](references/discipline.md) 五。
 
 ```bash
 npx skills add yan-labs/yan-skills --skill rankup -g -y   # 全局安装

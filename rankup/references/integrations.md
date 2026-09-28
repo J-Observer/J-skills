@@ -573,19 +573,11 @@ await captureDownloadedBlob(() => document.querySelector("#download-verification
 验收方式也不同：改完代码 grep 产物是没用的，
 必须**打开线上页面看资源列表里有没有它**。
 
-### 性能归因：屏蔽它再测一次，别按「这轮加了什么」推
+### 性能归因：复测并核对资源，别按「这轮加了什么」推
 
-接完分析之后跑 Lighthouse，分数掉了，第一嫌疑自然是新加的第三方脚本。
-**先做对照再定罪**：
-
-```bash
-lighthouse <url> --only-categories=performance \
-  --blocked-url-patterns="*<那个第三方域名片段>*" \
-  --output=json --output-path=/tmp/lh-blocked.json --chrome-flags="--headless" --quiet
-```
-
-屏蔽前后落在同一区间，就说明不是它——继续按「这轮加了什么」推理只会去优化
-一个不存在的问题。一次 `--blocked-url-patterns` 比一小时推理便宜得多。
+接完分析之后用 `pagespeed.mjs collect` 复测，再用 OpenCLI 驱动用户 Chrome
+查看实际资源加载；分数下降时先核对第三方脚本是否加载及耗时，再归因。
+没有可比的屏蔽前后数据时，归因写「未知」。
 
 两条必须一起遵守的量测纪律：
 
