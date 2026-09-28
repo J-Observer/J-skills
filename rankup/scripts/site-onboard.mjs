@@ -2,7 +2,7 @@
 /**
  * 已部署 Cloudflare 站点的上线接入总入口；--check 只读，统计需在线上 HTML 回读。
  * 用法：node scripts/site-onboard.mjs --domain example.com [--repo <仓库>] [--branch <生产分支>] [--session 名] [--only cf,ga4,...] [--skip cf,ga4,...] [--check]
- * 依赖：cf-analytics-setup、ga4-setup、clarity-setup、indexnow-submit、gsc-domain-verify、
+ * 依赖：cf-analytics-setup、ga4-setup、ga4-gsc-link、clarity-setup、indexnow-submit、gsc-domain-verify、
  * bing-import-from-gsc、yandex-setup、ahrefs-setup、webmaster-sitemap（均在同目录）。
  * 登录态：OpenCLI 所连接的 Chrome 已登录 GA4、Clarity、GSC、Bing、Yandex、Ahrefs；
  * Cloudflare API 凭据沿用各脚本。Bing 掉线时点「使用 Google 登录」；Ahrefs 冻结项目
@@ -17,7 +17,7 @@ import { cfAuthHeaders, resolveCfAccountId } from "./lib-cf-auth.mjs"
 
 const argv = process.argv.slice(2)
 if (argv.includes("--help") || argv.includes("-h")) {
-  console.log("用法：node scripts/site-onboard.mjs --domain <域名> [--repo <仓库>] [--branch <生产分支>] [--session <名>] [--only cf,ga4,clarity,indexnow,gsc,bing,yandex,ahrefs] [--skip <列表>] [--check]")
+  console.log("用法：node scripts/site-onboard.mjs --domain <域名> [--repo <仓库>] [--branch <生产分支>] [--session <名>] [--only cf,ga4,clarity,indexnow,gsc,ga4gsc,bing,yandex,ahrefs] [--skip <列表>] [--check]")
   process.exit(0)
 }
 const arg = name => argv[argv.indexOf(name) + 1]
@@ -28,7 +28,7 @@ const session = argv.includes("--session") ? arg("--session") : `onboard-${domai
 const only = argv.includes("--only") ? new Set(arg("--only").split(",").flatMap(x => x === "analytics" ? ["cf", "ga4", "clarity"] : [x])) : null
 const skip = argv.includes("--skip") ? new Set(arg("--skip").split(",")) : new Set()
 const check = argv.includes("--check")
-const names = ["cf", "ga4", "clarity", "indexnow", "gsc", "bing", "yandex", "ahrefs"]
+const names = ["cf", "ga4", "clarity", "indexnow", "gsc", "ga4gsc", "bing", "yandex", "ahrefs"]
 if (!domain || (!repo && (!only || only.has("indexnow")) && !skip.has("indexnow"))) {
   console.error("需要 --domain；执行 IndexNow 还需要 --repo")
   process.exit(1)
@@ -200,6 +200,10 @@ const steps = {
       if (!sitemap("gsc", "--property", `sc-domain:${domain}`))
         run("webmaster-sitemap", "gsc", "submit", "--property", `sc-domain:${domain}`, "--sitemap", "sitemap.xml", ...browser("gsc"))
     },
+  },
+  ga4gsc: {
+    done: () => has("ga4-gsc-link", ["status", "--domain", domain, ...browser("ga4gsc")], /已关联 GA4 Search Console/),
+    apply: () => run("ga4-gsc-link", "link", "--domain", domain, ...browser("ga4gsc")),
   },
   bing: {
     done: () => sitemap("bing", "--site", site),

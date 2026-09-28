@@ -74,6 +74,7 @@ Firebase 项目可以关联这个 GA4 媒体资源（下一节），但纯 Web �
 脚本改开 `/analytics/web/` 再点「管理」。`waitPageReady` 等目标元素出现或网络空闲，
 不以「正在加载...」为就绪；过滤框同样带超时重试，避免卡在 GA 后台加载页。
 `status` 按 Measurement ID 定位资源，不能只按资源名查找。已有同域名媒体资源则复用。create 不宣布成功——以截图 + 页面 Measurement ID 为准。
+正式域名先建 GSC 网域资源，再建 GA4 媒体资源，随后运行 `scripts/ga4-gsc-link.mjs link --domain <域名>` 关联，并用 `status` 回读。
 
 ## CF WA（Cloudflare Web Analytics，域名无关，可在预览域先接）
 

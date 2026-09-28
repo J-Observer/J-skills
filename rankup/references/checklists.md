@@ -229,6 +229,7 @@ Web组件、Cloudflare和后续URL/SEO检查仅适用Web面；原生App按lifecy
 | 关键 API、bindings、上传、鉴权、支付回调 | 适用项逐条在线上跑过一次，支付用的是 **live** 凭证 | `.rankup/releases.md` | 逐条真实请求 | 每轮 |
 | 回滚目标和方法已记录 | 写明回滚到哪个版本、用什么命令 | `.rankup/releases.md` | 手写 | 一次 |
 | **批 B 清单逐行有状态** | GSC、Bing、Yandex、Naver、IndexNow、Ahrefs WA、**Ahrefs Site Audit**、Email Routing `hello@`、Preferred Sources、**兜底行（做哪个市场就接哪个市场的引擎）** 每一行标 ✅（证据+日期）/ ⬜ / ❌（裁决依据）/ ⏸（阻塞原因与需要用户做什么）；**兜底行按段 2 的市场填了具体平台或写明「该市场无额外引擎」，不许空着**；搜索平台建的是网域资源，记的是**资源 ID 不是名字** | `.rankup/integrations.md` | 对照 [`lifecycle.md`](lifecycle.md) 段 5 批 B 平台清单；DNS OAuth 与 Bing「从 GSC 导入」**由用户自己点** | 每轮 |
+| GA4 与 GSC 已关联 | 先建 GSC 网域资源、再建 GA4 媒体资源；关联列表显示对应域名 | GA4 关联页截图 + `.rankup/integrations.md` | `ga4-gsc-link.mjs link --domain <域名>`，再运行 `status` 回读 | 一次 |
 | IndexNow | 密钥文件正文逐字节等于密钥，首次推送已被接受并记下条数与 HTTP 状态 | `.rankup/integrations.md` | `indexnow-submit.mjs`。**密钥不可达时整批被丢弃而接口照样回 200** | 动了 URL |
 | 两边 sitemap 已提交 | GSC 与 Bing 都提交过，记的是**快照日期**不是实时值 | `.rankup/integrations.md` | `webmaster-sitemap.mjs <gsc\|bing> submit` | 动了 URL |
 | **`hello@<domain>` 收信与防冒充分别通过** | 转发规则存在、收过测试邮件，JSON-LD `contactPoint.email`、`/about`、外链联络三处同一 `hello@`；SPF / DKIM / DMARC 按 §8.6 主动核查，拒收/隔离策略生效，外发认证通过或有依据标不适用；仅 `p=none`、用途未知或 DNS 未生效不能标完成 | 线上 HTML + CLI/API 回读 + 权威/公共 DNS + `.rankup/integrations.md` 用途依据、变更前后及回滚记录 | [`cloudflare-stack.md`](cloudflare-stack.md) §8.6 | 新建/绑定域名、接邮箱、上线及现站 review |
