@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// 用途：在已登录后台创建一次性商品与支付链接，再用只读 Merchant API 复核。
-// 参数：--name --description --price --currency --success-url [--env stg|prod] [--env-file <path>] [--session anyway-dashboard] [--json]。
+// 用途：在已登录后台创建一次性或月订阅商品与支付链接，再用只读 Merchant API 复核。
+// 参数：--name --description --price --currency --success-url [--type one-time|subscription] [--dry-run] [--env stg|prod] [--env-file <path>] [--session anyway-dashboard] [--json]。
 // 登录态：OpenCLI 已连接用户浏览器，且当前环境的商户后台已登录；复核需要相应 API key。
 // 已知坑：商品表单没有 cancel URL；提交即发布并创建支付链接。验证日期：2026-09-07（原流程）。
 
@@ -41,8 +41,11 @@ const DESCRIPTION = flags.description;
 const PRICE = String(flags.price ?? '');
 const CURRENCY = flags.currency || 'USD';
 const SUCCESS_URL = flags['success-url'] || '';
+const TYPE = flags.type || 'one-time';
+const DRY_RUN = !!flags['dry-run'];
 
 const SESSION = flags.session || 'anyway-dashboard';
+const WINDOW = flags.window || 'dedicated';
 const JSON_OUT = !!flags.json;
 const ENV = resolveEnvName(flags.env);
 const ENV_CONFIG = getEnvConfig(ENV);
@@ -62,7 +65,7 @@ function runAnywayApi(args) {
 
 function runOpencliBrowser(args, { allowFail = false } = {}) {
   try {
-    const out = execFileSync('opencli', ['browser', SESSION, ...args], {
+    const out = execFileSync('opencli', ['browser', SESSION, ...args, '--window', WINDOW], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -104,6 +107,12 @@ function getLinks(productId) {
 
 async function main() {
   if (!NAME || !DESCRIPTION || !PRICE) throw new Error('usage: --name --description --price required');
+  if (!['one-time', 'subscription'].includes(TYPE)) throw new Error('--type must be one-time or subscription');
+
+  if (DRY_RUN) {
+    console.log(JSON.stringify({ env: ENV, name: NAME, description: DESCRIPTION, price: PRICE, currency: CURRENCY, type: TYPE, successUrl: SUCCESS_URL, create: false }, null, 2));
+    return;
+  }
 
   checkDoctor();
 
@@ -124,10 +133,11 @@ async function main() {
     runOpencliBrowser(['fill', '#product-name', NAME]);
     runOpencliBrowser(['fill', '#product-description', DESCRIPTION]);
 
-    // Ensure "一次性" (one-time) pricing is selected — it's the default,
-    // but click it explicitly for idempotent behavior if the form default
-    // ever changes.
-    runOpencliBrowser(['click', '--text', '一次性', '--nth', '0'], { allowFail: true });
+    runOpencliBrowser(['click', '--text', TYPE === 'subscription' ? '订阅' : '一次性', '--nth', '0']);
+    if (TYPE === 'subscription') {
+      runOpencliBrowser(['click', '[role=combobox]']);
+      runOpencliBrowser(['click', '--role', 'option', '--name', '每月']);
+    }
 
     if (CURRENCY !== 'USD') {
       runOpencliBrowser(['click', '[aria-label=币种]']);
