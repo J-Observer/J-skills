@@ -19,7 +19,7 @@
 | 1 | **IndexNow 密钥文件上线** | 无 | 全自动（`indexnow-submit.mjs --generate-key` + 站点路由） |
 | 2 | **IndexNow 首次全量推送** | 无 | 全自动（`indexnow-submit.mjs`） |
 | 3 | **GSC 网域资源创建 + 所有权验证** | Google 账号、DNS | `gsc-domain-verify.mjs add-site --domain <域名>`；先查已有验证，再按需写 DNS TXT |
-| 3a | **GA4 与 GSC 关联** | 已建 GSC 网域资源和 GA4 媒体资源 | `ga4-gsc-link.mjs link --domain <域名>`；先建 GSC、再建 GA4、然后关联 |
+| 3a | **GA4 与 GSC 关联** | 已建 GSC 网域资源和 GA4 媒体资源 | `ga4-gsc-link.mjs list [--json]` 查资源，再用 `link --domain <域名>` 或 `link --all [--exclude a.com,b.com]` 关联，`status --domain <域名>` 回读 |
 | 4 | **Bing Webmaster 导入** | 已验证的 GSC 资源 | `bing-import-from-gsc.mjs --sites <域名> --sitemap` |
 | 5 | **Naver Search Advisor 所有权验证**（仅韩国市场） | Naver 账号 | 半自动：meta 标签由你写进代码，**验证按钮由用户点** |
 | 6 | **Yandex Webmaster 所有权验证**（俄语市场或全球覆盖） | Yandex 账号 | `yandex-setup.mjs add-site --site https://<域名> --submit-sitemap` |
