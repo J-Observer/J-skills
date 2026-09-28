@@ -74,6 +74,7 @@
 # the comments at both call sites for the exact symptoms this was observed
 # to produce.
 # 2026-09-28: GEO can take up to 3 minutes to appear; poll every 5s and report a timeout if no score appears.
+# 2026-09-28: First dedicated-session navigation can intermittently return Navigation rejected after creating the target tab; check its URL before retrying in the same session.
 #
 # Usage:
 #   aitdk-opencli.sh <url> [session-name] [output-file] [options]
@@ -282,7 +283,24 @@ log "Opening $URL (session: $SESSION, window: $WINDOW_MODE${SLOT:+, slot: $SLOT}
 # that opencli can no longer address the AITDK panel frame at all (`eval --frame`
 # silently falls back to the main page); dedicated mode keeps the tab visible without
 # raising the window, see the "window modes" comment near the top of this file.
-$OPENCLI_BIN browser "$SESSION" open "$URL" >/dev/null
+for attempt in 0 1 2; do
+  if open_output="$($OPENCLI_BIN browser "$SESSION" open "$URL" 2>&1)"; then
+    break
+  fi
+  if [[ "$open_output" != *"Navigation rejected"* || "$attempt" -eq 2 ]]; then
+    printf '%s\n' "$open_output" >&2
+    exit 1
+  fi
+  sleep 3
+  current_url="$($OPENCLI_BIN browser "$SESSION" eval 'location.href' 2>/dev/null || true)"
+  current_url="${current_url#\"}"
+  current_url="${current_url%\"}"
+  if [[ "$current_url" == "$URL" ]]; then
+    log "Target URL already open after Navigation rejected; continuing"
+    break
+  fi
+  warn "Navigation rejected; retrying in the same session ($((attempt + 1))/2)"
+done
 
 # ---------- 2. let the page settle ----------
 sleep 6
@@ -673,14 +691,14 @@ fi
 
 log "Part B: driving the AITDK extension panel (frame-eval path)"
 
-# Sections to read, in sidebar order. These are the exact button labels inside
+# Sections to read, with GEO first to match the successful manual trigger. These are the exact button labels inside
 # the panel iframe. Deliberately omitted: Settings, Archive (local UI),
 # Similarweb / Semrush / Ahrefs / PageSpeed / Twitter (navigate off-site).
 if [[ "$GEO_ONLY" -eq 1 ]]; then
-  PANEL_SECTIONS=(Overview Issues GEO)
+  PANEL_SECTIONS=(GEO Overview Issues)
 else
   PANEL_SECTIONS=(
-    Overview Traffic Backlinks Adsense Issues GEO SERP Density
+    GEO Overview Traffic Backlinks Adsense Issues SERP Density
     Headings Images Links Social Hreflangs Structured Whois
   )
 fi
