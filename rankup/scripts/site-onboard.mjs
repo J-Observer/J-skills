@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * 已部署 Cloudflare 站点的上线接入总入口；--check 只读，统计需在线上 HTML 回读。
- * 用法：node scripts/site-onboard.mjs --domain example.com --repo <仓库> [--session 名] [--only cf,ga4,...] [--skip cf,ga4,...] [--check]
+ * 用法：node scripts/site-onboard.mjs --domain example.com [--repo <仓库>] [--branch <生产分支>] [--session 名] [--only cf,ga4,...] [--skip cf,ga4,...] [--check]
  * 依赖：cf-analytics-setup、ga4-setup、clarity-setup、indexnow-submit、gsc-domain-verify、
  * bing-import-from-gsc、yandex-setup、ahrefs-setup、webmaster-sitemap（均在同目录）。
  * 登录态：OpenCLI 所连接的 Chrome 已登录 GA4、Clarity、GSC、Bing、Yandex、Ahrefs；
@@ -17,12 +17,13 @@ import { cfAuthHeaders, resolveCfAccountId } from "./lib-cf-auth.mjs"
 
 const argv = process.argv.slice(2)
 if (argv.includes("--help") || argv.includes("-h")) {
-  console.log("用法：node scripts/site-onboard.mjs --domain <域名> --repo <仓库> [--session <名>] [--only cf,ga4,clarity,indexnow,gsc,bing,yandex,ahrefs] [--skip <列表>] [--check]")
+  console.log("用法：node scripts/site-onboard.mjs --domain <域名> [--repo <仓库>] [--branch <生产分支>] [--session <名>] [--only cf,ga4,clarity,indexnow,gsc,bing,yandex,ahrefs] [--skip <列表>] [--check]")
   process.exit(0)
 }
 const arg = name => argv[argv.indexOf(name) + 1]
 const domain = argv.includes("--domain") ? arg("--domain") : null
 const repo = argv.includes("--repo") ? resolve(arg("--repo")) : null
+const requestedBranch = argv.includes("--branch") ? arg("--branch") : null
 const session = argv.includes("--session") ? arg("--session") : `onboard-${domain?.replaceAll(".", "")}`
 const only = argv.includes("--only") ? new Set(arg("--only").split(",").flatMap(x => x === "analytics" ? ["cf", "ga4", "clarity"] : [x])) : null
 const skip = argv.includes("--skip") ? new Set(arg("--skip").split(",")) : new Set()
@@ -77,10 +78,13 @@ async function buildTrigger() {
   const worker = config.match(/"name"\s*:\s*"([^"]+)"/)?.[1]
   const service = await cfApi("GET", `/accounts/${account}/workers/services/${worker}`)
   const triggers = await cfApi("GET", `/accounts/${account}/builds/workers/${service.default_environment.script_tag}/triggers`)
-  let branch = "main"
-  try { branch = execFileSync("git", ["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], { cwd: repo, encoding: "utf8" }).trim().replace(/^origin\//, "") } catch {}
+  const branch = requestedBranch || config.match(/"production_branch"\s*:\s*"([^"]+)"/)?.[1] ||
+    (() => {
+      const production = triggers.filter(t => t.branch_includes?.length === 1 && !/[*!]/.test(t.branch_includes[0]))
+      return production.length === 1 ? production[0].branch_includes[0] : null
+    })()
   const matches = triggers.filter(t => t.branch_includes?.length === 1 && t.branch_includes[0] === branch)
-  if (matches.length !== 1) throw new Error(`生产分支 ${branch} 的 trigger 未唯一匹配；候选：${triggers.map(t => `${t.trigger_name} (${t.branch_includes?.join(",") || "无分支"})`).join("；")}`)
+  if (matches.length !== 1) throw new Error(`生产分支${branch ? ` ${branch}` : "无法唯一确定"}；候选 trigger 与分支：${triggers.map(t => `${t.trigger_name} (${t.branch_includes?.join(",") || "无分支"})`).join("；")}`)
   return { account, trigger: matches[0].trigger_uuid }
 }
 async function buildEnv() {
@@ -95,9 +99,21 @@ async function buildEnv() {
   return cfApi("GET", `/accounts/${account}/builds/triggers/${trigger}/environment_variables`)
 }
 async function wireAnalytics() {
+  if (!repo) return
   const { account, trigger } = await buildTrigger()
   const variables = Object.fromEntries(Object.entries(ids).map(([name, value]) => [name, { is_secret: false, value }]))
   await cfApi("PATCH", `/accounts/${account}/builds/triggers/${trigger}/environment_variables`, variables)
+}
+function existingAnalyticsId(name, code) {
+  const currentSession = `${session}-${name}`
+  const window = name === "ga4" ? ["--window", "dedicated", "--window-slot", "ga4-setup"] : ["--window", "background"]
+  try {
+    run(`${name}-setup`, "status", ...(name === "ga4" ? ["--domain", domain] : []), ...browser(name), "--keep-session")
+    return execFileSync("opencli", ["browser", currentSession, ...window, "eval", code],
+      { encoding: "utf8", timeout: 30000, stdio: ["ignore", "pipe", "pipe"] }).trim()
+  } finally {
+    try { execFileSync("opencli", ["browser", currentSession, ...window, "close"], { stdio: "ignore", timeout: 10000 }) } catch {}
+  }
 }
 let submittedIndexNow = false
 const steps = {
@@ -119,9 +135,9 @@ const steps = {
     apply: async () => {
       const status = run("ga4-setup", "status", "--domain", domain, ...browser("ga4"))
       const existing = (await buildEnv()).GA4_MEASUREMENT_ID?.value
-      if (/已找到网站数据流/.test(status) && !existing)
-        throw new Error("GA4 数据流已存在但无法取得 ID；请先提供现有 ID，禁止重复创建")
-      ids.GA4_MEASUREMENT_ID = existing || run("ga4-setup", "create", "--domain", domain, ...browser("ga4")).match(/ID:\s*(G-[A-Z0-9]{6,})/)?.[1]
+      ids.GA4_MEASUREMENT_ID = existing || (/已找到网站数据流/.test(status)
+        ? existingAnalyticsId("ga4", `(async()=>{const row=[...document.querySelectorAll('mat-row,[role="row"],tr')].find(x=>x.innerText.includes(${JSON.stringify(domain)}));if(row)row.click();await new Promise(r=>setTimeout(r,1500));return (document.body.innerText.match(/G-[A-Z0-9]{6,}/g)||[])[0]||''})()`)
+        : run("ga4-setup", "create", "--domain", domain, ...browser("ga4")).match(/ID:\s*(G-[A-Z0-9]{6,})/)?.[1])
       if (!ids.GA4_MEASUREMENT_ID) throw new Error("GA4 未返回 Measurement ID")
       await wireAnalytics()
     },
@@ -132,9 +148,9 @@ const steps = {
     apply: async () => {
       const status = run("clarity-setup", "status", ...browser("clarity"))
       const existing = (await buildEnv()).CLARITY_PROJECT_ID?.value
-      if (new RegExp(domain.replaceAll(".", "\\."), "i").test(status) && !existing)
-        throw new Error("Clarity 项目已存在但无法取得 ID；请先提供现有 ID，禁止重复创建")
-      ids.CLARITY_PROJECT_ID = existing || run("clarity-setup", "create", "--site", domain, ...browser("clarity")).match(/ID:\s*([a-z0-9]+)/)?.[1]
+      ids.CLARITY_PROJECT_ID = existing || (new RegExp(domain.replaceAll(".", "\\."), "i").test(status)
+        ? existingAnalyticsId("clarity", `(async()=>{const row=[...document.querySelectorAll('tr')].find(x=>x.innerText.includes(${JSON.stringify(domain)}));if(row)(row.querySelector('a')||row).click();await new Promise(r=>setTimeout(r,1500));return location.href.match(/\/projects\/(?:view\/)?([a-z0-9]+)/)?.[1]||''})()`)
+        : run("clarity-setup", "create", "--site", domain, ...browser("clarity")).match(/ID:\s*([a-z0-9]+)/)?.[1])
       if (!ids.CLARITY_PROJECT_ID) throw new Error("Clarity 未返回 Project ID")
       await wireAnalytics()
     },
@@ -221,7 +237,8 @@ for (const name of names) {
     } else {
       await steps[name].apply()
       const deployed = await steps[name].done()
-      const status = !deployed && ["cf", "ga4", "clarity"].includes(name)
+      const guidance = !repo && ({ cf: "CF_WEB_ANALYTICS_TOKEN", ga4: "GA4_MEASUREMENT_ID", clarity: "CLARITY_PROJECT_ID" })[name]
+      const status = guidance ? `未完成（需配置构建变量：${guidance}=${ids[guidance]}）` : !deployed && ["cf", "ga4", "clarity"].includes(name)
         ? "需重建部署后复查" : deployed ? "本次完成" : "失败（执行后状态仍未完成）"
       result.push([name, status])
       console.log(`${name}: ${status}`)
@@ -235,4 +252,4 @@ for (const name of names) {
 }
 console.log("\n| 步骤 | 状态 |\n|---|---|")
 for (const [name, status] of result) console.log(`| ${name} | ${status} |`)
-if (result.some(([, status]) => status.startsWith("失败"))) process.exitCode = 1
+if (result.some(([, status]) => status.startsWith("失败") || status.startsWith("未完成"))) process.exitCode = 1
