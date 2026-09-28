@@ -64,6 +64,7 @@
  * 已知坑：Dashboard 搜索/分页只显示当前结果；新项目的「完成」按钮不能
  * 证明成功，须回读项目列表。Site Audit 的「完成」是 React onSubmit，
  * 普通 click 不会提交。若工作区有冻结项目，不得擅自删除项目。
+ * 2026-09-28：创建前后按域名搜索项目列表；选 GSC 账户后须点「重新检查状态」；冻结弹窗关闭后从卡片读项目名。
  *
  * ── 双证人化（2026-08-30，截图链路已实盘验证）────────────────
  * 向导每一步（打开 / 每次点击后）都截图落 `.rankup/evidence/ahrefs-setup-<ts>/`；
@@ -182,22 +183,44 @@ function submitFinish(label) {
   scene(`submitted-${label.replace(/[^\w一-鿿-]/g, "_")}`)
 }
 
-/** 工作区有冻结项目时新建会被拒。只读出名字，不删除。 */
+/** 工作区有冻结项目时新建会被拒。只读出卡片名字，不删除。 */
 function frozenProjectNames() {
   const raw = evalJs(`
-    const text=document.body.innerText||'';
-    if(!/冻结|frozen/i.test(text)) return '';
-    const lines=text.split(/\\n/).map(s=>s.trim()).filter(Boolean);
-    const names=[];
-    for(let i=0;i<lines.length;i++){
-      if(lines[i]==='冻结' || /被冻结|frozen/i.test(lines[i])){
-        const prev=lines.slice(Math.max(0,i-3), i).find(s=>s && !/基础的|共享|项目|概述/.test(s));
-        if(prev) names.push(prev);
-      }
-    }
+    const names=[...document.querySelectorAll('[class*="projectHeader"]')]
+      .filter(card=>/冻结|frozen/i.test(card.innerText))
+      .map(card=>card.querySelector('h3')?.textContent?.trim()).filter(Boolean);
     return [...new Set(names)].join('\\n');
   `)
   return raw ? raw.split("\n").filter(Boolean) : []
+}
+
+function reportFrozenProject() {
+  const dialog = evalJs(`return !![...document.querySelectorAll('[role="dialog"]')].find(el=>/工作区存在冻结项目|frozen projects/i.test(el.innerText))`)
+  if (dialog === "true") reactClick(`[...document.querySelectorAll('[role="dialog"] button')].find(b=>/关闭|close/i.test(b.getAttribute('aria-label')||b.textContent||'') || /close/i.test(b.className))`, "关闭冻结项目弹窗")
+  open("https://app.ahrefs.com/dashboard")
+  waitPageReady(25)
+  waitFor(`return !!document.querySelector('[class*="projectHeader"]')`, 30)
+  const names = frozenProjectNames()
+  bail("frozen-project-blocks-create", `工作区存在冻结项目：${names.length ? names.join("、") : "冻结项目名未知"}；不擅自删除已有项目。`)
+}
+
+function projectIdsForSite() {
+  open("https://app.ahrefs.com/dashboard")
+  waitPageReady(25)
+  waitFor(`return !!document.querySelector('input[placeholder="搜索"]')`, 30)
+  stampAndType(`document.querySelector('input[placeholder="搜索"]')`, site, "项目搜索框")
+  settle(1000)
+  return evalJs(`
+    const ids=new Set();
+    for(const card of document.querySelectorAll('[class*="projectHeader"]')){
+      const link=card.querySelector('a[href*="projectId="]');
+      const target=link && new URL(link.href).searchParams.get('target')?.replace(/^\\*\\./,'').replace(/\\/.*$/,'');
+      if(target!==${JSON.stringify(site)}) continue;
+      const id=new URL(link.href).searchParams.get('projectId');
+      if(id) ids.add(id);
+    }
+    return [...ids].join(',');
+  `).split(",").filter(Boolean)
 }
 
 /* ── 取证 ─────────────────────────────────────────────────── */
@@ -299,6 +322,11 @@ async function doStatus() {
 
 // ── create：新建项目 ──────────────────────────────────────
 async function doCreate() {
+  const existing = projectIdsForSite()
+  if (existing.length) {
+    console.log(`${site} 已有项目，ID：${existing.join("、")}；不重复创建。`)
+    return
+  }
   // 先看工作区有没有冻结项目。有的话新建会被拒，报出名字后停，不删除。
   open("https://app.ahrefs.com/dashboard")
   waitPageReady(25)
@@ -309,7 +337,7 @@ async function doCreate() {
   }
   const blocked = evalJs(`return /工作区存在冻结项目|此功能已关闭|frozen projects/i.test(document.body.innerText)`)
   if (blocked === "true") {
-    bail("frozen-project-blocks-create", "Ahrefs 提示工作区存在冻结项目，无法添加新项目；不擅自删除已有项目。")
+    reportFrozenProject()
   }
 
   // 页内点「创建 → 手动添加」，不要硬跳 URL（硬跳会把导航挂起）。
@@ -403,16 +431,15 @@ async function doCreate() {
       bail("project-creation-unconfirmed", "提交完成后仍在向导；项目未确认创建。")
     }
     if (evalJs(`return /工作区存在冻结项目|frozen projects/i.test(document.body.innerText)`) === "true") {
-      const names = frozenProjectNames()
-      bail("frozen-project-blocks-create", `Ahrefs 提示工作区有冻结项目，不允许添加项目${names.length ? `：${names.join("、")}` : ""}；不擅自删除已有项目。`)
+      reportFrozenProject()
     }
   }
 
-  // 不再无条件宣布「创建成功」：上面每个分支都是「文案命中才点」，全都没命中时
-  // 流程一样会走到这里。只报告事实，成没成以最后一张截图与页面文本为准。
+  const created = projectIdsForSite()
+  if (created.length !== 1) bail("project-creation-unconfirmed", `${site} 项目列表回查得到 ${created.length} 个项目，ID：${created.join("、") || "无"}。`)
   const finalScene = scene("create-final")
   writeManifest(evidenceDir(), { script: "ahrefs-setup", action, site, name, stopReason: "flow-completed", finishedAt: new Date().toISOString() })
-  console.log(`create 流程已走完（走没走到最后一步、项目建没建起来，以 ${evidenceDir()} 里 create-final 的截图与文本为准）`)
+  console.log(`项目已创建，ID：${created[0]}（项目列表按域名回查恰好一个）。`)
   console.log(`   项目名: ${name}`)
   console.log(`   域名:   ${site}`)
   console.log(`   （新建项目通常处于「冻结」状态，需验证所有权后激活 Site Audit）`)
@@ -490,6 +517,7 @@ function selectGscAccount() {
   if (!available) bail("gsc-account-not-found", gscAccount ? "找不到指定的 GSC 账户选项" : "GSC 账户下拉没有可见的账户选项（Ahrefs 尚未关联 Google 账户或授权失效）")
   reactClick(selection, "GSC 账户第一项")
   scene("gsc-account-selected")
+  reactClick(`[...document.querySelectorAll('button')].find(b=>/重新检查状态|Recheck status/i.test(b.textContent||''))`, "重新检查状态")
   return "selected"
 }
 
