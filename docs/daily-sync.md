@@ -22,7 +22,7 @@ python scripts/maintenance/update_local.py
 powershell -NoProfile -File scripts/maintenance/register-task.ps1
 
 # Inspect the deployed version and last attempt.
-Get-Content "$env:LOCALAPPDATA/J-skills/status.json"
+Get-Content "$env:USERPROFILE/.local/state/J-skills/status.json"
 Get-Content "$env:USERPROFILE/.agents/skills/.j-skills-managed.json"
 
 # Pause/resume the local schedule.
@@ -30,7 +30,7 @@ Disable-ScheduledTask -TaskName 'J-skills Daily Update'
 Enable-ScheduledTask -TaskName 'J-skills Daily Update'
 ```
 
-Logs, state and backups live in `%LOCALAPPDATA%/J-skills`. No credentials are committed. Initial installation is explicit: `--install-current --bootstrap-ref <saved-baseline-branch>`; subsequent updates use the installation manifest.
+Logs, state and backups live in `%USERPROFILE%/.local/state/J-skills`. This avoids Microsoft Store Python's AppData redirection. No credentials are committed. Initial installation is explicit: `--install-current --bootstrap-ref <saved-baseline-branch>`; subsequent updates use the installation manifest.
 
 ## Failure and rollback
 

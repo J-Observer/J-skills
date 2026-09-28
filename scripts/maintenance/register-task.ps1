@@ -1,6 +1,6 @@
 param([string]$Repo = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path)
 $ErrorActionPreference = 'Stop'
-$stateDir = Join-Path $env:LOCALAPPDATA 'J-skills'
+$stateDir = Join-Path $env:USERPROFILE '.local/state/J-skills'
 New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
 $taskConfig = @{
     repo = $Repo
@@ -22,7 +22,7 @@ try {
     & $cfg.python (Join-Path $cfg.repo 'scripts/maintenance/update_local.py') --repo $cfg.repo --state $PSScriptRoot --scheduled *>> $log
     $result = $LASTEXITCODE
     if ($result -ne 0) {
-        & "$env:SystemRoot\System32\msg.exe" $env:USERNAME /TIME:30 'J-skills daily update failed. Your previous skills were preserved. See %LOCALAPPDATA%\J-skills\status.json and the daily log.' 2>$null
+        & "$env:SystemRoot\System32\msg.exe" $env:USERNAME /TIME:30 'J-skills daily update failed. See %USERPROFILE%\.local\state\J-skills\status.json and the daily log.' 2>$null
     }
     exit $result
 } finally {

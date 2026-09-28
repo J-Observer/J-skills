@@ -309,7 +309,7 @@ def update(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--repo', type=Path, default=Path(__file__).resolve().parents[2])
-    parser.add_argument('--state', type=Path, default=Path(os.environ.get('LOCALAPPDATA', str(Path.home()))) / 'J-skills')
+    parser.add_argument('--state', type=Path, default=Path.home() / '.local/state/J-skills')
     parser.add_argument('--scheduled', action='store_true')
     parser.add_argument('--install-current', action='store_true')
     parser.add_argument('--bootstrap-ref')

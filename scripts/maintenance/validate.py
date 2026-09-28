@@ -1,6 +1,7 @@
 """Offline update gate, shared by GitHub and the Windows installer."""
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 
@@ -23,6 +24,9 @@ def validate(root):
         assert metadata['name'] not in names, f'duplicate skill: {rel}'
         names.add(metadata['name'])
     print(f'Validated {len(names)} skill metadata records', flush=True)
+    node = Path(shutil.which('node'))
+    npm = [str(node), str(node.parent / 'node_modules/npm/bin/npm-cli.js')] if os.name == 'nt' else ['npm']
+    run([*npm, 'ci', '--ignore-scripts', '--no-audit', '--no-fund', '--prefix', 'agent-fleet'], root)
     tests = [str(p.relative_to(root)) for group in ('rankup', 'backlink', 'opencli')
              for p in sorted((root / group / 'tests').glob('*.test.mjs'))]
     run(['node', '--test', '--test-reporter=spec', *tests], root)
