@@ -85,7 +85,8 @@ domain = domain ? domain.replace(/^https?:\/\//, "").replace(/\/.*$/, "") : doma
 
 function cli(args, { timeout = 30000 } = {}) {
   try {
-    return execFileSync("opencli", ["browser", session, "--window", "dedicated", "--window-slot", windowSlot, ...args],
+    const windowArgs = action === "status" ? ["--window", "background"] : ["--window", "dedicated", "--window-slot", windowSlot]
+    return execFileSync("opencli", ["browser", session, ...windowArgs, ...args],
       { encoding: "utf8", timeout, stdio: ["pipe", "pipe", "pipe"] }).trim()
   } catch (e) {
     const err = (e.stderr?.toString() || e.stdout?.toString() || e.message).trim()
@@ -263,23 +264,33 @@ async function doStatus() {
   if (domain) {
     goAdmin()
     openPicker()
-    fillVisibleFilter(name.slice(0, 3))
-    const match = pageText(10000).split("\n").find(line =>
-      /GA4 媒体资源|GA4 property/i.test(line) &&
-      line.toLowerCase().replace(/[^a-z0-9]/g, "").includes(name.toLowerCase()))
-    const id = match?.match(/(?:GA4 媒体资源|GA4 property)\s*(\d+)/i)?.[1]
-    const account = evalJs("return location.href").match(/a(\d+)p\d+/)?.[1]
-    if (!id || !account) {
-      const html = await fetch(`https://${domain}/`).then(r => r.ok ? r.text() : "").catch(() => "")
-      console.log(/G-[A-Z0-9]{6,}/.test(html)
-        ? `${domain} 线上已部署 GA4 Measurement ID（当前账号列表未显示资源）`
-        : `${domain} 未找到网站数据流`)
-      return
+    cli(["fill", "xap-open-search input", name.slice(0, 3)])
+    waitFor(`return !!document.querySelector('a[href*="/admin"]')`, 10)
+    const candidates = JSON.parse(evalJs(`return JSON.stringify([...document.querySelectorAll('a[href*="/admin"]')]
+      .filter(a => /a\\d+p\\d+/.test(a.getAttribute('href')||''))
+      .map(a => ({ href: a.getAttribute('href'), name: (a.getAttribute('aria-label')||a.innerText||'').trim() })))`))
+    for (const candidate of candidates) {
+      const ids = candidate.href.match(/a(\d+)p(\d+)/)
+      if (!ids) continue
+      open(`https://analytics.google.com/analytics/web/#/a${ids[1]}p${ids[2]}/admin/streams/table`)
+      waitFor(`return (document.body.innerText||'').includes(${JSON.stringify(domain)})`, 25)
+      const rowFound = evalJs(`return !![...document.querySelectorAll('mat-row,[role="row"]')]
+        .find(el => (el.innerText||'').includes(${JSON.stringify(domain)}))`)
+      if (rowFound !== "true") continue
+      stampAndClick(`[...document.querySelectorAll('mat-row,[role="row"]')]
+        .find(el => (el.innerText||'').includes(${JSON.stringify(domain)}))`, "网站数据流", "data-rankup-row")
+      waitFor(`return /G-[A-Z0-9]{6,}/.test(document.body.innerText||'')`, 15)
+      const measurementId = extractMeasurementIds()[0]
+      if (measurementId) {
+        const [accountName, propertyName] = candidate.name.replace(/^Navigate to /, "").split(",")
+        console.log(`${domain} 已找到网站数据流：账号 ${accountName} (${ids[1]})，资源 ${propertyName} (${ids[2]})，Measurement ID ${measurementId}`)
+        return
+      }
     }
-    open(`https://analytics.google.com/analytics/web/#/a${account}p${id}/admin/streams/table`)
-    waitFor(`return /数据流|Data streams/.test(document.body.innerText||'') && /${domain.replaceAll(".", "\\.")}/i.test((document.body.innerText||'').split('©')[0])`, 25)
-    const found = pageText(5000).split("©")[0].includes(domain)
-    console.log(found ? `${domain} 已找到网站数据流` : `${domain} 未找到网站数据流`)
+    const html = await fetch(`https://${domain}/`).then(r => r.ok ? r.text() : "").catch(() => "")
+    console.log(/G-[A-Z0-9]{6,}/.test(html)
+      ? `${domain} 线上已部署 GA4 Measurement ID（所查资源未找到网站数据流）`
+      : `${domain} 未找到网站数据流`)
     return
   }
   goAdmin()
