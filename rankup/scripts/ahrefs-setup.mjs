@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * ahrefs-setup.mjs —— 在 Ahrefs 里添加项目并启动网站审计，
- * 驱动用户已登录的浏览器，不需要 API key。
+ * ahrefs-setup.mjs —— 通过已登录 Chrome 查看 Ahrefs 项目所有权状态、
+ * 默认用已关联的 GSC 账户验证所有权；保留既有创建/分析子命令。无需 API key。
  *
  * 用法：
  *   # 查看 Dashboard 上的项目列表（只读）
@@ -10,8 +10,10 @@
  *   # 为指定域名创建新项目
  *   node <rankup-skill-dir>/scripts/ahrefs-setup.mjs create --site example.com --name example
  *
- *   # 通过 GSC 验证项目所有权
+ *   # 默认通过已关联的 GSC 账户验证项目所有权（账户下拉选第一项）
  *   node <rankup-skill-dir>/scripts/ahrefs-setup.mjs verify --site example.com
+ *   # 仅用户指定账户时覆盖默认第一项
+ *   node <rankup-skill-dir>/scripts/ahrefs-setup.mjs verify --site example.com --gsc-account name@example.com
  *
  *   # 启用 Web Analytics（总访问量监控）并获取追踪脚本
  *   node <rankup-skill-dir>/scripts/ahrefs-setup.mjs enable-wa --site example.com
@@ -20,6 +22,7 @@
  *   --site <域名>     要追踪的域名（不带协议，例如 example.com）
  *   --name <名称>     项目显示名，默认取 --site 的二级域名
  *   --project-id <ID> 直接指定 Ahrefs 项目 ID，跳过 Dashboard 自动查找
+ *   --gsc-account <邮箱> 验证时覆盖 GSC 账户下拉第一项（只有用户指定时才用）
  *   --session <名>    opencli 会话名（默认 ahrefs-setup-<每对话唯一后缀>，不用 pid）
  *   --keep-session    完成后不关闭会话
  *
@@ -30,13 +33,20 @@
  * Ahrefs API v3 只暴露数据查询端点（backlinks、keywords、SERPs），
  * 不暴露项目管理。创建项目 / 启动 Site Audit 只能走 Dashboard UI。
  *
- * ── 关于所有权验证 ────────────────────────────────────────
+ * ── 关于所有权验证（2026-09-28 复核） ──────────────────────
  *
- * 项目创建后处于「冻结」状态，需要验证所有权才能使用 Site Audit 等功能。
- * `verify` 子命令通过 GSC（谷歌搜索控制台）自动完成验证：
- *   导航到所有权设置 → 展开 GSC 区域 → 选择 Google 账号 → 等待验证 → 保存。
- * 前提：浏览器已登录 Google 且该 Google 账号在 GSC 中拥有目标站点。
- * 如果 Google 弹出授权窗口，需要用户手动点击同意。
+ * 优先使用 Ahrefs 已关联的 GSC 账户验证，不优先走 DNS TXT / HTML 文件或标签。
+ * `verify`：所有权设置 →「谷歌搜索控制台（建议）」→ Google 账户下拉默认第一项
+ * （通常只有第一项有内容）→ 等验证通过 → 保存。仅用户指定账户时才传
+ * `--gsc-account` 改选；验证失败须如实退出，由调用方确认 GSC 是否已验证，
+ * 再决定是否退回 DNS（此脚本不自动改 DNS）。创建时不跳过可用的 GSC 验证。
+ * 已知坑：Dashboard 先渲染侧栏后加载项目；项目搜索与分页只显示局部结果；
+ * 项目存在冻结项时 Ahrefs 禁止新增项目（2026-09-28 实测弹窗）。
+ * GSC 已关联账户和浏览器登录 Google 不是同一件事：下拉若显示「未连接谷歌帐户」
+ * 则绝不声称 GSC 已验证；首次授权同意页出现时停下，交用户处理。
+ * 验证后必须回读「所有权已验证」，不能把点击、保存或向导跳转当成功。
+ * /add-project/site-audit 的按钮文案随设置变化，不能从导航推断已创建。
+ * 依赖用户 Chrome 已登录 Ahrefs，GSC 验证还依赖 Ahrefs 的账户关联。
  *
  * ── 关于 Web Analytics ──────────────────────────────────────
  *
@@ -47,7 +57,9 @@
  * 注意：TanStack Start 的 head() scripts 不支持 data-* 属性，
  * 需要在 RootDocument 的 JSX <head> 中直接写 <script> 标签。
  *
- * 已验证：2026-08-23（中文界面）
+ * 验证日期：2026-09-28（中文界面；真实账户存在冻结项目时，创建会在最后一步被拒绝）。
+ * 已知坑：Dashboard 搜索/分页只显示当前结果；新项目的「完成」按钮不能
+ * 证明成功，须回读项目列表；若工作区有冻结项目，不得擅自删除项目。
  *
  * ── 双证人化（2026-08-30，截图链路已实盘验证）────────────────
  * 向导每一步（打开 / 每次点击后）都截图落 `.rankup/evidence/ahrefs-setup-<ts>/`；
@@ -65,6 +77,7 @@ const action = argv[0]
 let site = null
 let name = null
 let projectId = null
+let gscAccount = null
 let session = `ahrefs-setup-${sessionSuffix()}`
 let keepSession = false
 
@@ -73,6 +86,7 @@ for (let i = 1; i < argv.length; i++) {
   if (a === "--site" && argv[i + 1]) { site = argv[++i]; continue }
   if (a === "--name" && argv[i + 1]) { name = argv[++i]; continue }
   if (a === "--project-id" && argv[i + 1]) { projectId = argv[++i]; continue }
+  if (a === "--gsc-account" && argv[i + 1]) { gscAccount = argv[++i]; continue }
   if (a === "--session" && argv[i + 1]) { session = argv[++i]; continue }
   if (a === "--keep-session") { keepSession = true; continue }
   if (a === "-h" || a === "--help") { usage(); process.exit(0) }
@@ -81,9 +95,9 @@ for (let i = 1; i < argv.length; i++) {
 
 function usage() {
   console.log(`用法:
-  node ahrefs-setup.mjs status
+  node ahrefs-setup.mjs status [--site <域名>] [--project-id <ID>]
   node ahrefs-setup.mjs create --site <域名> [--name <项目名>]
-  node ahrefs-setup.mjs verify --site <域名> [--project-id <ID>]
+  node ahrefs-setup.mjs verify --site <域名> [--project-id <ID>] [--gsc-account <邮箱>]
   node ahrefs-setup.mjs enable-wa --site <域名> [--project-id <ID>]`)
 }
 
@@ -170,28 +184,54 @@ function stampAndType(js, text, label) {
   scene(`typed-${label.replace(/[^\w一-鿿-]/g, "_")}`)
 }
 
-// ── status：列出所有项目 ──────────────────────────────────
+// ── status：列出项目，或回读单个项目的所有权状态 ───────────────
 async function doStatus() {
+  if (projectId || site) {
+    const id = findProjectId()
+    open(`https://app.ahrefs.com/project-settings/${id}/ownership`)
+    if (!waitFor(`return /所有权已验证[。.]|所有权未验证[。.]|Ownership (?:verified|not verified)/i.test(document.body.innerText)`, 30)) {
+      bail("ownership-not-loaded", "所有权页面未出现可确认的验证状态。")
+    }
+    const status = evalJs(`return (document.body.innerText.match(/所有权(?:已|未)验证[。.]|Ownership (?:verified|not verified)[.!]?/i)||[])[0]||''`)
+    console.log(`${site || id} | ${id} | ${status}`)
+    return
+  }
   open("https://app.ahrefs.com/dashboard")
   waitPageReady(25)
 
-  const text = pageText(8000)
-  if (text.includes("Log in") || text.includes("Sign in")) {
-    bail("login-text-seen", "页面文本命中 Log in/Sign in——多半未登录 Ahrefs（也可能是页面自身内容撞词，看截图）。请先在浏览器中登录 app.ahrefs.com")
+  // Dashboard shell renders before project cards; reading it early silently reports navigation as projects.
+  // Ahrefs may show project settings without Site Explorer links (frozen projects).
+  waitFor(`return !!document.querySelector('a[href*="projectId="],a[href*="/project-settings/"]') || /无符合搜索条件的项目|No projects/i.test(document.body.innerText)`, 30)
+  const url = evalJs(`return location.href`)
+  if (/\/(?:login|sign-in|signin)(?:[/?#]|$)/i.test(url)) {
+    bail("redirected-to-login", "Ahrefs 已跳转登录页，请先在浏览器中登录 app.ahrefs.com")
   }
 
-  console.log("── Ahrefs 项目列表 ──")
-  // 提取项目名和域名
   const projects = evalJs(`
-    const cards = document.querySelectorAll('[class*="ProjectCard"],[class*="project"]');
-    const items = [];
-    cards.forEach(c => {
-      const name = c.querySelector('h3,h2,[class*="name"],[class*="Name"]')?.textContent?.trim();
-      const domain = c.querySelector('[class*="domain"],[class*="url"]')?.textContent?.trim();
-      if (name) items.push(name + ' | ' + (domain || ''));
-    });
-    return items.length ? items.join('\\n') : document.body.innerText.slice(0, 3000);
+    const links = [...document.querySelectorAll('a[href*="projectId="]')];
+    const items = new Map();
+    for (const link of links) {
+      const u = new URL(link.href);
+      const id = u.searchParams.get('projectId');
+      const domain = (u.searchParams.get('target') || '').replace(/^\\*\\./, '').replace(/\\/.*$/, '');
+      if (!id || !domain || items.has(id)) continue;
+      const card = link.closest('[class*="projectHeader"]') || link.closest('[class*="projectCard"]');
+      const name = card?.querySelector('h3')?.textContent?.trim() || link.textContent.trim() || domain;
+      items.set(id, name + ' | ' + domain + ' | ' + id + ' | 未冻结（所有权仍需回读）');
+    }
+    for (const link of document.querySelectorAll('a[href*="/project-settings/"][href*="/ownership"]')) {
+      const id = link.getAttribute('href').match(/project-settings\\/(\\d+)/)?.[1];
+      if (!id || items.has(id)) continue;
+      const header = link.closest('[class*="projectHeader"]');
+      const text = header?.innerText || link.parentElement?.parentElement?.innerText || '';
+      items.set(id, text.replace(/\\s+/g, ' ').trim().slice(0, 180) + ' | ' + id + ' | 冻结（未验证）');
+    }
+    return [...items.values()].join('\\n');
   `)
+  const pageInfo = evalJs(`return location.href + ' | ' + (document.body.innerText.match(/每页\\d+个结果|\\d+ results per page/i)?.[0] || '')`)
+  if (!projects) bail("projects-not-rendered", "Dashboard 未解析到项目链接；不把侧栏文本误报为项目列表。请检查现场截图。")
+  console.log("── Ahrefs 项目列表（当前页；搜索和分页结果不代表全工作区）──")
+  console.log(pageInfo)
   console.log(projects)
 }
 
@@ -264,33 +304,29 @@ async function doCreate() {
     settle(3000)
   }
 
-  // 第 3 步：所有权验证（跳过）
-  const text3 = pageText()
-  if (text3.includes("验证所有权") || text3.includes("Verify ownership")) {
-    stampAndClick(
-      `[...document.querySelectorAll('button,a')].find(b=>/继续而不验证|skip.*verif|without.*verif/i.test(b.textContent))`,
-      "跳过验证按钮"
-    )
-    settle(2000)
-    // 确认弹窗
-    const confirm = pageText()
-    if (confirm.includes("跳过验证") || confirm.includes("skip verification")) {
-      stampAndClick(
-        `[...document.querySelectorAll('button')].find(b=>/是的|yes|skip/i.test(b.textContent))`,
-        "确认跳过按钮"
-      )
-      settle(3000)
+  // 第 3 步：所有权验证。页面加载时会先「检查验证」，已验证的项目无需再选账户。
+  if (evalJs(`return location.pathname.endsWith('/ownership')`) === "true") {
+    waitFor(`return !/检查验证[.…]?/.test(document.body.innerText)`, 35)
+    let result = selectGscAccount()
+    if (result === "not-found") bail("gsc-section-not-found", "创建向导找不到 GSC 验证区域。")
+    if (result === "selected" && !waitFor(`return /所有权已验证|Ownership verified|已通过谷歌搜索控制台验证/.test(document.body.innerText)`, 35)) {
+      bail("gsc-verification-pending", "创建向导未显示 GSC 所有权已验证；待 GSC 就绪后重试，不自动写 DNS。")
     }
+    scene("create-gsc-verified")
+    stampAndClick(`[...document.querySelectorAll('button')].find(b=>/^继续$|^Continue$/i.test(b.textContent.trim()))`, "验证后继续")
+    if (!waitFor(`return location.pathname.endsWith('/site-audit')`, 20)) bail("site-audit-not-reached", "GSC 验证后未到达 Site Audit 步骤。")
   }
 
-  // 第 4 步：网站审计（使用默认设置完成）
-  const text4 = pageText()
-  if (text4.includes("网站审计") || text4.includes("Site Audit")) {
-    stampAndClick(
-      `[...document.querySelectorAll('button')].find(b=>/完成|finish|done/i.test(b.textContent))`,
-      "完成按钮"
-    )
-    settle(5000)
+  // 第 4 步：使用一次性抓取而不是开启周期性任务或付费的 Always-On。
+  if (evalJs(`return location.pathname.endsWith('/site-audit')`) === "true") {
+    stampAndClick(`[...document.querySelectorAll('button[role="radio"]')].find(b=>/一次性|one[- ]?time/i.test(b.textContent))`, "一次性抓取")
+    stampAndClick(`[...document.querySelectorAll('button')].find(b=>/^完成$|^Finish$|^Done$/i.test(b.textContent.trim()))`, "完成按钮")
+    if (!waitFor(`return !location.pathname.includes('/add-project/') || /工作区存在冻结项目|frozen projects/i.test(document.body.innerText)`, 25)) {
+      bail("project-creation-unconfirmed", "点击完成后仍在向导；项目未确认创建。")
+    }
+    if (evalJs(`return /工作区存在冻结项目|frozen projects/i.test(document.body.innerText)`) === "true") {
+      bail("frozen-project-blocks-create", "Ahrefs 提示工作区有冻结项目，不允许添加项目；不擅自删除已有项目。")
+    }
   }
 
   // 不再无条件宣布「创建成功」：上面每个分支都是「文案命中才点」，全都没命中时
@@ -301,10 +337,7 @@ async function doCreate() {
   console.log(`   项目名: ${name}`)
   console.log(`   域名:   ${site}`)
   console.log(`   （新建项目通常处于「冻结」状态，需验证所有权后激活 Site Audit）`)
-  console.log(`\n验证方式推荐:`)
-  console.log(`  - DNS TXT 记录（可通过 Cloudflare API 自动添加）`)
-  console.log(`  - HTML 标签（写入站点 <head>）`)
-  console.log(`  - 谷歌搜索控制台（如果已连接 Google 账号）`)
+  console.log(`\n验证方式：优先谷歌搜索控制台；账户下拉默认选第一项，仅失败后才考虑 DNS TXT。`)
 }
 
 // ── 共通：Dashboard から項目 ID を取得 ──────────────────────
@@ -359,6 +392,29 @@ function findProjectId() {
 }
 
 // ── verify：通过 GSC 验证所有权 ─────────────────────────────
+function selectGscAccount() {
+  const verified = `return /所有权已验证[。.]|Ownership verified[.!]?/i.test(document.body.innerText)`
+  if (evalJs(verified) === "true") return "verified"
+  const heading = `[...document.querySelectorAll('[class*="itemHeader"]')].find(el=>/谷歌搜索控制台|Google Search Console/i.test(el.textContent))`
+  if (evalJs(`return !!(${heading})`) !== "true") return "not-found"
+  const expanded = evalJs(`const h=${heading};return !!h.querySelector('[class*="itemTitleIconOpened"]')`)
+  if (expanded !== "true") stampAndClick(heading, "GSC 折叠标题")
+  const selector = `[...document.querySelectorAll('button,[role="button"],[role="listbox"],[class*="select"],[class*="Select"],[class*="dropdown"],[class*="Dropdown"]')].find(el=>/选择谷歌账号|Select.*Google.*account|选择帐号/i.test(el.textContent) && el.textContent.trim().length<120 && !el.disabled)`
+  // Do not screenshot or run unrelated steps while the transient portal menu is open.
+  evalJs(`const el=${selector};if(!el)throw new Error('找不到 GSC 账户下拉框');el.setAttribute('data-rankup-target','1')`)
+  cli('click "[data-rankup-target=\\"1\\"]"')
+  // Ahrefs menu uses button[class*=menuItem], not role=option or class*=option.
+  const options = `[...document.querySelectorAll('button[class*="menuItem"], [role="option"]')].filter(el=>/\\S+@\\S+/.test(el.textContent) && el.getBoundingClientRect().width>0)`
+  const selection = gscAccount
+    ? `${options}.find(el=>el.textContent.includes(${JSON.stringify(gscAccount)}))`
+    : `${options}[0]`
+  const available = waitFor(`const el=${selection};if(!el)return false;el.setAttribute('data-rankup-account','1');return true`, 10)
+  if (!available) bail("gsc-account-not-found", gscAccount ? "找不到指定的 GSC 账户选项" : "GSC 账户下拉没有可见的账户选项（Ahrefs 尚未关联 Google 账户或授权失效）")
+  cli('click "[data-rankup-account=\\"1\\"]"')
+  scene("gsc-account-selected")
+  return "selected"
+}
+
 async function doVerify() {
   const projectId = findProjectId()
   await doVerifyWithId(projectId)
@@ -371,79 +427,31 @@ async function doVerifyWithId(projectId) {
   open(`https://app.ahrefs.com/project-settings/${projectId}/ownership`)
   settle(5000)
 
-  // 2. 展开「谷歌搜索控制台（建议）」折叠区域。
-  // 实盘验证过（2026-09-10）：这个 Ahrefs 页面是 css-in-js 出来的哈希类名，
-  // 没有任何 accordion/Accordion/details/section 标记——折叠标题就是一个
-  // textContent 精确等于"谷歌搜索控制台（建议）"的最小 DIV，点它本身
-  // （它自己挂了 onclick，cursor:pointer）。展开状态用"标题后面紧跟的正文
-  // 是否已经出现"选择谷歌账号/连接您的谷歌帐号"这类展开态才有的文案"判断，
-  // 而不是找 class 或 aria-expanded（页面上都没有）。
-  const gscLabelJs = `[...document.querySelectorAll('div')].filter(el=>/谷歌搜索控制台|Google Search Console/i.test(el.textContent)).sort((a,b)=>a.textContent.length-b.textContent.length)[0]`
-  const alreadyExpanded = evalJs(`
-    const gsc = ${gscLabelJs};
-    if (!gsc) return 'not_found';
-    const t = document.body.innerText;
-    const idx = t.indexOf(gsc.textContent.trim());
-    const after = idx >= 0 ? t.slice(idx, idx + 200) : '';
-    return /选择谷歌账号|连接您的谷歌帐号|Select.*Google.*account|Connect.*Google/i.test(after) ? 'expanded' : 'collapsed';
-  `)
-
-  if (alreadyExpanded === 'collapsed') {
-    stampAndClick(gscLabelJs, "GSC 折叠标题")
-    settle(2000)
-  } else if (alreadyExpanded === 'not_found') {
-    bail("gsc-section-not-found", "找不到 GSC 验证区域。页面结构可能已变化——现在长什么样，看截图。")
-  }
-
-  // 3. 检查是否已验证
-  const verified = evalJs(`return document.body.innerText.includes('所有权已验证') || document.body.innerText.includes('Ownership verified')`)
-  if (verified === "true") {
-    console.log(`✅ ${site} 已通过 GSC 验证，无需再次操作。`)
+  // Default to the first linked Google account; only --gsc-account overrides it.
+  const selected = selectGscAccount()
+  if (selected === "not-found") bail("gsc-section-not-found", "找不到 GSC 验证区域；看现场截图。")
+  if (selected === "verified") {
+    console.log(`${site}：页面已显示所有权已验证，无需再次选择账户。`)
     return
   }
 
-  // 4. 点击「选择谷歌账号」下拉框
-  stampAndClick(
-    `[...document.querySelectorAll('button,[role="button"],[role="listbox"],[class*="select"],[class*="Select"],[class*="dropdown"],[class*="Dropdown"]')].find(el=>/选择谷歌账号|Select.*Google.*account|选择帐号/i.test(el.textContent))`,
-    "选择谷歌账号下拉框"
-  )
-  settle(3000)
-
-  // 5. 从下拉选项中选择第一个 Google 账号
-  stampAndClick(
-    `[...document.querySelectorAll('[role="option"],li[class*="option"],div[class*="option"],button[class*="option"]')].find(el => el.textContent.includes('@'))`,
-    "Google 账号选项"
-  )
-  settle(8000)
-
-  // 6. 等待验证完成（绿色横幅出现）
-  let attempts = 0
+  // 每 15 秒回读一次实际所有权结果；选择账户本身并不等于成功。
   let isVerified = false
-  while (attempts < 6 && !isVerified) {
-    const check = evalJs(`return document.body.innerText.includes('所有权已验证') || document.body.innerText.includes('Ownership verified') || document.body.innerText.includes('已通过谷歌搜索控制台验证')`)
-    if (check === "true") {
-      isVerified = true
-      break
+  for (let attempts = 0; attempts <= 12; attempts++) {
+    const text = pageText(20000)
+    if (/所有权已验证[。.]|Ownership verified[.!]?/i.test(text)) { isVerified = true; break }
+    if (/密码|两步验证|验证码|授权同意|consent|captcha/i.test(text)) {
+      bail("manual-authorization-required", "检测到需要用户操作的授权或身份验证步骤；不自动同意。")
     }
-    settle(5000)
-    attempts++
+    if (attempts < 12) settle(15000)
   }
+  if (!isVerified) bail("verify-banner-not-seen", "3 分钟内未见「所有权已验证」；页面可见原文已随失败现场落盘，不把选中 GSC 账户当成功。")
 
-  if (!isVerified) {
-    bail("verify-banner-not-seen", "等了 6 轮没见到「所有权已验证」横幅。可能在等 Google 授权弹窗（需要用户手动同意）——当前卡在哪一步，看截图；手动完成授权后重新运行。")
-  }
-
-  // 7. 点击「保存」按钮
-  stampAndClick(
-    `[...document.querySelectorAll('button')].find(b=>/^保存$|^Save$/i.test(b.textContent.trim()))`,
-    "保存按钮"
-  )
-  settle(3000)
-
-  // 「已验证」横幅是页面自己说的（上面轮询到才走到这），「已保存」是我们点了保存按钮——
-  // 保存有没有生效以截图为准。
+  // 设置页可能有「保存」；创建向导则要点「继续」。只点实际存在的按钮。
+  const save = evalJs(`return !![...document.querySelectorAll('button')].find(b=>/^保存$|^Save$/i.test(b.textContent.trim()))`)
+  if (save === "true") stampAndClick(`[...document.querySelectorAll('button')].find(b=>/^保存$|^Save$/i.test(b.textContent.trim()))`, "保存按钮")
   scene("verify-final")
-  console.log(`${site}：页面出现「所有权已验证」横幅，已点击保存（保存结果以 ${evidenceDir()} 的 verify-final 截图为准）`)
+  console.log(`${site}：页面出现「所有权已验证」横幅（${save === "true" ? "已点击保存" : "页面没有保存按钮"}）。`)
 }
 
 // ── enable-wa：启用 Web Analytics 并获取追踪脚本 ────────────
