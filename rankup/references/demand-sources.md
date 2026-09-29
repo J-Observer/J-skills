@@ -89,7 +89,7 @@ node scripts/demand/boards.mjs traffic-cv --json \
 4. **不要用二手 SERP 接口代替这一步。** `serp-query.mjs`、`seo-webcafe.mjs serp`
    是给规模化统计用的，返回的是结构化字段，看不到版式、看不到 SERP 特性占了多少屏、
    看不到 AI 答案。而且 2026-08 起 Google 把出站链接换成了 `google.com/goto` 跳板，
-   二手通道更容易降级而接口照样回 200——见 [`seo-growth.md`](seo-growth.md) 对应一节。
+   二手通道更容易降级而接口照样回 200——见 [`seo-data-channels.md`](seo-data-channels.md) 对应一节。
 
 ### 每个引擎记下这七样
 
@@ -125,7 +125,7 @@ node scripts/demand/boards.mjs traffic-cv --json \
 - **Google 全是平台占位、Bing 首页有独立站** → Bing 那侧有空位，
   同时说明 Google 已经把这类意图判给了平台，Google 侧的天花板很低。
 - **英语盘面被占满、目标语种的本地引擎首页还很空** → 机会在语言差里，
-  不在词本身（验证方法见 [`seo-growth.md`](seo-growth.md) 的多语言一节）。
+  不在词本身（验证方法见 [`seo-experiences.md`](seo-experiences.md) 的「多语言站架构参考（Apple 模型）」条目）。
 - **所有引擎首页都是新闻、影视、赛事或成人内容** → 需求真实但不是工具需求，
   这个种子直接否掉，不用再进横向比较。
 
