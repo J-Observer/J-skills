@@ -29,6 +29,7 @@ Anyway 官方将 Business 定义为 Merchant of Record（MoR）：对其覆盖�
 node scripts/anyway/anyway.mjs --env stg me
 node scripts/anyway/anyway.mjs --env stg products list
 node scripts/anyway/scripts/create-product.mjs --env stg --name <商品名> --description <描述> --price <金额> --currency USD --success-url <返回地址>
+node scripts/anyway/scripts/archive-product.mjs --env stg --name-match <子串> --keep <保留商品ID,保留商品ID> --dry-run  # 预览归档候选；去掉 --dry-run 才实际归档并回读
 node scripts/anyway/scripts/create-webhook.mjs --env stg --url https://example.com/hook
 node scripts/anyway/scripts/create-webhook.mjs --env stg --url <端点> --events "订单已付款" --commit
 node scripts/anyway/scripts/stg/webhook-capture.mjs --evidence-dir <项目侧证据目录>
