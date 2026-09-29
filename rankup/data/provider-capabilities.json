@@ -1410,7 +1410,7 @@
               },
               "priorLessonNotGeneralised": "Semrush 的**侧栏**也在 shadow DOM 里，当时的结论是「侧栏看不见」，直到改用 `document.querySelectorAll('snav-sidebar-ribbon-item, snav-sidebar-list-item')` + `el.shadowRoot.querySelector('a')` 才拿到 15 个额外页面。**那次只修了侧栏这一处，没有推广到取数探针。**",
               "authorizedBase": {
-                "only": "sem.3ue.co",
+                "only": "<面板授权基址，见平台配置>",
                 "reference": "backlink/references/authorized-data-sources.md",
                 "wrongHostIsSilent": "`www.semrush.com/analytics/traffic/...` **不是授权基址，而且不报错**：渲染骨架 → 弹到 `/analytics/traffic/`（**公开营销页**，innerText 514、10 张图、标题 `Traffic Analytics: Estimate Any Website's Traffic | Semrush`）→ 再弹到 overview。**一个扫描器会从销售页上记下「无表格、有 svg、有导出按钮」。**",
                 "targetMismatchCaughtLive": "弹完之后标签页停在 **mmradar.gg** 的完整域名概览（23 个非空单元格、AS 22、自然流量 23.9K）。任何当时读到 `cells > 0` 的探针，都会把 mmradar.gg 的数字记到 canva.com 名下。"

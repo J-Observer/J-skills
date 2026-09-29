@@ -8,8 +8,8 @@
  * OpenCLI 1.12.1 不接受单参数 type，须指定目标并使用 fill；Google 有时检测到
  * 已有 DNS 验证记录直接显示「已自动完成所有权验证」，这种情况不再新增 TXT。
  * 遇到授权 DNS 服务商、登录或验证码立即停止；TXT 传播未就绪最多每 60 秒
- * 检查一次、单站最多 20 分钟。2026-09-28：bloxshirt.com 实测自动验证，
- * valuro.org 实测已存在；2026-09-28 两站 status 再次实测可进入 sitemap 页面。
+ * 检查一次、单站最多 20 分钟。2026-09-28：一站实测自动验证，
+ * 另一站实测已存在；2026-09-28 两站 status 再次实测可进入 sitemap 页面。
  * 手动 DNS TXT 分支尚未在真实站点验证。
  */
 import { execFileSync } from "node:child_process"

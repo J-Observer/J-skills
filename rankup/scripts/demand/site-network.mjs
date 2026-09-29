@@ -36,7 +36,7 @@
  *     首页 HTML 里什么都看不到。返回空只说明「这条路没找到」，不是「它没有兄弟站」。
  *   - 反过来，**共享 GTM 容器 ID 的强度弱于共享 GA4 ID**：代理商会给多个客户配同一个容器。
  *     所以输出里保留了指纹类型；强弱怎么判是 AI 的事，判读指引见
- *     references/demand-sources.md「站群反查」一节（2026-08-30 起脚本不再输出
+ *     references/demand-sources/competitors-and-roots.md「九·二、一个站背后的整个站群」一节（2026-08-30 起脚本不再输出
  *     strength/confirmed 判定，也不再默认过滤弱行——过滤发生在判断层，不在采集层）。
  *   - **「无共同指纹」是站群的常态，不是失败。** 成规模的操盘手会给每个站单独建
  *     GA4 属性（好分开看数据），所以兄弟站之间根本不共享埋点 ID。
@@ -50,7 +50,7 @@
 import { parseArgs, get, emit, sleep, die } from './_lib.mjs';
 
 const FINGERPRINTS = [
-  // [类型, 正则]。类型原样透出，强弱判读归 AI（见 demand-sources.md「站群反查」）。
+  // [类型, 正则]。类型原样透出，强弱判读归 AI（见 demand-sources/competitors-and-roots.md「九·二、一个站背后的整个站群」）。
   ['ga4',       /\bG-[A-Z0-9]{6,12}\b/g],
   ['ua',        /\bUA-\d{4,10}-\d{1,4}\b/g],
   ['adsense',   /\bca-pub-\d{10,20}\b/g],
@@ -154,7 +154,7 @@ async function main() {
     if (rec.utm.size) via.push(`utm:${[...rec.utm].join('/')}`);
     via.push(`outlink×${rec.count}`);
     // 只记事实：发现路径、共同指纹、回访状态。强弱与「算不算同一主体」的裁定归 AI，
-    // 判读指引见 references/demand-sources.md「站群反查」一节。
+    // 判读指引见 references/demand-sources/competitors-and-roots.md「九·二、一个站背后的整个站群」一节。
     const row = { seed: seedApex, domain: apex, via: via.join(' '), shared: '', revisit: 'not_visited' };
 
     if (args.confirm && visited < max) {
@@ -186,7 +186,7 @@ async function main() {
   if (args.confirm) {
     const failed = rows.filter((r) => r.revisit === 'fetch_failed').length;
     if (failed) console.error(`注意：${failed} 个候选回访失败——那些行的空「共同指纹」是「没看到」，不是「不共享」。`);
-    console.error('指纹类型的证据强弱判读见 rankup/references/demand-sources.md「站群反查」。');
+    console.error('指纹类型的证据强弱判读见 rankup/references/demand-sources/competitors-and-roots.md「九·二、一个站背后的整个站群」。');
   }
 }
 
@@ -200,7 +200,7 @@ const HELP = `site-network.mjs —— 站群反查：给一个域名，找出同
   --sleep <ms> 回访间隔           (默认 400)
 
 输出只记事实（发现路径 / 共同指纹 / 回访状态），不做强弱裁定与过滤；
-指纹类型怎么读、哪类算硬证据，见 rankup/references/demand-sources.md「站群反查」。
+指纹类型怎么读、哪类算硬证据，见 rankup/references/demand-sources/competitors-and-roots.md「九·二、一个站背后的整个站群」。
 `;
 
 main().catch((e) => die(e.message));

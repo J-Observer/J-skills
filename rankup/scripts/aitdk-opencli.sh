@@ -54,9 +54,9 @@
 #      that frame's execution context and the next eval fails with
 #      "has already been declared".
 #
-#   5. opencli binary: the globally-installed `opencli` on PATH is a different
-#      npm install that lacks the frame support this needs. Override with
-#      OPENCLI_BIN if the local checkout moves.
+#   5. opencli binary: defaults to `opencli` on PATH. If that installation
+#      lacks frame support, set OPENCLI_BIN to a compatible executable or
+#      command before running this script.
 #
 # Parsing is best-effort. AITDK renders labels and values as separate innerText
 # lines, sometimes label-run-then-value-run (Overview) and sometimes
@@ -149,7 +149,7 @@ set -euo pipefail
 # out literally (no stored variable) or put it in its own `.sh` file and run
 # that with `bash file.sh`; don't rely on unquoted variable expansion for
 # ad-hoc opencli one-liners typed directly into a zsh shell.
-OPENCLI_BIN="${OPENCLI_BIN:-node /Users/kcsx/Project/kcsx/opencli/dist/src/main.js}"
+OPENCLI_BIN="${OPENCLI_BIN:-opencli}"
 
 # ---------- args ----------
 # Order-independent flag parsing (positionals collected separately) so
@@ -406,8 +406,8 @@ fi
 ok "Captured on-page SEO data"
 
 # ---------- 3b. placeholder-domain detection (example.com leakage) ----------
-# Known failure mode on this workspace's TanStack Start sites (nonogram-jp,
-# crossword-ar): SITE_URL isn't injected at build time, so og:url / canonical
+# Known failure mode on TanStack Start sites: SITE_URL isn't injected at
+# build time, so og:url / canonical
 # / twitter:image etc. fall back to a literal "example.com" placeholder that
 # then ships to production. Flag it instead of silently reporting bad data.
 ISSUES_JSON='[]'

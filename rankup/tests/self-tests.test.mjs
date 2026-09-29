@@ -13,7 +13,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const SEARCH_ROOTS = ['rankup/scripts', 'backlink/scripts', 'game-opportunity/scripts'];
+// game-opportunity/ was removed from the repository on 2026-09-28 (commit 4d54082), so it is no longer scanned.
+const SEARCH_ROOTS = ['rankup/scripts', 'backlink/scripts'];
 
 // Excluded on purpose, with the reason, so an empty run is never mistaken for a pass.
 const EXCLUDED = new Map([
@@ -42,7 +43,7 @@ const scripts = SEARCH_ROOTS
 test('the offline self-tests are discoverable', () => {
   // A refactor that stops the scan from matching would otherwise silently test nothing.
   assert.ok(scripts.length >= 7, `expected the scan to find the known self-tests, found ${scripts.length}: ${scripts.join(', ')}`);
-  for (const expected of ['game-opportunity/scripts/game-opportunity.mjs', 'rankup/scripts/demand/revenue-site-audit.mjs']) {
+  for (const expected of ['rankup/scripts/demand/revenue-site-audit.mjs']) {
     assert.ok(scripts.includes(expected), `${expected} dropped out of the self-test scan`);
   }
 });
@@ -53,16 +54,3 @@ for (const script of scripts) {
     assert.equal(result.status, 0, `self-test failed:\n${result.stdout}\n${result.stderr}`);
   });
 }
-
-test('game-opportunity still covers every named check', () => {
-  const result = spawnSync(process.execPath, [path.join(root, 'game-opportunity/scripts/game-opportunity.mjs'), '--self-test'], { encoding: 'utf8', timeout: 120_000 });
-  const report = JSON.parse(result.stdout);
-  assert.equal(report.ok, true);
-  // Named so a dropped check fails here instead of quietly shrinking coverage.
-  // 2026-08-30 去判决化重构后的检查集：decision/strict-build-gate 等脚本自判门被
-  // 有意拆除，替换为 no-script-verdict / ai-passthrough / not-queried-vs-zero 等
-  // 「脚本只采集、判断归 AI」的新守卫。
-  for (const check of ['normalize-and-merge', 'no-script-verdict', 'ai-passthrough', 'checklist-output', 'carry-forward-order', 'recheck-milestone-crossing', 'deep-check-mechanical-default', 'deep-check-ai-selection', 'evaluation-overlay-discovery', 'display-rank-mechanical', 'partial-discovery', 'stale-vs-timeout', 'not-queried-vs-zero', 'campaign-dedupe', 'new-games-dedupe', 'challenge-title-detect', 'markdown-links', 'stable-latest']) {
-    assert.ok(report.checks.includes(check), `self-test no longer covers ${check}`);
-  }
-});

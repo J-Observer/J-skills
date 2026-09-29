@@ -3,7 +3,7 @@
  * 薄编排：复用现有 AITDK / Similarweb / Semrush / sitemap / KD 脚本，
  * 把「收入站案例」整理成同口径的**原始对照数据**。这里不采集、不解析面板，
  * 也不下判决——「证实/部分证实/反证」这类 verdict 由 AI 对着输出里的
- * 各源数值、scope 记录和倍差事实来下（判据见 references/demand-sources.md 第十节）。
+ * 各源数值、scope 记录和倍差事实来下（判据见 references/demand-sources/validation-chain.md「十、候选验证链路」）。
  *
  * 2026-08-30 起：不再删除工作目录。各采集器的原始输出文件全部保留在
  * 输出 rawFilesDir 指向的目录里（默认 .rankup/evidence/demand/revenue-site-audit-<ts>/），
@@ -218,10 +218,10 @@ function buildAudit(domain, sourceUrl, raw, claimed = {}) {
   ];
   return {
     schemaVersion: 2, domain, sourceUrl: sourceUrl || null, retrievedAt: new Date().toISOString(),
-    methodology: 'Existing collectors are invoked unchanged; unavailable is never converted to zero. Semrush country organic traffic is not compared arithmetically with Similarweb worldwide total visits. This script records raw values, scope and ratio facts only — verdicts are for the reader (AI) to make; see references/demand-sources.md section 10.',
+    methodology: 'Existing collectors are invoked unchanged; unavailable is never converted to zero. Semrush country organic traffic is not compared arithmetically with Similarweb worldwide total visits. This script records raw values, scope and ratio facts only — verdicts are for the reader (AI) to make; see references/demand-sources/validation-chain.md section 十、候选验证链路.',
     scope,
     crossChecks: {
-      // 事实，不是判决：倍差多大算冲突、冲突了信哪边，由 AI 按 demand-sources.md 的判据定。
+      // 事实，不是判决：倍差多大算冲突、冲突了信哪边，由 AI 按 references/demand-sources/validation-chain.md 的判据定。
       comparableEstimates: estimates,
       estimateRatio: ratio,
       similarwebPerformanceVsChannelsRatio: swReportRatio,

@@ -23,7 +23,8 @@ import { readFileSync } from 'node:fs';
 // 它含项目名与绝对路径,因此被 rankup/.gitignore 排除,并由 validate-rankup.mjs
 // 断言"绝不能被 git 追踪"——豁免它参与项目中立扫描的前提,正是这条断言成立。
 const skillDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const userRankup = path.join(homedir(), ".rankup");
+// 用户全局层：默认 ~/.rankup/，可用 RANKUP_HOME 覆盖（与 references/maintenance.md「七」一致）。
+const userRankup = process.env.RANKUP_HOME ? path.resolve(process.env.RANKUP_HOME) : path.join(homedir(), ".rankup");
 const registryPath = process.env.RANKUP_REGISTRY_PATH
   ? path.resolve(process.env.RANKUP_REGISTRY_PATH)
   : path.join(skillDir, "registry.md");

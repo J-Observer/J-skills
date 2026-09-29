@@ -1,13 +1,14 @@
 # SEO：2026 AI 搜索范式（引用 > 排名）
 
-> 渐进式加载：本篇只讲 AI 搜索范式、官方指南与算法更新。GEO 反推测试见 [seo-geo.md](seo-geo.md)。
+> 渐进式加载：本篇讲 AI 搜索范式、官方指南与算法更新，以及 ChatGPT 侧的爬虫与检索证据（三-D）。AI 需求验证与推荐位流程见 [seo-geo.md](seo-geo.md)。
 
 ## 三-B、2026 AI 搜索范式：引用 > 排名（Google 官方指南 + @googlesearchc 实测）
 
 > **定位**：本节整合 Google Search Central 2026 年全年官方博客、@googlesearchc 推文、
 > Google I/O 2026 公告、以及 Google 首份 AI 优化指南（2026-05-15）。
-> 只收录 Google 官方发布或其官方账号确认的信息，第三方解读仅作佐证。
-> 2026-08 更新。
+> 三-B 只收录 Google 官方发布或其官方账号确认的信息，第三方解读仅作佐证。
+> 「三-D」是 ChatGPT 侧证据（OpenAI 官方文档加带样本量的第三方研究，逐条标等级与日期）。
+> 2026-08 更新，三-D 与本轮修订 2026-09-29。
 
 ### 核心判断：被 AI 引用比排第一更值钱
 
@@ -15,7 +16,7 @@
 
 Google I/O 2026（5 月 19 日）宣布搜索 25 年来最大改版：AI Mode 月活突破 10 亿、
 查询量每季度翻倍。**AI Mode 是全页替换，不显示传统结果；AI Overviews 叠在有机结果上方。**
-被 AI 引用的品牌获得的有机点击比未被引用的竞品高 35%（Digital Applied，2026-03）；
+被 AI 引用的品牌获得的有机点击比未被引用的竞品高 35%（Digital Applied，2026-03，【未核实】：未找到方法与样本，只作线索）；
 而 Position 1 的 CTR 从 27% 跌到 11%（SISTRIX，2026-03，限有 AI 功能的查询）。
 零点击搜索已达 58.5%（SparkToro/Datos）。
 
@@ -39,6 +40,7 @@ Google 明确说 **AEO/GEO 不是独立学科，就是 SEO**。以下是官方�
 
 **不该做的（Google 明确否定）：**
 1. ❌ **不需要 `llms.txt` 或任何特殊 AI 文件**——Google Search 不使用它们。
+   其他引擎同样没有收益证据：约 30 万域名（10.13% 有 `llms.txt`）的相关检验与模型都看不出它与 AI 引用有关联，GPTBot 偶尔抓取 `llms.txt` 但与引用结果无关（SE Ranking，2025-11-20，【实测，厂商】）。所以它对被 ChatGPT 引用**无收益证据，成本低**；闸门 1、4 仍按 [`checklists.md`](checklists.md) 执行（要求它存在且与 sitemap 一致），不把它写成被 AI 引用的收益依据。
 2. ❌ **不需要把内容切成小块（chunking）**——Google 系统理解多主题页面。
 3. ❌ **不需要为 AI 改写内容**——AI 理解同义词和通用含义。
 4. ❌ **不需要在全网刷品牌提及**——虚假提及无效且有反噬风险。
@@ -55,8 +57,8 @@ Google 明确说 **AEO/GEO 不是独立学科，就是 SEO**。以下是官方�
 
 ### Search Console 新工具：Generative AI 效果报告（2026-06）
 
-2026-06-03 上线，目前按子集推出。报告包含：AI 功能中的曝光次数、页面、国家、设备、日期。
-**暂无点击/CTR/查询词数据**（Google 称后续会加）。
+2026-06-03 上线，2026-08-31 起向所有网站推出【官方，2026-09-29 读 Search Console 帮助页；旧稿写「按子集推出」已过期】。报告包含：AI 功能（AI 概览与 AI 模式合并显示）中的曝光次数、页面、国家、设备、日期。
+**暂无点击/CTR/查询词数据**（Google 称后续会加）；常规「效果」报告把 AI 功能计入 Web 类型且不可拆分。
 另有 opt-out 开关：可以阻止内容出现在 AI 功能中，且不影响传统有机排名。
 
 **对我们的影响**：段 7（7.2 与 7.3）的监控清单必须加入 AI 曝光指标。
@@ -87,7 +89,7 @@ Google 首次为 Discover 发布独立核心更新（02-05 至 02-27）。
 | 05-07 | FAQ Rich Results 下架 | 06 月移除工具 | FAQPage schema 仍有效但不再产生富结果 |
 | 05-15 | AI 优化指南发布 | — | AEO/GEO = SEO 的官方定论 |
 | 05-21 | May Core Update | 06-02 | 常规核心更新 |
-| 06-03 | GSC Gen AI 效果报告 | 按子集推出 | AI 功能曝光数据 |
+| 06-03 | GSC Gen AI 效果报告 | 08-31 起向所有网站推出 | AI 功能曝光数据 |
 | 06-15 | FAQ Rich Results 从 GSC 移除 | 08 月移除 API | — |
 | 06-24 | June Spam Update | 06-26 | 年度第二次反垃圾 |
 | 08-01~03 | 未确认排名波动 | — | 多工具检测到大幅波动，Google 未确认 |
@@ -147,12 +149,23 @@ March 2026 Core Update 重新加权了 Information Gain——衡量一篇内容�
 ### FAQ Rich Results 下架（2026-05-07 生效）
 
 FAQ 富结果不再出现在 Google Search 中。FAQPage schema 仍是有效的 Schema.org 类型，
-但不再产生任何搜索可见性收益。**已实测：结构良好的 FAQ schema（80-150 词答案）
-仍被 ChatGPT/Perplexity 等 LLM 优先引用**——从 Google 富结果资产变成了 LLM 引用资产。
+但不再产生任何搜索可见性收益。
+
+**「FAQ schema 被 ChatGPT/Perplexity 优先引用」降为【猜测】**（旧稿写「已实测，80-150 词答案」，无来源，且与下面的对照数据矛盾；「80-150 词」的出处补不出来，已删）。要拆开看两件事：
+
+| 对象 | 证据 | 等级 |
+|---|---|---|
+| JSON-LD（含 FAQPage） | 1,885 个新增 schema 的页面对匹配对照，前后各 30 天（Ahrefs，2026-05-11）：AI 概览 −4.6%，AI 模式 +2.4%，ChatGPT +2.2%，后两者与随机不可分。局限：这些页面本就是已被引用 100 次以上的「考虑集」页面，说明不了 schema 对新页面的作用 | 【实测，厂商】 |
+| 同上 | 域名级统计里有 FAQ schema 的页面平均 3.6 次引用，无的 4.2 次（SE Ranking，2025-11） | 【实测，厂商】 |
+| 同上（单点案例） | 单站 4 页、7 个平台的测试里 6 个平台读不出 schema（OtterlyAI，2025-12 到 2026-03） | 【经验】 |
+| 反向单点 | Bing 的一位负责人在 SMX Munich（2025-03）称 Bing 的 LLM 会用 schema | 【经验，二手】 |
+| FAQ 的可见文本 | 未找到独立证据说明有无引用收益 | 未知 |
+
+（`seo-experiences.md` 2026-08-22 的同题条目仍沿用旧说法，以本节为准。）
 
 **对我们的影响**：
-- 现有 FAQ schema 不删，但不再为获取 Google 富结果而新增。
-- FAQ 内容本身仍有价值（长尾查询承接、AI 引用），只是展现形式变了。
+- 现有 FAQ schema 不删（成本低、Google 侧仍是有效类型），不再为获取 Google 富结果而新增，也**不写成被 AI 引用的收益依据**。
+- FAQ 内容本身仍有承接长尾查询的价值，它对被 AI 引用是否有用未证实。
 
 ### Information Agents：Google 的后台持续搜索
 
@@ -168,8 +181,8 @@ Google I/O 2026 推出的 Information Agents 是 24/7 后台运行的 AI 程序�
 
 在现有工作流（section 四）基础上，每轮额外检查：
 
-1. **AI 引用检查**：目标页面是否出现在 AI Overviews / AI Mode 的引用中？
-   （用 Search Console Gen AI 报告，或手动搜索目标词观察）
+1. **AI 引用检查（Google 侧）**：目标页面是否出现在 AI Overviews / AI Mode 的引用中？
+   （用 Search Console Gen AI 报告，或手动搜索目标词观察；ChatGPT 侧要重复采样，见 [seo-geo.md](seo-geo.md)，手动查一次不能当结论）
 2. **非大众化内容审计**：页面有没有 AI 自己就能生成的泛泛之谈？
    有就加独特切角或一手数据。
 3. **Back Button 审计**：第三方脚本有无后退劫持？
@@ -182,9 +195,51 @@ Google I/O 2026 推出的 Information Agents 是 24/7 后台运行的 AI 程序�
 > **与 AEO/GEO 的区别**：AEO/GEO 关心「被 AI 搜索引用」（Google 说等于 SEO）；
 > Agent Readiness 关心「AI 代理（编码助手、购物机器人、自动化助手等）能不能
 > 发现、访问、理解、使用你的站点」。两者互补，不互相替代。
-> Google 说不需要 llms.txt，但 AI 代理生态（ChatGPT Plugins、MCP、Cursor 等）需要。
+> Google 说不需要 llms.txt；对被 ChatGPT 引用无收益证据（见上），对 AI 代理生态（MCP、编码助手等）是否有用也没有找到可靠来源。成本低，闸门仍按 checklists 执行。
 > 2026 年 Vercel 推出 is-agentic.com 和开源 CLI，这是第一个系统化的评分工具。
 
-**工具**：`scripts/is-agentic.mjs`（包装 is-agentic.com 公开 API，零配置可跑）。
+**工具**：`scripts/is-agentic.mjs`（包装 is-agentic.com 公开 API，零配置可跑）。命令用法见 [seo-agentic-scan.md](seo-agentic-scan.md)。
 
-```bash
+## 三-D、ChatGPT 侧证据（OpenAI 爬虫、JS 渲染、`site:` 与自有索引）
+
+> 2026-09-29 整理。引用选择、多阶段流水线、影响因素与漂移见 [seo-geo.md](seo-geo.md)；本节只放爬虫、渲染与检索方式这三类可复用结论。**采纳前先问「我们的前提一样吗」**：下面多数数据是 2024 到 2026 年的英文站样本，OpenAI 的抓取与检索栈随时会变。
+
+### OpenAI 三个爬虫：用途与 UA 官方原文
+
+【官方，2026-09-29 取自 OpenAI 爬虫文档，两次取样一致】
+
+| 爬虫 | 用途 | UA 原文 |
+|---|---|---|
+| OAI-SearchBot | 在 ChatGPT 搜索里呈现网站；管理「是否出现在搜索答案里」用它 | `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36; compatible; OAI-SearchBot/1.4; +https://openai.com/searchbot` |
+| GPTBot | 训练，不决定搜索可见性 | `Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; GPTBot/1.4; +https://openai.com/gptbot` |
+| ChatGPT-User | 用户触发的抓取（用户在对话里让它读某页）；robots 规则可能不适用；不决定是否进入搜索 | `Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; ChatGPT-User/1.0; +https://openai.com/bot` |
+
+- robots.txt 改动约 24 小时生效。OpenAI 还要求放行它官方发布的 IP 段（OAI-SearchBot 与 GPTBot 各有清单），WAF 与 Cloudflare 规则可能在 robots 之外拦截。
+- 只有 OAI-SearchBot 声明桌面 Chrome，另两个不声明平台，三个都不带 Mobile；Google 是移动优先索引，抓取主体是 Googlebot Smartphone【官方】。
+- 「UA 是桌面」**只影响服务端按 UA 或视口返回不同 HTML 的站**；纯响应式、同一份 HTML 的站没有差别。官方没有「不是移动优先就降权」的说法。检查方法见 [seo-ssr.md](seo-ssr.md)「三-E」，判据在 [checklists.md](checklists.md) 段 4。
+- 判断有没有进搜索要看 OAI-SearchBot，不要拿 ChatGPT-User 的 200 当证据。ChatGPT 引荐会自动带 `utm_source=chatgpt.com`【官方，OpenAI 发布者说明】。
+
+### JS 渲染：证据与它的局限
+
+| 说法 | 证据 | 等级 | 局限 |
+|---|---|---|---|
+| OpenAI 是否声明爬虫执行 JS | 文档只描述用途，没有声明 | 【官方】 | 官方沉默，不能据此反推 |
+| 三个 OpenAI 爬虫都不渲染 JS | Vercel 与 MERJ，2024-12-17，一个月的 Vercel 网络日志，GPTBot 5.69 亿次请求：三者会下载 JS 文件（ChatGPT 约 11.5% 的请求）但不执行；Gemini 借 Googlebot 基础设施能渲染 | 【实测】 | **单一独立实测，2024-12**；没有按 bot 拆开的独立实验；其后是否变化未知 |
+| 2026 年多篇文章复述同一结论 | 核对后都是引用上面那份数据的二手汇总，没有自己的复测 | 【经验】 | 不算新增证据 |
+| 例外路径 | ChatGPT Atlas 浏览器与 Agent 模式是真 Chromium，UA 与普通 Chrome 相同，会渲染 JS 且难以用 UA 识别，但那是人在用的路径，不是搜索爬取。ChatGPT 搜索另有一条经第三方 SERP 提供方取结果的路径，那些索引由渲染型爬虫建立 | 【经验】 | 提供方构成 OpenAI 未确认 |
+
+可复用结论：JS 站对 ChatGPT 不是完全不可见，但**直接抓取路径与 `site:` 定向检索路径依赖 raw HTML**。想被 AI 引用的区块（价格表、推荐位、FAQ）要进 raw HTML，见 [seo-ssr.md](seo-ssr.md)。
+
+### `site:` 查询与自有索引：证据等级
+
+| 说法 | 证据 | 等级 |
+|---|---|---|
+| ChatGPT 有自有索引或缓存 | OpenAI 帮助中心「Offline web search for ChatGPT workspaces」称启用后使用其索引与缓存的网页内容（该页对抓取返回 403，内容取自搜索摘要，需人工复核原文）；Peec（厂商，2026-09-29）称 2026-05 到 07 的会话事件里 `result_source` 有自有索引与多种外部来源，自有索引占全部查询的比例未知 | 【官方，间接，摘要】与【经验，厂商】 |
+| ChatGPT 用不用 Bing | OpenAI 官方页当日抓取返回 403，没有取到原文；第三方观测 Bing 占比在 27% 到 87% 之间摆动 | 【未知】与【实测，厂商】 |
+| `site:` 定向检索变多 | 没有官方文档披露。Promptwatch（厂商，2026-08-10）称 2026-08-08 起扩展查询里 `site:` 从约 0.37% 升到约 16.8%；Peec（2026-07-22）称 ChatGPT 5.6 约 43%、5.5 仅 0.004%，其中约 84% 指向品牌自家域名；Peec 另一份 2026-04 的五百万条分析里 ChatGPT 基本不用。三份是单厂商样本，模型版本与时点不同，17% 与 43% 不可互相印证 | 【经验，厂商】 |
+
+可确认的趋势只有一条：2026-07、08 之后 ChatGPT 搜索确有明显的 `site:` 定向检索，且常指向品牌自家站。可执行含义：内页要能被 `site:` 命中，sitemap 完整、内页 title 与首屏直接对应需求、品牌词页面可达；上线后在 Bing 与 Google 里手工查 `site:<域名> <关键词>`，看内页是否出现。
+
+### 与 Google 侧的差异
+
+ChatGPT 引用的 URL 与 Google 前 10 的重合很低（短尾词约 10%，长尾查询约 8%，Ahrefs，2025，【实测，厂商】），所以**在 Google 高 KD 词上排前的站，不等于 ChatGPT 会推荐的站**，要看 ChatGPT 的推荐得在它自己的输出上采样（[seo-geo.md](seo-geo.md)）。Bing Webmaster Tools 的 AI Performance 报告覆盖 Copilot 与部分合作方，不含 ChatGPT【官方，2026-02】。

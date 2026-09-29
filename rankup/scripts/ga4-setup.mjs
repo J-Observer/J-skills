@@ -14,7 +14,7 @@
  *   --timezone <时区>         报告时区（界面文字，如 UTC、GMT+00:00、America/Sao_Paulo）。
  *                             时区列表没有 UTC 时用这个显式选；不传则只按 --country 选
  *   --timezone-country <国>   --country 的别名（兼容旧调用）
- *                             fotos3x4 一类巴西站传 --country 巴西 [--timezone America/Sao_Paulo]
+ *                             面向巴西的站点传 --country 巴西 [--timezone America/Sao_Paulo]
  *   --currency <币种>         界面文字或代码。默认匹配 /美元|USD/
  *   --industry <行业>         商家详情行业类别。默认「其他业务活动」
  *   --session <名>            opencli 会话名（默认 ga4-setup-<每对话唯一后缀>，不用 pid）
@@ -30,7 +30,7 @@
  *
  * ── 拿到 ID 之后做什么 ────────────────────────────────────
  *
- * 脚本输出 Measurement ID（形如 `G-XXXXXXXXXX`）。这是公开值，会出现在
+ * 脚本输出 Measurement ID（形如 `G-<Measurement-ID>`）。这是公开值，会出现在
  * 页面 HTML 里，不是秘密。写进站点延迟加载器（首次交互或 6s 兜底）以及
  * Workers Builds 的 GA4_MEASUREMENT_ID 环境变量。
  *
@@ -75,7 +75,7 @@ function usage() {
   node ga4-setup.mjs status [--domain <域名>]
   node ga4-setup.mjs create --domain <域名> [--name <媒体资源名>] [--country 冰岛|巴西] [--timezone UTC] [--currency USD]
   --timezone-country 是 --country 的别名。时区列表没有 UTC 时用 --country/--timezone 显式指定。
-  已有同域名媒体资源则复用，输出 Measurement ID（形如 G-XXXXXXXXXX）。`)
+  已有同域名媒体资源则复用，输出 Measurement ID（形如 G-<Measurement-ID>）。`)
 }
 
 if (!["status", "create"].includes(action)) { usage(); process.exit(1) }

@@ -76,7 +76,7 @@
 |---|---|---|
 | 1 | ~~**Similarweb Keyword Generator**~~ **已实现** → `similarweb-keywords.mjs` | 选词流水线的入口。`demand-discovery.md` 闭环第②步就是"用词根批量查 Similarweb，下载 搜索量>3万 / KD<60 的词"。**2026-08-28 落地后此行不再是缺口** |
 | 2 | ~~**Semrush Keyword Magic Tool**~~ **已实现** → `semrush-report.mjs --report keyword-magic` | `semrush-keyword.mjs` 注释里写明的分工，另一半已补齐。`game-sites.md` 的每日动作要"多语言关键词需求簇"，走整包导出 |
-| 3 | **Similarweb Audience → 国家分布** | `demand-sources.md` 明确要求：并排 Semrush 国家库和 Similarweb 全球总访问之前**先看目标国占比**。实测"美国流量只占 21–39%，光这一条就是约 5 倍" |
+| 3 | **Similarweb Audience → 国家分布** | [`demand-sources/validation-chain.md`](demand-sources/validation-chain.md#②六-拆渠道时两个面板的口径必须各用各的不能交叉相减) 明确要求：并排 Semrush 国家库和 Similarweb 全球总访问之前**先看目标国占比**。实测"美国流量只占 21–39%，光这一条就是约 5 倍" |
 | 4 | **Semrush Referring Domains 列表** | `webcafe-experiences.md` 外链 SOP 第 2–3 步就是"导出外链域名列表，按出现次数排序"。现在只有逐条链接的 `backlinks-list`，要域名级聚合得二次汇总，分页开销几十倍 |
 | 5 | **Similarweb Website → Search** | `webcafe-experiences.md` 用"前 5 个词只占自然流量 15.5%"反证 Semrush 低估。这个数拿不到，隐含点击率校验就只能手工做 |
 | 6 | **Similarweb Search Competitors** | 每个词在一段时间内各站的**市场占比**，谁起来了谁掉了。比 SERP 快照多一层时间维度 |
@@ -122,7 +122,7 @@
 |---|---|---|
 | 1 | Semrush 域名维度无全球字段 | **兜一半**。不要在脚本里偷偷求和当 `globalTraffic`——那会造出平台本身没有的字段。改为：`--db` 升级为**必填**；另出 `semrush-multi-db.mjs` 输出逐国家并列 + 标注清楚的 `sumOfListedCountries` + `countriesIncluded`。**求和是调用方的选择，不是脚本的默认** |
 | 2 | Similarweb 自己和自己对不上（差 6–35%） | **兜住，但只报不改**。把 `revenue-site-audit.mjs` 已有的 `similarweb_report_conflict` 下沉到 `similarweb-query.mjs`，输出 `crossReport: {deltaPercent, conflict}`。**绝不取平均、绝不"以某张为准"** |
-| 3 | `byCountry` 只是页面 Top-N，加总 ≠ `globalVolume` | **兜住**。加机器可读标记 `byCountryCoverage: {listedSum, globalVolume, coveredPercent, exhaustive: false}`——下游 `game-opportunity.mjs` 直接吃 `semrushByCountry`，现在会误当穷举用 |
+| 3 | `byCountry` 只是页面 Top-N，加总 ≠ `globalVolume` | **兜住**。加机器可读标记 `byCountryCoverage: {listedSum, globalVolume, coveredPercent, exhaustive: false}`（原下游 `game-opportunity.mjs` 已于 2026-09-28 移除，此项优先级随之下降） |
 | 4 | bulk 模式**静默**丢 `globalVolume`/`byCountry` | **兜住**。`null` 与"该词没有全球量"不可区分。加 `fieldsUnavailableInThisMode: ['globalVolume','byCountry']` |
 | 5 | `below-floor` 是终局，续跑不重测 | **兜住**。占位值 bug 制造过一次假 below-floor（**月访 35 万的站被判无流量**）。加 `confirmedBy` 字段 + `--recheck-below-floor`，而不是要求人删文件 |
 | 6 | `similar-sites` 无结构化解析 | **兜住**。竞品发现是高频动作，返回一坨文本 = 每个调用方各写一遍解析。在 lib 里补 `deriveSimilarSites()` |

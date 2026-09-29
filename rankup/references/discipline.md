@@ -91,7 +91,7 @@
 
 **Cloudflare 特别提示**：Wrangler CLI 认 `CLOUDFLARE_EMAIL` + `CLOUDFLARE_API_KEY`（Global Key）
 或 `CLOUDFLARE_API_TOKEN`（scoped token）环境变量，**配好后不需要 `wrangler login`**。
-段 5 密集操作 CF（DNS、Email Routing、zone 设置），先把环境变量配进 `~/.zshenv`，
+段 5 密集操作 CF（DNS、Email Routing、zone 设置），先把环境变量配好（Skill `.env` 或 shell 环境变量，见本文十一），
 后面 wrangler 命令和 `curl` API 调用都直接用。Dashboard 上某些开关偶尔点击无响应
 （实测 Email Routing 启用开关），此时 API 能立刻生效——遇到 Dashboard 不动别反复点，
 直接走 API。【实测 2026-09-03】
@@ -245,7 +245,7 @@ npx @yan-labs/rankup audit similarweb --manifest .rankup/provider-audit/similarw
 对齐三样东西——**地理范围 / 面板页面 / 口径定义**——方法在 [`experiences/webcafe-experiences.md`](experiences/webcafe-experiences.md)
 「对齐口径要对齐三样东西」与「两个数分别是什么」两节（含 `byCountry` 只有 Top-N 不能求和）。
 本 Skill 自己的实测判据：**Semrush 的自然流量在单个大头词以第 5–10 位撑起过半模型流量时会高估 4–13 倍**，
-拿到域名自然流量后先拉排名词分布再决定信不信总数（[`demand-sources.md`](demand-sources.md) ②·六·四）。
+拿到域名自然流量后先拉排名词分布再决定信不信总数（[`demand-sources/validation-chain.md`](demand-sources/validation-chain.md#②六四-semrush-的自然流量什么时候不能信先看它的词库分布再决定信不信总数) [②·六·四](demand-sources/validation-chain.md#②六四-semrush-的自然流量什么时候不能信先看它的词库分布再决定信不信总数)）。
 三样都对齐了还差几倍才是真矛盾；对不上先怀疑口径，不要先怀疑数据源坏了。
 
 ---
@@ -253,7 +253,7 @@ npx @yan-labs/rankup audit similarweb --manifest .rankup/provider-audit/similarw
 ## 七、兄弟 Skill：本机装着几十个，能用的只有一小半
 
 取舍写在 [`skill-ecosystem.md`](skill-ecosystem.md)。**加载 Skill 有上下文成本，不是越多越好**，接入的唯一理由是
-「rankup 现在做不到或做得差」。找不到能力的顺序：[`capability-map.md`](capability-map.md) → `skill-ecosystem.md` → `/skillsmp` 搜 → 最后才按 [`integrations.md`](integrations.md) 用 find-skills。
+「rankup 现在做不到或做得差」。找不到能力的顺序：[`capability-map.md`](capability-map.md) → `skill-ecosystem.md` → 最后才按 [`integrations.md`](integrations.md) 用 find-skills。
 
 **已点名的兄弟 Skill 本机没装 → 用 `find-skills` 装上再继续，不跳过、不现写替代。** 每台机器装的
 Skill 集合不一样，文档只保证「该用什么」；遇缺就跳过会让流水线静默少一条腿（社区验证、去 AI 味、生图），
@@ -324,7 +324,7 @@ Skill 集合不一样，文档只保证「该用什么」；遇缺就跳过会�
 | `rankup init` 用完整清单初始化全部 ⬜ | 一开始就知道要做多少事，不靠记忆 | 忘了接 IndexNow，上线两个月没被 Bing 收录 |
 | 「不接」标 ❌ 并写裁决依据 | 区分「还没做」和「决定不做」 | AdSense 标 ⬜，每次 review 都催，其实早决定不挂广告 |
 
-已上线站点至少覆盖以下平台（`rankup review` 逐项验证；接入步骤见 [`search-platforms.md`](search-platforms.md) 与 [`analytics-platforms.md`](analytics-platforms.md)）。前三行是批 A（域名无关，预览域即可接）；其余搜索/索引/外链/邮箱/受众忠诚度行是批 B（域名定稿后一次接完，顺序与粒度对齐 [`lifecycle.md`](lifecycle.md) 段 5「批 B 平台清单」与 [`checklists.md`](checklists.md) 段 5「批 B 清单逐行有状态」）：
+已上线站点至少覆盖以下平台（`rankup review` 逐项验证；接入步骤见 [`search-platforms.md`](search-platforms.md) 与 [`analytics-platforms.md`](analytics-platforms.md)）。前三行是批 A（域名无关，预览域即可接）；其余搜索/索引/外链/邮箱/受众忠诚度行是批 B（域名定稿后一次接完，顺序与粒度对齐 [`lifecycle/stage-5-launch.md`](lifecycle/stage-5-launch.md) 段 5「批 B 平台清单」与 [`checklists.md`](checklists.md) 段 5「批 B 清单逐行有状态」）：
 
 | 类别 | 平台 | 验证方式 |
 |---|---|---|
@@ -349,7 +349,7 @@ Skill 集合不一样，文档只保证「该用什么」；遇缺就跳过会�
 
 **批 A/批 B 每个平台一行独立勾选，抄录时不得合并或省略；状态只能是 ✅（附证据）/❌（写裁决依据）/⏸（写卡点）/⬜，表头不得用『⬜=未在本文件核实』这类弱化口径，看板必须与 `checks.md` 同步。**
 
-**`rankup review`/`scripts/review.mjs` 的逐行核对范围（2026-09-13 独立验收澄清）**：`review.mjs` 的 `checkIntegrationRows()` 只逐行核对上表里的**账号/平台接入行**（Cloudflare Web Analytics、GA4、Clarity、IndexNow、GSC、Bing、Yandex、Naver、Ahrefs WA、Ahrefs Site Audit、Email Routing、Preferred Sources、兜底这十三行）——这些都要在第三方后台开账号或拿验证凭据。同一张表里**品牌资产、SEO 元素、结构化数据、AI 就绪度、多语言**这五行是代码级行，靠代码/页面本身满足，不需要账号，`review.mjs` 不逐行核对它们；它们由段 4 上线前闸门（`lifecycle.md` 段 4 C 节「上线前闸门」0–6 + 4b）覆盖检查。看到 `review.mjs` 没报这五行的缺口，不代表它们免检，去段 4 闸门找判据。
+**`rankup review`/`scripts/review.mjs` 的逐行核对范围（2026-09-13 独立验收澄清）**：`review.mjs` 的 `checkIntegrationRows()` 只逐行核对上表里的**账号/平台接入行**（Cloudflare Web Analytics、GA4、Clarity、IndexNow、GSC、Bing、Yandex、Naver、Ahrefs WA、Ahrefs Site Audit、Email Routing、Preferred Sources、兜底这十三行）——这些都要在第三方后台开账号或拿验证凭据。同一张表里**品牌资产、SEO 元素、结构化数据、AI 就绪度、多语言**这五行是代码级行，靠代码/页面本身满足，不需要账号，`review.mjs` 不逐行核对它们；它们由段 4 上线前闸门（`references/lifecycle/stage-4-prelaunch.md` 段 4 C 节「上线前闸门」0–6 + 4b）覆盖检查。看到 `review.mjs` 没报这五行的缺口，不代表它们免检，去段 4 闸门找判据。
 
 ---
 
@@ -407,6 +407,8 @@ Skill 集合不一样，文档只保证「该用什么」；遇缺就跳过会�
 `.rankup/` 整个不存在、距上次体检超过一轮且中间动过线上 URL、或用户问的其实是「站有什么问题」）。
 **命中任一条时，先明确说一句「这已经不是 check，是 review」，再转全站体检流水线**，不要回来问用户要不要跑，
 也不要在 check 的名义下偷偷派七组 agent——旧版主文件一句说「零配额不派 agent」、下一句说「直接转体检」，边界就是这一句话。
+
+`rankup doctor` 是第三个命令：只整理 `.rankup/` 与根层登记，不碰站点代码与线上；三者分工表见 [`maintenance.md`「六」](maintenance.md#六rankup-doctor整理-rankup-的显式入口)。
 
 ---
 
@@ -512,7 +514,7 @@ Semrush / Similarweb / seo.web.cafe（含哥飞 AI）/ 哥飞论坛 / GSC、Bing
 | 先 `ls components/ui/` 看有没有；有就用，没有就 `pnpm dlx shadcn@latest add <组件>`；shadcn 没有的装同一生态（Radix / React 生态里带可访问性的现成包），装完再用 | 组件库带着键盘导航、焦点管理、暗色模式、ARIA 和统一视觉，手写一个下拉框这些全丢，且每个站各写一遍没人维护 | 用 `<div onClick>` 拼一个下拉菜单；用绝对定位 `<div>` 当弹窗；自己写日期选择器 |
 | **禁止手写**：下拉框、弹窗 / Dialog / Sheet、日期选择、表格分页、Toast、Tabs、Tooltip、Command 面板这类基础控件 | 这些正是最容易「看着能用、键盘和读屏全坏」的一类，也是 Lighthouse 可访问性分和 GEO 就绪度掉分的常见来源 | 「组件库那个不好改样式，我自己写一个」——改样式走 className 与 variants，不走重写 |
 | 判据：在业务目录 `grep -rn 'role="dialog"\|role="listbox"\|role="combobox"\|<select' apps/`，命中的每一处都要能指出来自 `components/ui/` 哪个文件或哪个已安装的包；指不出来的就是手写，打回 | 让「有没有手写」变成可 grep 的事实，不靠自觉 | 代码评审时说「应该都是组件库的」 |
-| 这条与「不重复造轮子」（段 3）是同一条纪律在 UI 层的落地，闸门在 `checklists.md` 段 3「UI 只来自组件库」，步骤 check 在 `lifecycle.md` 3.3 | 一处判据两处指路，不各存一份 | — |
+| 这条与「不重复造轮子」（段 3）是同一条纪律在 UI 层的落地，闸门在 `checklists.md` 段 3「UI 只来自组件库」，步骤 check 在 `references/lifecycle/stage-3-build.md` 3.3 | 一处判据两处指路，不各存一份 | — |
 
 ---
 
@@ -587,6 +589,6 @@ REST/静态 DOM、不再等待页面渲染解决，比“想办法保住前台�
 
 1. **上线/改版验收优先命令化**：优先 `node scripts/verify-live.mjs <url...>`，只读 PASS/FAIL 简表，不让主线程自己 curl/grep。
 2. **阶段收尾及时换乘**：阶段收尾时建议主线程开新会话，靠项目 `.rankup/` 接续。
-3. **排查与重活派便宜模型**：不让主线程亲自翻日志排查，派便宜模型（agent-fleet：写代码 Grok `kollab-gateway-research`，写作/翻译/校对 Gemini `kollab-gateway-copy`，判断 JEV judge），只读它的简报。
+3. **排查与重活派便宜模型**：不让主线程亲自翻日志排查，派便宜模型（agent-fleet：写代码与调研 Codex GPT-6（`fleet code`），写作/翻译/校对 Gemini `kollab-gateway-copy`，Grok 作备选，判断 JEV judge），只读它的简报。
 4. **后台任务善用自动通知**：后台任务完成会自动通知，不要轮询进度；子 agent 用 Monitor 等待时写明退出条件和超时。
 5. **循环与精确取数防 rtk 篡改**：rtk 会把 `for … done` / `while read` 循环改坏（报 parse error near done），循环或精确取数命令前加 `RTK_DISABLED=1`。

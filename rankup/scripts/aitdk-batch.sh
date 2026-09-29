@@ -51,7 +51,7 @@ set -m
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AITDK_SCRIPT="$SCRIPT_DIR/aitdk-opencli.sh"
-OPENCLI_BIN="${OPENCLI_BIN:-node /Users/kcsx/Project/kcsx/opencli/dist/src/main.js}"
+OPENCLI_BIN="${OPENCLI_BIN:-opencli}"
 
 if [[ -t 2 ]]; then
   C_INFO=$'\033[36m'; C_OK=$'\033[32m'; C_WARN=$'\033[33m'; C_ERR=$'\033[31m'; C_RESET=$'\033[0m'

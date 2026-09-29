@@ -22,13 +22,13 @@
 | 「这个词能不能做」「这词多少量」「难不难」 | **rankup 自己**（官方 `gefei-keywords` Skill + `backlink/scripts/semrush-keyword.mjs`）。不要叫 keyword-research，它不带取数 |
 | 「帮我挖一批长尾词」→ 已经**有**几十上百个词，要分组排序 | **`/keyword-research`**。rankup 取数，它做意图分层与簇排序 |
 | 「帮我挖一批长尾词」→ 手上**只有**一个词根 | **rankup 自己**（`demand/word-roots.mjs` 扩形态 → `demand/serp-query.mjs --expand` 拿 relatedSearches/PAA → 再交给 keyword-research 分层） |
-| 「怎么被 AI 引用」「AEO/GEO 怎么做」→ 问的是**为什么、值不值** | **rankup 自己**（[`seo-ai-search.md`](seo-ai-search.md)：Google 官方指南、Information Gain、Preferred Sources） |
+| 「怎么被 AI 引用」「AEO/GEO 怎么做」→ 问的是**为什么、值不值** | **rankup 自己**（[`seo-ai-search.md`](seo-ai-search.md)：Google 官方指南、Information Gain、Preferred Sources；ChatGPT 侧的需求验证与推荐位见 [`seo-geo.md`](seo-geo.md)） |
 | 「怎么被 AI 引用」→ 问的是**这篇文章要写成什么形状** | **`/ai-seo`**（逐平台来源选择机制 + 内容改写模式 + llms.txt/OKF 知识包） |
 | 「加个结构化数据」「JSON-LD 怎么写」 | **`/seo-geo`**，且只读它的 `references/schema-templates.md`。rankup 全仓没有模板库 |
 | 「帮我看看这站有什么 SEO 问题」 | **rankup 自己**（`seo-audit.mjs --sitemap` + `pagespeed.mjs collect`（`plan` 只出链接不采数，仅兜底）+ `ahrefs-site-audit.mjs`）。**不要加载 seo-audit Skill**，理由见第三节 |
 | 「查一下 X 是怎么回事」「这个 Google 更新到底改了什么」 | **`/deep-research`**（方法论）+ **`/anysearch`**（执行）。rankup 的 demand/ 只吃结构化源 |
 | 「大家怎么评价 X」「小红书/推特/B站上怎么说」 | **`/agent-reach`**。这正是 capability-map §二「用户的原话」那一行缺的取数通路 |
-| 「这个领域现在有哪些 skill」「别人写过没」 | **`/skillsmp`**（1.6M 索引）。要「最近 7 天新冒出来的」才用 `demand/github-skill-search.mjs --mode recent` |
+| 「这个领域现在有哪些 skill」「别人写过没」 | **`find-skills`**（原 `/skillsmp` 已于 2026-09-28 移除）。要「最近 7 天新冒出来的」才用 `demand/github-skill-search.mjs --mode recent` |
 | 「写篇中文长文」「这稿子 AI 味太重」 | **`/human-writing`** 起稿 → **`/shuorenhua`** 过滤。仅限中文；英文站内容两个都不适用 |
 | 「扩词想不出角度了」 | **`/marketing-psychology`**（痛点/对比/决策词）+ **`/marketing-ideas`**（场景/人群词）。用法已写在 [`trends.md`](trends.md) W2 第一步 |
 | 「用 cf CLI」「管理 Cloudflare zone / DNS / 域名」 | **`/cf-cli`**（本仓库）；项目已有的构建与部署工作流见 [`cloudflare-stack.md`](cloudflare-stack.md) |
@@ -60,7 +60,7 @@
 | **什么时候不要加载** | 只是问「AEO 是什么」「这轮要不要管 AI 搜索」（读 `seo-ai-search.md`）；只是要 llms.txt 的存在性检查（`is-agentic.mjs scan`） |
 | **取舍理由** | 接。rankup 有判据没有做法，且这一层写起来很长，不该复制进 rankup |
 
-### `/seo-geo` —— **只取 schema 模板，其余全部不用**
+### `/seo-geo` —— **只取 schema 模板，其余全部不用**（外部 Skill，与本仓库的 [`seo-geo.md`](seo-geo.md) 同名不同物）
 
 | | |
 |---|---|
@@ -93,7 +93,9 @@
 | **什么时候不要加载** | 只要 Reddit 许愿句式（`reddit-wishes.mjs` 更专、直接出 template 字段）；只要 HN（`hn-signals.mjs`）；要发帖/评论（agent-reach 只读不写，rankup 也不做写操作） |
 | **取舍理由** | 接。这是本表里最实的一条——它填的是 capability-map 自己标注过的空白 |
 
-### `/skillsmp` —— 和 `demand/github-skill-search.mjs` 是**两个不同的问题**
+### `/skillsmp` —— 已于 2026-09-28 从仓库移除（本节只留分工结论）
+
+> 移除后「这个领域有什么 Skill」改用 `find-skills`；下表的分工结论（按相关性检索 ≠ 按时间序信号）仍然成立。
 
 | | |
 |---|---|
@@ -174,7 +176,7 @@ rankup 自己只保留 `cf-zone-setup.mjs`（zone onboarding，**Wrangler 没有
 
 本 Skill 点名的任何兄弟 Skill（`agent-reach`、`anysearch`、`deep-research`、`tuner`、`human-writing`、
 `shuorenhua`、`ai-seo`、`seo-geo`、`marketing-psychology`、`marketing-ideas`、`imagegen`、`backlink`、
-`opencli`、`keyword-research`、`skillsmp`……）在当前机器上不存在时，处置只有一种：加载 `find-skills`，
+`opencli`、`keyword-research`……）在当前机器上不存在时，处置只有一种：加载 `find-skills`，
 按名字搜索并安装（它会给出 `npx skills add <owner/repo> --skill <name> -g -y` 这类命令），装完再继续。
 为什么写死：每台机器、每个用户装的 Skill 集合都不一样，本文件只能保证「该用什么」，不能保证「已经装了」；
 遇缺就跳过会让流水线静默少一条腿（社区验证没跑、文案没去 AI 味），现写替代又回到「重造轮子」。
@@ -186,7 +188,7 @@ rankup 自己只保留 `cf-zone-setup.mjs`（zone onboarding，**Wrangler 没有
 |---|---|---|
 | `gh-cli` | **不接** | 单文件 `gh` 命令手册。rankup 不做 GitHub 运维；真需要时 Bash 里 `gh <cmd> --help` 就够，加载纯耗上下文 |
 | `skill-creator` | **不接** | 只在改 rankup 自身时才用得上，而那不是 rankup 的工作范围。改 Skill 走 [`evolution.md`](evolution.md) 的晋升门 |
-| `find-skills` | **已接入，但优先级降到 skillsmp 之后** | 它已经写在 [`integrations.md`](integrations.md)（安装命令被 `validate-rankup.mjs` 的必需内容断言锁住），是「能力缺口 → 搜 Skill → 记进 `decisions.md`」那条流程的一环，**不要删**。但纯搜索场景 `/skillsmp` 的索引大得多（1.6M SKILL.md），**先 skillsmp 搜、搜到了再按 integrations.md 的流程装与登记** |
+| `find-skills` | **已接入，找 Skill 的默认入口**（原排在 `skillsmp` 之后；`skillsmp` 已于 2026-09-28 移除） | 它已经写在 [`integrations.md`](integrations.md)（安装命令被 `validate-rankup.mjs` 的必需内容断言锁住），是「能力缺口 → 搜 Skill → 记进 `decisions.md`」那条流程的一环，**不要删**。但纯搜索场景 `/skillsmp` 的索引大得多（1.6M SKILL.md），**先 skillsmp 搜、搜到了再按 integrations.md 的流程装与登记** |
 | `agent-browser` | **不接** | 另一套浏览器自动化。rankup 全线绑 `opencli`（会话纪律、落盘 SOP、adapter 都在那）。两套混用会撞标签页与会话名 |
 | `tuner` / `tuner-ci` | **暂不接** | tuner 是按 credit 计费的取数中转（转录、社媒、检索、抓取）。它的检索与抓取能力已被 anysearch（匿名可用）、agent-reach（6 通道零配置）、`serp-query.mjs`（免费 2500 次）覆盖。**触发条件**：上述三条全部不可用，且用户已有 key，才谈 |
 | `macmini` | **与 rankup 无关，不要加载** | 远程 Mac Mini 的 SSH 与 OpenClaw 诊断 |
@@ -194,7 +196,7 @@ rankup 自己只保留 `cf-zone-setup.mjs`（zone onboarding，**Wrangler 没有
 | `kollab-cli` | **与 rankup 无关，不要加载** | 另一个工作区平台的资源管理 CLI |
 | `learned` | **不是能力** | 全局目录下有这个文件夹，但**它是空的，没有 SKILL.md**。别去加载它，也别在文档里当它存在 |
 | `autopilot` / `codex` / `skill-link-check` | **不接（正交）** | 分别是任务编排、图像生成与代码子代理、Skill 链接体检。和网站增长正交，按各自触发词单独使用即可 |
-| `backlink` / `game-opportunity` / `opencli` | **已接入** | 它们不是「兄弟 Skill」而是 rankup 的专项与底座，路由写在 [`capability-map.md`](capability-map.md) §十、§十二、§十三和 `SKILL.md`，不重复 |
+| `backlink` / `opencli` | **已接入** | 它们不是「兄弟 Skill」而是 rankup 的专项与底座，路由写在 [`capability-map.md`](capability-map.md) §十、§十三和 `SKILL.md`，不重复。原 `game-opportunity` 已于 2026-09-28 移除，见 [`game-sites.md`](game-sites.md) 顶部说明 |
 
 ---
 
@@ -204,7 +206,7 @@ rankup 自己只保留 `cf-zone-setup.mjs`（zone onboarding，**Wrangler 没有
    然后就接了。本表拒掉的六个通用 Skill 全都「能干不少」。
 2. **重叠不等于该拒，也不等于该接——要能写出一行分工。**
    写不出「什么情况用它、什么情况用 rankup 自己的」，就是没想清楚，先别接。
-   `skillsmp` vs `github-skill-search.mjs`、`anysearch` vs `serp-query.mjs` 都是靠这一行才留下的。
+   `skillsmp`（已移除）vs `github-skill-search.mjs`、`anysearch` vs `serp-query.mjs` 都是靠这一行才留下的。
 3. **同名是最大的陷阱。** `seo-audit` Skill 与 `seo-audit.mjs` 是本机上唯一一对同名冲突，
    它已经在第三节写死。以后再出现同名，第一件事就是在这里建一张对照表。
 4. **和执行纪律冲突的一律拒。** rankup 是「全权委托、直接做」；任何以「先问用户几个问题」

@@ -19,14 +19,14 @@
  * ── 用法 ──────────────────────────────────────────────────────────────
  *
  *   node google-oauth-client.mjs \
- *     --project oc-maker-hub | --project new:oc-maker-hub \
- *     --name "OC Maker Hub" \
- *     --origins https://oc-maker-hub.kanchaishaoxia.workers.dev,https://ocmakerhub.com,https://www.ocmakerhub.com,http://localhost:3000 \
+ *     --project my-app | --project new:my-app \
+ *     --name "My App" \
+ *     --origins https://my-app.<account>.workers.dev,https://example.com,https://www.example.com,http://localhost:3000 \
  *     --redirect-path /api/auth/google/callback \
- *     [--app-name "OC Maker Hub"] [--publish] \
- *     --session oauth-oc-maker-hub --stop-before-create --commit
+ *     [--app-name "My App"] [--publish] \
+ *     --session oauth-my-app --stop-before-create --commit
  *   # 在保留的浏览器标签页手点「创建」后：
- *   node google-oauth-client.mjs --capture --session oauth-oc-maker-hub \
+ *   node google-oauth-client.mjs --capture --session oauth-my-app \
  *     --worker-dir /path/to/apps/web [--write-dev-vars] --commit
  *
  * 默认 **dry-run**：只打印将要执行的计划（项目解析结果、consent screen 要

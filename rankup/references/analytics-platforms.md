@@ -38,7 +38,7 @@ GA4 在批 A：媒体资源的数据流 URL 只是展示用途，换域名不用
 
 1. **建媒体资源**：GA 控制台 → 管理 → 创建媒体资源（选 GA4，不是旧版 UA），时区与币种按目标市场填，
    不按你所在地填——报表的「昨天」按这个时区切。
-2. **建网站数据流**：填当前可访问的 URL（预览域也可以），拿到 **Measurement ID**（形如 `G-XXXXXXXXXX`）。
+2. **建网站数据流**：填当前可访问的 URL（预览域也可以），拿到 **Measurement ID**（形如 `G-<Measurement-ID>`）。
    这是公开值，会出现在页面 HTML 里，不是秘密；但**逐站不同，记到 `<project>/.rankup/integrations.md`**。
 3. **注入**（gtag 或 Zaraz 二选一）：
    - **gtag 一律延迟到首次交互或 6s 兜底再加载，禁止同步注入**：监听一次性的
@@ -359,4 +359,4 @@ Project ID、measurementId、appId、`data-key`、埋码位置——这些**逐�
 □ 6. 去各平台确认数据开始采集（Ahrefs WA 用设置页「Recheck installation」验证）
 ```
 
-完成任一步骤后，**立刻回写到 `.rankup/integrations.md`** 打 ✅ 并附证据和日期。`rankup review` 会逐项线上实测验证这张清单——不记就等于没做。详见 [`lifecycle.md`](lifecycle.md) 段 5 接入清单。
+完成任一步骤后，**立刻回写到 `.rankup/integrations.md`** 打 ✅ 并附证据和日期。`rankup review` 会逐项线上实测验证这张清单——不记就等于没做。详见 [`lifecycle/stage-5-launch.md`](lifecycle/stage-5-launch.md) 段 5 接入清单。

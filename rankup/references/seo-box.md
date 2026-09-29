@@ -56,7 +56,7 @@
 | Keywords Everywhere | ❌ | 付费按量。其站点确实有 API 与 MCP Server 入口（实测 2026-08-29），但我们的词量口径已经是 Semrush + seo.web.cafe 双源，**第三个付费口径的边际价值为负** |
 | WooRank Extension | ❌ | 同 WooRank 主站 |
 | AITDK Extension | ✅（SEO 标签页）/ ✅（GEO 标签页，2026-09-11 起可脚本化） | AITDK **SEO** 标签页的能力已被 `scripts/seo-audit.mjs` 复刻（它的头部注释就写着「AITDK 相当」），且脚本能跑全站，扩展只能看当前页。**GEO 标签页**（引用 / 表格 / 数字 / 作者 / 日期 / sameAs / H3，2026-09-02 在 vidown 实测 76/100）`seo-audit.mjs` 不覆盖，判据在 `checklists.md` 闸门 4b。**旧结论「报告靠用户贴回」已作废**：2026-09-11 起 `scripts/aitdk-opencli.sh` 用 opencli 直接读面板 iframe，15 个标签页（含 GEO）一次跑完，详见下方「AITDK 面板全自动取数」 |
-| Wappalyzer | ➕ 能力值得要 | **技术栈识别在段 1 的竞品拆解里有真实用途**（对方用什么建站、挂了哪些分析/广告/支付 → 反推变现方式，直接喂 [`lifecycle.md`](lifecycle.md) 6.3 竞品变现分析）。但其 API 是付费 `x-api-key`（实测 2026-08-29），**免费替代见下方「技术栈指纹」一节** |
+| Wappalyzer | ➕ 能力值得要 | **技术栈识别在段 1 的竞品拆解里有真实用途**（对方用什么建站、挂了哪些分析/广告/支付 → 反推变现方式，直接喂 [`lifecycle/stage-1-research.md`](lifecycle/stage-1-research.md) 1.3 竞品变现分析）。但其 API 是付费 `x-api-key`（实测 2026-08-29），**免费替代见下方「技术栈指纹」一节** |
 
 ### AITDK 面板全自动取数（`scripts/aitdk-opencli.sh`）
 
@@ -75,7 +75,7 @@ bash <rankup-skill-dir>/scripts/aitdk-opencli.sh <url> [session-name] [output.js
 
 2026-09-25 之前这条脚本硬编码 `--window foreground`——每次跑都会把用户的 Chrome 窗口抬到前台、切走他正在看的标签页，命中 [`discipline.md`](discipline.md)「四条最常被违反的」第 3 条红线。改成默认 `--window dedicated`（OpenCLI 专用窗口：不聚焦、不进用户窗口，标签页在自己的窗口里保持 `visible`）后实测：
 
-- **AITDK 在 dedicated 窗口里工作正常，和 foreground 没有差别**：morsecodebox.com 全量单跑，15/15 section 有内容、0 错误、**2 分 13 秒**（对照旧版 foreground 基线 2 分 08 秒，同一量级）；全程 `osascript` 读前台 App 名字保持 `Claude` 不变——**零抢焦点**，用户的窗口、标签页全程未被触碰。
+- **AITDK 在 dedicated 窗口里工作正常，和 foreground 没有差别**：<站点> 全量单跑，15/15 section 有内容、0 错误、**2 分 13 秒**（对照旧版 foreground 基线 2 分 08 秒，同一量级）；全程 `osascript` 读前台 App 名字保持 `Claude` 不变——**零抢焦点**，用户的窗口、标签页全程未被触碰。
 - **同一台单屏机器上，真正同时可见的 dedicated 窗口上限是 1，不是脚本能调的**：OpenCLI 扩展在创建第 2 个专用窗口前会做一次容量检查（`assertDedicatedCapacity`，`extension/src/background.ts`），按显示器面积 ÷ 硬编码的 900×620 最小格算出 `capacity`；**这条检查不认 `--window-bounds`**——即使调用方显式给了更小的、互不重叠的坐标，第 2 个窗口照样在创建那一步直接报错 `dedicated-pool-exhausted`，不是「挤出来一个更小的窗口」。本机单屏 1512×949（point，对应 3024×1964 physical Retina）算出来的 `capacity` 就是 1；`opencli browser <s> window status -f json` 的 `pool.capacity` 是权威数字，改不了（没有对应的 env/flag，改要动 OpenCLI 扩展源码，不在本 Skill 范围内）。
 - **`scripts/aitdk-batch.sh` 已经按这个事实设计**：跑前先查 `pool.capacity`，请求的 `--concurrency` 大于真实容量就自动下调并打印原因，不会无脑发起注定失败的并发请求；单屏机器上因此表现为**安全串行**（一个一个跑，不抢焦点），不是失败。哪怕并发数已经正确下调到 1，如果这台机器上**同时还有别的 opencli 会话在用专用窗口**（哪怕只是一个空闲未关的窗口——`assertDedicatedCapacity` 数的是"窗口存在"不是"窗口忙"），仍会报同一个错；脚本对这个错单独识别、退避 20 秒再重试，而不是立刻按普通失败处理。
 - **真正的多窗口并发需要第二块（哪怕是虚拟的）显示器**：OpenCLI 的专用窗口机制原生支持 `--window-display` 把不同 slot 分别钉到不同显示器，每块显示器各自单独算 `capacity`；只要有一块够大的（或几块都过 900×620 门槛的）第二显示器，`aitdk-batch.sh` 现成的分块摆放逻辑无需改动就能生效。本机确认没有现成的虚拟屏（`system_profiler SPDisplaysDataType` 只有内建屏；`betterdisplaycli` 已装但 `/Applications/BetterDisplay.app` 缺失，是个没装完的 brew cask，需要 `brew reinstall --cask betterdisplay` 才能用）——这是系统级、影响整台共享机器桌面的改动，本次没有动，留给用户/主线程决定要不要开。
@@ -93,7 +93,7 @@ bash <rankup-skill-dir>/scripts/aitdk-opencli.sh <url> [session-name] [output.js
 **抓的 15 个 section**（侧栏顺序）：Overview、Traffic、Backlinks、Adsense、Issues、GEO、SERP、Density、Headings、Images、Links、Social、Hreflangs、Structured、Whois。
 **故意不抓**：Settings / Archive（本地 UI）、Similarweb / Semrush / Ahrefs / PageSpeed / Twitter（点了会跳外站，不是面板内容）。
 
-**实测成绩**：nonogram-game.com，15/15 有内容、0 错误、2 分 08 秒，结束后无残留会话（脚本自己关面板、关 session）。**每抓完一个 section 落盘一次**，所以中途被打断也留得下半份结果。
+**实测成绩**：一个已上线的小游戏站，15/15 有内容、0 错误、2 分 08 秒，结束后无残留会话（脚本自己关面板、关 session）。**每抓完一个 section 落盘一次**，所以中途被打断也留得下半份结果。
 
 ### 多个 URL：`scripts/aitdk-batch.sh`（不要手写循环）
 
@@ -108,7 +108,7 @@ bash <rankup-skill-dir>/scripts/aitdk-batch.sh [--concurrency N] [--out-dir DIR]
 | 字段 | 内容 |
 |---|---|
 | Part A 字段 | `url` / `title` / `metaDescription` / `canonical` / OGP / Twitter card / `robots` / `hreflang` / `headings` / `links` / `images` / `structuredData` / `robotsTxt` / `sitemapExcerpt` / `whois` |
-| `issues` | 页面级问题数组。含 `placeholder-domain-leak`——**`og:url` / `canonical` / `og:image` / `twitter:image` 里出现 `example.com` 时触发**，正是 nonogram-jp / crossword-ar 那个 `SITE_URL` 没在构建期注入、占位域名泄到线上的失败模式 |
+| `issues` | 页面级问题数组。含 `placeholder-domain-leak`——**`og:url` / `canonical` / `og:image` / `twitter:image` 里出现 `example.com` 时触发**，正是两个同栈站点出过的 `SITE_URL` 没在构建期注入、占位域名泄到线上的失败模式 |
 | `aitdkPanel.sections.<name>` | 每个 section 一个对象，含 `raw`（面板全文）与 `fields`（尽力配对出来的键值） |
 
 ### AITDK 研究报告离线分流
@@ -418,7 +418,7 @@ Single Redirects 本来就先于它执行，关了也不解决匹配条件本身
 ### 三 · 技术栈指纹：竞品变现分析的输入
 
 Wappalyzer 的 API 收费，但它识别的信号绝大多数就摆在响应头和 HTML 里，
-[`lifecycle.md`](lifecycle.md) 6.3「竞品变现分析」要的那一行结论（**他赚谁的钱、怎么收**）
+[`lifecycle/stage-1-research.md`](lifecycle/stage-1-research.md) 1.3「竞品变现分析」要的那一行结论（**他赚谁的钱、怎么收**）
 往往一次 `curl` 就能定：
 
 ```bash
@@ -428,7 +428,7 @@ grep -oiE '(gtag|googletagmanager|clarity\.ms|cloudflareinsights|plausible|umami
 
 命中 `stripe`/`paddle`/`lemonsqueezy`/`creem` → 卖订阅或买断；
 命中 `adsbygoogle`/`ezoic`/`mediavine` → 靠广告，那么**它的商业模型是流量规模**，
-定位对标时不能照抄它的功能取舍（见 [`lifecycle.md`](lifecycle.md) 段 1 必做动作第 8 条（1.3 节）：
+定位对标时不能照抄它的功能取舍（见 [`lifecycle/stage-1-research.md`](lifecycle/stage-1-research.md) 段 1 必做动作第 8 条（1.3 节）：
 照抄一个变现方式不同、不可比的竞品是明确的失败模式）。
 
 还有一个已经在 rankup 里的更强工具：`scripts/demand/site-network.mjs`

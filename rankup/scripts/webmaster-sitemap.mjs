@@ -59,8 +59,7 @@
  *
  * 已验证：2026-09-28（status 只读；submit 保留截图和 manifest）
  * 已验证：2026-09-12（Bing 中文 UI 支持修复：LABELS.bing 的「站点地图」是误译，
- * Bing 实际中文文案是「网站地图」——status 只读复测 crossword-game.com /
- * nonogram-game.com 两站，均读出 sitemap 行状态「正在处理」、提交日期 2026/9/12）
+ * Bing 实际中文文案是「网站地图」——status 只读复测两站，均读出 sitemap 行状态「正在处理」、提交日期 2026/9/12）
  *
  * ── 双证人化（2026-08-30，截图链路已实盘验证）────────────────
  * submit 的每次点击前后都落「截图 + 页面文本」进 `.rankup/evidence/webmaster-sitemap-<ts>/`，

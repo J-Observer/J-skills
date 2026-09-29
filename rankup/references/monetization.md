@@ -75,7 +75,7 @@ Anyway 是 Merchant of Record 模式：由服务商承担其覆盖交易的间�
 
 ## 三、广告
 
-路由到 [`experiences/webcafe-experiences.md`](experiences/webcafe-experiences.md) 二十二
+路由到 [`experiences/webcafe-experiences-2.md`](experiences/webcafe-experiences-2.md) 二十二
 （AdSense 七条实操：申请顺序、被拒「低价值内容」怎么改、实验、千展偏低、屏蔽联盟；Adsterra 只用 banner
 与 native banner、popunder 有诈骗广告、Social bar 会改 title）。`ads.txt` 的规则在
 [`integrations.md`](integrations.md)「容易整站漏掉的几个根目录文件」：**接广告的同一次改动里必须一起上**。
@@ -93,7 +93,7 @@ Anyway 是 Merchant of Record 模式：由服务商承担其覆盖交易的间�
   不进任何以到期时间为基准的计算；服务端修完客户端必须做同一条兜底。
 - 定价：[`experiences/conversion.md`](experiences/conversion.md) 二（先把目标换成每访客收入、价格锚定 +
   自动续订、三档定价、低频刚需上来就弹付费）。广告站加去广告会员的价位与「终身比年费好卖」在
-  [`experiences/webcafe-experiences.md`](experiences/webcafe-experiences.md) 二十二末行。
+  [`experiences/webcafe-experiences-2.md`](experiences/webcafe-experiences-2.md) 二十二末行。
 - 税：从第一天把价格设成不含税，营收达门槛后代收 VAT 会突然出现（同上二十二「其余变现」）。
 
 ## 五、商店上架（本 Skill 尚无脚本）

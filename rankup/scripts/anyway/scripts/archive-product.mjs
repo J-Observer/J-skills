@@ -23,7 +23,7 @@ for (let i = 2; i < process.argv.length; i++) {
 const ENV = resolveEnvName(flags.env);
 const BASE = getEnvConfig(ENV).dashboardUrl.replace(/\/$/, '');
 const SESSION = flags.session || 'anyway-dashboard';
-const WINDOW = 'dedicated';
+const WINDOW = flags.window || 'dedicated';
 const DRY_RUN = !!flags['dry-run'];
 const ids = new Set((flags['product-id'] || []).flatMap((v) => String(v).split(',').map((s) => s.trim()).filter(Boolean)));
 const keep = new Set(String(flags.keep || '').split(',').map((s) => s.trim()).filter(Boolean));

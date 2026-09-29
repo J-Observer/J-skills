@@ -68,7 +68,7 @@ node <rankup-skill-dir>/scripts/is-agentic.mjs history <domain>
 2. **每轮 SEO 优化收尾时**（段 7 · 7.2/7.3）：`diff` 对比改进。
 3. **接入新的 AI 代理表面（MCP、OpenAPI、Skills）后**：验证得分变化。
 
-**注意**：llms.txt 对 **Google Search 无用**（Google 官方已否定），但对 AI 代理生态有用。
+**注意**：llms.txt 对 **Google Search 无用**（Google 官方已否定），对被 ChatGPT 引用也没有收益证据（见 [`seo-ai-search.md`](seo-ai-search.md)），对 AI 代理生态是否有用没有找到可靠来源。成本低，闸门仍按 checklists 执行。
 如果你的站点同时追求 Google 排名和 AI 代理可达性，llms.txt 只是一个 bonus 加分项，
 不要为了它牺牲 Essential 层级的修复优先级。
 

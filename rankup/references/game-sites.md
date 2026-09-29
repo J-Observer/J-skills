@@ -1,11 +1,16 @@
 # 小游戏站：流量与变现执行链
 
 用户提到「小游戏站」「游戏新词」「监控游戏站」「游戏 iframe」时，按本文件执行；建站、上线、
-索引和分析平台接入继续走 [`lifecycle.md`](lifecycle.md)。
+索引和分析平台接入继续走 [`lifecycle/stage-5-launch.md`](lifecycle/stage-5-launch.md)。
 
 **Rankup 是唯一任务入口，负责发现 → 探索 → 研究 → 判断游戏网站能不能做 → 观察复查。**
-本文件管理链路与判断方法；`game-opportunity` 是内部采集、取数和排版模块，命令与字段契约见
-[`game-opportunity`](../../game-opportunity/SKILL.md)，不让定时器另起一套业务规则。
+本文件管理链路与判断方法。
+
+> **2026-09-28 起内部模块已下线**：原内部采集、取数和排版模块 `game-opportunity`（`collect-checklist`、
+> `plan`、`evaluate`、`render`、`decision-checklist` 等命令）已从仓库移除，下文「每日采集」「每日决策」里引用
+> 这些命令的步骤暂时无法执行。可用的替代是 `scripts/demand/game-platform-monitor.mjs`（多语种平台新内页）、
+> `scripts/demand/sitemap-diff.mjs` 与 `scripts/demand/game-newtitles.mjs`；判断方法（任务、频率、证据、复查节点）
+> 仍按本文执行。定时器触发这两条任务时，先说明模块已下线、用替代脚本做能做的部分，不要伪称跑完。
 
 定时器只给任务方向（「小游戏机会每日采集」或「小游戏机会每日决策」）、项目位置，并要求先读
 Rankup。项目 `.rankup/tasks/` 只保存时区、时间、名额分配和数据位置；通用执行步骤与判据以本文件
@@ -84,7 +89,7 @@ node scripts/demand/game-newtitles.mjs --source itch --json --out .rankup/demand
 node scripts/demand/game-newtitles.mjs --source poki --json --out .rankup/demand/games-poki.json
 ```
 
-更多源与字段见 [`demand-sources.md`](demand-sources.md)「持续涌现新词的平台」。
+更多源与字段见 [`demand-sources/users-and-launches.md`](demand-sources/users-and-launches.md#七持续涌现新词的平台)「七、持续涌现新词的平台」。
 
 ### 竞品 sitemap
 

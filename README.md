@@ -71,9 +71,9 @@ npx skills add yan-labs/yan-skills -g --all
 
 ---
 
-## `rankup` — 网站全生命周期总控
+## `rankup` — 独立开发者项目全生命周期管理
 
-版本 `3.29.0`。Rankup 负责调研、建设、上线与增长决策；查关键词、竞品、域名、页面和哥飞经验时，按[哥飞工具箱指南](rankup/references/seo-webcafe.md)安装并加载官方 Skill 包，直接调用其工具。五个探索动作（词→词、词→问题、词→站、站→词、站→站）与市场证据闸门仍由 Rankup 执行。
+版本 `3.31.0`。Rankup 管项目从需求验证到变现迭代的全生命周期，以及跨会话接力与项目记录维护；SEO / GEO 是主要手段，不是适用边界。它负责调研、建设、上线与增长决策；查关键词、竞品、域名、页面和哥飞经验时，按[哥飞工具箱指南](rankup/references/seo-webcafe.md)安装并加载官方 Skill 包，直接调用其工具。五个探索动作（词→词、词→问题、词→站、站→词、站→站）与市场证据闸门仍由 Rankup 执行。
 
 登录态数据平台可以直接走薄 CLI，把一次探路沉淀成可续跑清单：
 
@@ -82,6 +82,14 @@ npx @yan-labs/rankup catalog semrush --json
 npx @yan-labs/rankup capture semrush keyword-overview --keyword "photo signature resizer" --db us --out-dir .rankup/provider-audit/keyword-us
 npx @yan-labs/rankup audit similarweb --manifest .rankup/provider-audit/similarweb.json --out-dir .rankup/provider-audit/live/similarweb --resume
 ```
+
+### 3.31 改了什么
+
+- `SKILL.md` 重写 description 与开头定义（项目计划、继续、维护、`.rankup/` 目录都会加载），第一屏新增「强制流程」表：开工、继续、里程碑、各类任务前必读、收尾维护、维护 Skill、整理 `.rankup/`。
+- 新增入口环节 [`references/playbooks/entry.md`](rankup/references/playbooks/entry.md)：Trends 同框 `gpts` 基线 → 有人做（辅助）→ AI 探针 → GEO / SEO 路线；`gpts` 判读表是 [`trends.md`](rankup/references/trends.md)「〇·六」的唯一判据（阈值为起步值）。
+- 新增「维护」章节 [`references/maintenance.md`](rankup/references/maintenance.md) 与 `/rankup doctor`；新脚本 `scripts/maintain/`：`doc-lint.mjs`（断链与超标）、`ref-scan.mjs`（全量扫描）、`split-doc.mjs`（拆分并修链接）、`rankup-doctor.mjs`（`.rankup/` 只读诊断）。
+- 超标文档拆分（主文件留入口与判据，旧文件名都保留为入口）：`lifecycle.md` → `lifecycle/stage-1…7`，另有 `provider-capabilities/`、`demand-sources/`、`playbooks/research/`、`playbooks/selection/`、`integrations/`、`cloudflare/` 子目录。项目记录里写的「`lifecycle.md` 段 N」按新索引一跳可达，无需迁移。
+- 口径统一：KD 只排复核顺序、支付按分发方式选主通道与备份、`rejected.md` 复活后移出表格、`journal/` 可压缩流水；移除已删除的 `game-opportunity` 与 `skillsmp` 引用。
 
 ### 3.0 改了什么
 

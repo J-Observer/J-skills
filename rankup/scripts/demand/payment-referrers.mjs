@@ -311,7 +311,7 @@ async function cmdSimilarweb(args) {
     openedSession = l.session ?? session ?? null;
     const ev = l.evalPage;
     console.error(`· 面板订阅到期 ${l.state.expiry ?? '—'}（剩 ${l.state.daysLeft ?? '—'} 天）· 配额 ${JSON.stringify(l.state.quotas ?? '—')}`);
-    const base = 'https://sim.3ue.co/#/digitalsuite/websiteanalysis';
+    const base = 'https://similarweb.example.com/#/digitalsuite/websiteanalysis';
     // 先落到已知稳定的路由再切过去；直接深链到 referrals 有概率白屏。
     //
     // **请求的窗口是 28d，但面板会自己改写它。** 2026-08-28 实测 creem.io：

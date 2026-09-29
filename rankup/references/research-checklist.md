@@ -43,15 +43,15 @@
 | 1.1 Google 搜索（显式 gl/hl） | OpenCLI 驱动用户 Chrome（dedicated 窗口） | 七样记录（见下） | 必做 |
 | 1.2 Bing 搜索（显式 mkt） | OpenCLI 驱动用户 Chrome（dedicated 窗口） | 七样记录 | 必做 |
 | 1.3 目标市场本地引擎 | OpenCLI 驱动用户 Chrome（dedicated 窗口） | 七样记录 | 非英语市场必做 |
-| 1.4 AI 搜索（AI Overviews / Perplexity） | OpenCLI 驱动用户 Chrome（dedicated 窗口） | 引用了谁 | 推荐 |
-| 1.5 **意图核验**（与 [`lifecycle.md`](lifecycle.md) 段 1 · 1.2 同名） | 1.1–1.3 记下的**页面类型列** + 社区原话（3.7/3.8） | 一行：`真实意图=<X>（前十 <n> 条是<页面类型>），我以为=<Y>，一致/撞词` | **必做**，独立于搜索量成行；撞词时两个意思各自估量 |
+| 1.4 AI 搜索（AI Overviews / Perplexity） | OpenCLI 驱动用户 Chrome（dedicated 窗口） | 引用了谁（单次手看只作线索） | 推荐；ChatGPT 侧不在这里手查，付费工具 / 游戏站 / 平台类走阶段 4b 探针（重复采样，见 [`seo-geo.md`](seo-geo.md)） |
+| 1.5 **意图核验**（与 [`lifecycle/stage-1-research.md`](lifecycle/stage-1-research.md) 段 1 · 1.2 同名） | 1.1–1.3 记下的**页面类型列** + 社区原话（3.7/3.8） | 一行：`真实意图=<X>（前十 <n> 条是<页面类型>），我以为=<Y>，一致/撞词` | **必做**，独立于搜索量成行；撞词时两个意思各自估量 |
 
 **「七样记录」是什么、每样回答什么问题、写进哪个文件，见
 [`demand-sources.md`](demand-sources.md) 的「每个引擎记下这七样」一节**——
 那是这张表的唯一权威版本，此处不复制，改判据只改那边。
 七样之外，**每条结果多记一列「页面类型」**（工具页 / 文章 / 商品 / 视频 / 论坛 / 维基 / 新闻），
 1.5 就是拿这一列对照词根字面——撞词案例（「宠物诊断」字面像娱乐测试，SERP 全是兽医）在
-[`playbooks/research.md`](playbooks/research.md) P2 阶段 6。
+[`playbooks/research/p2-keyword-root.md`](playbooks/research/p2-keyword-root.md) P2 阶段 6。
 
 **引擎之间不一致本身就是结论，必须写出来。**
 
@@ -176,13 +176,13 @@
 |---|---|---|---|
 | 7.1 词根扩展（本地模板） | `demand/word-roots.mjs` | `expand <词根>` | 51 条词根库 + 8 个扩展模板 |
 | 7.1b 三引擎搜索框下拉 | `demand/suggest.mjs` | `"<词根>" --engine google,bing,ddg --hl <hl> --gl <gl> --json` | Google / Bing / DDG 各自的联想串（按语种分国家；失败引擎为 `null`，开 manifest） |
-| 7.1c 本地竞品页面取词（非英语市场必做） | `seo-audit.mjs` | `<url1> <url2> … --density-only`（已有该竞品的 AITDK 完整报告时改读它的 Density，见 seo-box.md 离线分流） | 本地竞品页高频词 + Title/H1/目录/FAQ 措辞，取法与三关判据见 [`playbooks/research.md`](playbooks/research.md#小语种候选词三关与本地竞品取词) |
+| 7.1c 本地竞品页面取词（非英语市场必做） | `seo-audit.mjs` | `<url1> <url2> … --density-only`（已有该竞品的 AITDK 完整报告时改读它的 Density，见 seo-box.md 离线分流） | 本地竞品页高频词 + Title/H1/目录/FAQ 措辞，取法与三关判据见 [`playbooks/research/p2-keyword-root.md`](playbooks/research/p2-keyword-root.md#小语种候选词三关与本地竞品取词) |
 | 7.2 竞品排名词反查 | `backlink/scripts/semrush-report.mjs` | `--report organic-positions --domain <竞品> --db <目标国>` | 竞品前 100 词，与自己的池子做差集 |
 | 7.3 Semrush Keyword Magic | `backlink/scripts/semrush-report.mjs` | `--report keyword-magic --keyword <词> --db <目标国>` | 整包词 + 聚簇（Topics） |
 | 7.4 Similarweb 扩词 | `backlink/scripts/similarweb-keywords.mjs` | `--seed <词> --tab phraseMatch` | 匹配词（relatedKeywords 量最大） |
 | 7.5 补测差集词的量与难度 | `backlink/scripts/semrush-keyword.mjs` + `seo-webcafe.mjs kd` | 逐个补测 | 被自己判过「太难」的头词也测 |
 | 7.6 重算按量加权的 CPC | 手算或 `demand/keyword-value.mjs` | `--in <关键词JSON>` | 扩完词后 CPC 可能掉 |
-| 7.7 树只扩两层、停止条件写明 | 人工核对 | 报告第 3 节 | 每片叶子标层级；月量低于筛子阈值或 KD 高于阈值的叶子没有往下扩 |
+| 7.7 树只扩两层、停止条件写明 | 人工核对 | 报告第 3 节 | 每片叶子标层级；月量低于筛子阈值、或竞争复核判打不动的叶子没有往下扩（KD 只排复核顺序） |
 | 7.8 探索广度闸（防牛角尖） | 人工核对 | 报告第 3 节 | 词→词/词→问题/词→站/站→词/站→站五个动作各至少一轮 + 探索日志；词池里有不含种子字面串的新词根；判据见 [`playbooks/research.md`](playbooks/research.md#五个取数动作与编排探索循环) |
 
 ---
@@ -258,6 +258,7 @@
 - [ ] 1.1 Google 首页实勘（记页面类型列）
 - [ ] 1.2 Bing 首页实勘
 - [ ] 1.5 意图核验（独立成行，晚于取量、早于裁决）
+- [ ] AI 侧探针（`playbooks/research.md` 阶段 4b；付费工具 / 游戏站 / 平台类必做，其余站型记 N/A 与理由）
 - [ ] 2.1 KD + SERP 盘面（seo-webcafe kd）
 - [ ] 3.1 Semrush 搜索量验证
 - [ ] 3.3 多国家库搜索量（逐国，不默认 us）

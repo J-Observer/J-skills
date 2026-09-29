@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+// 用法：node scripts/validate-rankup.mjs（只读、本地校验）。
+// 动态中立扫描：RANKUP_PROJECT_ROOTS 为按系统路径分隔符分隔的项目父目录列表；
+// 未配置 ~/.rankup/config.json 时也可仅用该环境变量，扫描其下真实项目目录名。
+// RANKUP_PROJECT_NAME_EXCLUDES 为逗号分隔的通用目录名排除表，例如 docs,scripts；
+// 仅从动态候选词中排除这些目录名，不豁免文件，也不排除真实项目名。
 
 import { execFile } from "node:child_process";
 import { readFile, readdir } from "node:fs/promises";
@@ -6,11 +11,12 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { promisify } from "node:util";
 import { resolveRoots } from "./registry.mjs";
+import { lint as lintDocs } from "./maintain/doc-lint.mjs";
 
 const execFileAsync = promisify(execFile);
 
 const skillRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const expectedVersion = "3.29.0";
+const expectedVersion = "3.31.0";
 const requiredReferences = [
   "discipline.md",
   "monetization.md",
@@ -18,6 +24,15 @@ const requiredReferences = [
   "playbooks/site-review.md",
   "checklists.md",
   "lifecycle.md",
+  "lifecycle/stage-1-research.md",
+  "lifecycle/stage-2-positioning.md",
+  "lifecycle/stage-3-build.md",
+  "lifecycle/stage-4-prelaunch.md",
+  "lifecycle/stage-5-launch.md",
+  "lifecycle/stage-6-backlinks.md",
+  "lifecycle/stage-7-monetize.md",
+  "maintenance.md",
+  "playbooks/entry.md",
   "cloudflare-stack.md",
   "project-memory.md",
   "integrations.md",
@@ -77,19 +92,50 @@ const requiredContent = {
     "上线前与发布后复核入口",
     "references/design-references.md#多功能工具站侧栏统一规范",
     "npx skills add yan-labs/yan-skills --skill cf-cli -g -y",
+    "## 强制流程（先读这张表，再做任何事）",
+    "### `rankup doctor`",
+    "scripts/maintain/rankup-doctor.mjs",
+    "ref-scan.mjs",
+    "SEO/GEO 是主要手段，不是适用边界",
+  ],
+  "references/maintenance.md": [
+    "## 一、什么时候必须走本章",
+    "## 二、收尾维护：五步，顺序固定",
+    "## 三、可检查判据（清理）",
+    "## 四、决策与结论类文档怎么维护",
+    "## 五、维护 Skill 源码（rankup 本身）",
+    "## 六、`/rankup doctor`：整理 `.rankup/` 的显式入口",
+    "scripts/maintain/ref-scan.mjs",
+    "不能丢的东西",
+    "## 七、经验分层与回流：四层归属（唯一判定表）",
+    "RANKUP_HOME",
+    "upstream-candidates.md",
+  ],
+  "references/playbooks/entry.md": [
+    "① Google 趋势与量（必须同框 `gpts` 基线）",
+    "不算减分",
+    "需求信号与难度信号分开记，不互相抵消",
+    "待验证的机会假设",
+  ],
+  "references/trends.md": [
+    "### gpts 基线判读：到底怎么才算「有搜索量」（唯一判据源）",
+    "【经验·起步阈值】",
   ],
   "references/demand-sources.md": ["## App 市场证据与原生分发", "macOS 直销另开一行", "评分数不是安装数"],
   "references/playbooks/research.md": ["## App 市场验证分支", "不能单独否决 App 市场"],
-  "references/lifecycle.md": [
+  // 2026-09-30 lifecycle.md 按七段拆分，原断言随内容迁到对应段文件，一条未删。
+  "references/lifecycle/stage-3-build.md": [
     "清除 React / Vite / TanStack 脚手架默认图标",
-    "SSR HTML 与浏览器水合后 DOM",
-    "逐个 GET 并解码实际图片",
-    "Googlebot-Image",
-    "技术检查通过不等于 Google 搜索结果已更新",
     "域名与索引开关共享构建期配置",
     "合法 JSON 不等于 Schema 语义合法",
     "https://validator.schema.org/",
     "grid → row → gridcell",
+  ],
+  "references/lifecycle/stage-4-prelaunch.md": [
+    "SSR HTML 与浏览器水合后 DOM",
+    "逐个 GET 并解码实际图片",
+    "Googlebot-Image",
+    "技术检查通过不等于 Google 搜索结果已更新",
     "包含 sitemap 外页面",
   ],
   "references/checklists.md": [
@@ -129,6 +175,7 @@ const requiredContent = {
     "roadmap.md",
     "iterations.md",
     "experience.md",
+    "## 目录规范：常驻文件、保留什么、去哪里、多大",
   ],
   "references/cloudflare-stack.md": [
     "pnpm dlx shadcn@latest init --preset b1D0eCA4 --template start --monorepo --rtl --pointer",
@@ -176,6 +223,9 @@ const secretPatterns = [
 // `intabtools` / `toolpear` 有四处漏进 backlink/,根因就是它们不在这张表里。
 // **新开一个项目时把它的代号加进来**,否则这个守卫对它等于不存在。
 const projectLeakPatterns = [
+  ["advertising publisher ID", /\b(?:ca-)?pub-\d{10,}\b/g],
+  ["analytics account ID", /\b(?:UA-\d+-\d+|G-[A-Z0-9]{8,})\b/g],
+  ["shared panel authorization/callback base", /\b(?:[a-z0-9-]+\.)*3ue\.co\b/gi],
   ["project identifier", /\b(?:bettercallsaul|birthstonemeaning|crystalhealing|sbti|intabtools|toolpear|shindan-lab|shindan|butterflydream|sgsz-alliance|xueer)\b/gi],
   ["absolute host path", /\/Users\/[A-Za-z0-9._-]+\//g],
   ["hardcoded local proxy", /\b127\.0\.0\.1:\d{2,5}\b/g],
@@ -200,6 +250,8 @@ async function buildDynamicProjectLeakPatterns() {
   }
   if (!roots.length) return [];
 
+  const excludedNames = new Set((process.env.RANKUP_PROJECT_NAME_EXCLUDES || "")
+    .split(",").map((name) => name.trim()).filter(Boolean));
   const names = new Set();
   for (const root of roots) {
     let entries;
@@ -209,7 +261,7 @@ async function buildDynamicProjectLeakPatterns() {
       continue; // 根目录不存在或不可读——本机配置漂移了,安静跳过,不阻断校验
     }
     for (const entry of entries) {
-      if (!entry.isDirectory() || entry.name.startsWith(".") || entry.name === "node_modules") continue;
+      if (!entry.isDirectory() || entry.name.startsWith(".") || entry.name === "node_modules" || excludedNames.has(entry.name)) continue;
       names.add(entry.name);
     }
   }
@@ -293,7 +345,7 @@ async function collectTextFiles(directory = skillRoot) {
       // 被 .gitignore 排除、不随 Skill 分发;它里面天然带本机路径,不该让发布门禁挂掉。
       if (entry.name === ".rankup" || entry.name === "node_modules" || entry.name === ".git") continue;
       files.push(...(await collectTextFiles(absolutePath)));
-    } else if (/\.(?:md|json|mjs)$/.test(entry.name)) {
+    } else if (/\.(?:md|json|mjs|sh)$/.test(entry.name)) {
       files.push(absolutePath);
     }
   }
@@ -448,12 +500,32 @@ async function validate() {
     "tests/game-platform-monitor.test.mjs",
     "tests/eval-guard-source-match.test.mjs",
     "tests/eval-guard-style-vs-substance.test.mjs",
+    "scripts/maintain/doc-lint.mjs",
+    "scripts/maintain/ref-scan.mjs",
+    "scripts/maintain/split-doc.mjs",
+    "scripts/maintain/rankup-doctor.mjs",
   ]) {
     try {
       await read(requiredFile);
     } catch {
       errors.push(`missing required file: ${requiredFile}`);
     }
+  }
+
+  // 拆分、改名、改标题后，references 之间的相对链接与锚点会静默断掉；
+  // 上面只查 SKILL.md 直链的文件存在，这里补上全量断链与断锚检查。
+  // 用户全局层（$RANKUP_HOME，默认 ~/.rankup/）的内容只属于这个用户或这台机器，
+  // Skill 目录里出现这几个文件就说明有人把个人层写进了要开源的 Skill。
+  for (const { file } of contents) {
+    const base = path.basename(file);
+    if (["preferences.md", "lessons.md", "upstream-candidates.md"].includes(base)) {
+      errors.push(`user-global layer file ${path.relative(skillRoot, file)} must live in $RANKUP_HOME, not in the Skill`);
+    }
+  }
+
+  const docReport = await lintDocs({ root: skillRoot });
+  for (const broken of docReport.broken) {
+    errors.push(`broken Markdown link ${broken.where} → ${broken.target} (${broken.reason})`);
   }
 
   return errors;
