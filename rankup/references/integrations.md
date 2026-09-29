@@ -591,7 +591,7 @@ await captureDownloadedBlob(() => document.querySelector("#download-verification
   **让 CI 在这一步标红**、不更新状态文件，下次自然重试。
   索引推送是静默收尾动作，漏了不会有任何别的东西变红，
   不主动标红就等于永远没人知道它挂过。
-  （同一条规矩在 [`seo-growth.md`](seo-growth.md) 五「经验库」2026-07-21
+  （同一条规矩在 [`seo-experiences-2026-07.md`](seo-experiences-2026-07.md)「经验库」2026-07-21
   IndexNow 那条里以另一半口径出现：「通知失败必须让 CI 标红，
   但不能误称已发布的 Worker 被回滚」——两句说的是同一件事的两侧。）
 
