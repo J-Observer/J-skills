@@ -13,7 +13,7 @@ fleet judge state.txt questions.json
 
 ## Kollab 文字模型与多模态
 
-为 Agent 设置 `KOLLAB_API_KEY`（或 `KOLLAB_STANDALONE_API_KEY`）；先用 `kollab api-key create` 创建 standalone key。已有 `kollab login` 会话也能用于 `fleet media run`。`KOLLAB_API_URL` 可覆盖 Kollab CLI 默认地址。密钥只通过环境变量传给本机 `kollab`，无需厂商 key。
+认证优先用 `KOLLAB_API_KEY` 或 `KOLLAB_STANDALONE_API_KEY`（可用 `kollab api-key create` 创建），其次用进程级 `KOLLAB_API_TOKEN` 或已有 `kollab login` 会话。连接 TEST 必须显式设置 `KOLLAB_API_URL`，不要复用生产 profile。密钥只通过环境变量传给本机 `kollab`，无需厂商 key。
 
 文字 Agent 可继续用现有 `kollab-gateway*` 配置走 Kollab `/api/llm`；按当前配置对应的环境变量提供 standalone key，即可用 `fleet run --model kollab-gateway --prompt "任务"`。查询全部文字模型用 `fleet media models`（或 `--source openrouter --search 关键词`），一次性文字调用用 `kollab model run --model <目录中的 id> --prompt "任务"`。
 
@@ -22,9 +22,10 @@ fleet media list
 fleet media models --source openrouter --search vision
 fleet media run generate_image --model <fleet media list 中的 id> --prompt "一只猫" --out ./fleet-media
 fleet media run edit_image --model <id> --prompt "修改背景" --input-json '{"image_refs":[{"artifact_id":"<id>"}]}'
+kollab model run --model google/gemini-3.1-flash-image --prompt "一只猫" --output-dir ./fleet-media
 ```
 
-`fleet media list` 从 `kollab tool list` 按 image、video、audio、vision 打印当前可用 tool、模型 id 和必填字段；以其输出为准，不保存固定模型表。`fleet media run` 合并 `--model`、`--prompt` 与 `--input-json`，调用 `kollab tool run`；默认输出到当前目录的 `fleet-media/`。终端只列文件路径和状态/费用摘要，无媒体文件的结果写入 `result.json`。图片规范入口是 `fleet media run generate_image`；普通配图也可直接用 imagegen。
+`fleet media list` 从 `kollab tool list` 按 image、video、audio、vision 打印当前可用 tool、模型 id 和必填字段；能力清单以实时输出为准。已在 TEST 验证的例子包括 Nano Banana 三款、Grok Image、gpt-image-2，Seedance 2/2.5、Veo 3、Kling、Hailuo 3、Grok 视频，Tripo 3D 和 Grok TTS/STT；具体用法及暂未开放项见 [多模态用法](skill/references/media.md)。`fleet media run` 合并 `--model`、`--prompt` 与 `--input-json`，调用 `kollab tool run`；默认输出到当前目录的 `fleet-media/`。终端只列文件路径和状态/费用摘要，无媒体文件的结果写入 `result.json`。图片规范入口是 `fleet media run generate_image`；普通配图也可直接用 imagegen。
 
 给它一个任务描述 + 一个模型,它就用 [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-typescript)
 驱动一个完整的自主 Agent(能读写文件、跑 bash、多轮工具调用直到任务完成)去执行,权限模式固定
