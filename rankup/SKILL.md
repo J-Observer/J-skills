@@ -2,7 +2,7 @@
 name: rankup
 description: 用户明确要求 rankup，或询问网站及原生 App 的需求验证、选词、SERP、SEO/GEO、网站体检、索引与搜索平台（sitemap、IndexNow、Search Console）、流量、建站、上线、接支付与选支付商（Stripe、Anyway、PayPal）、变现与增长时使用。单纯文案、视觉设计和通用开发问题不触发完整生命周期；外链发现与台账交 backlink，浏览器驱动与取数机制交 opencli，配图生成交 imagegen，多模型派单交 agent-fleet。
 metadata:
-  version: "3.28.0"
+  version: "3.29.0"
 ---
 
 # Rankup 3.0
