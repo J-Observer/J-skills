@@ -10,7 +10,7 @@ import { resolveRoots } from "./registry.mjs";
 const execFileAsync = promisify(execFile);
 
 const skillRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const expectedVersion = "3.26.2";
+const expectedVersion = "3.28.0";
 const requiredReferences = [
   "discipline.md",
   "monetization.md",
@@ -65,6 +65,7 @@ const requiredContent = {
     "图标专项未通过不许上线",
     "上线前与发布后复核入口",
     "references/design-references.md#多功能工具站侧栏统一规范",
+    "npx skills add yan-labs/yan-skills --skill cf-cli -g -y",
   ],
   "references/demand-sources.md": ["## App 市场证据与原生分发", "macOS 直销另开一行", "评分数不是安装数"],
   "references/playbooks/research.md": ["## App 市场验证分支", "不能单独否决 App 市场"],
@@ -120,6 +121,8 @@ const requiredContent = {
   ],
   "references/cloudflare-stack.md": [
     "pnpm dlx shadcn@latest init --preset b1D0eCA4 --template start --monorepo --rtl --pointer",
+    "npm i -g cf",
+    "npx skills add yan-labs/yan-skills --skill cf-cli -g -y",
     "npx skills add cloudflare/skills --skill wrangler -g -y",
     "wrangler types",
   ],

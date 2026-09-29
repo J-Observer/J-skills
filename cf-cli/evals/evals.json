@@ -1,0 +1,23 @@
+{
+  "skill_name": "cf-cli",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "用新版 cf CLI 给现有 Pages 项目绑定一个子域名，先告诉我会查什么，不要实际修改。",
+      "expected_output": "Discover the Pages domain command, check authentication and project/zone/DNS prerequisites, and distinguish command success from live activation.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "这个 Worker 还在用 wrangler.jsonc，帮我用 cf 部署到 staging。",
+      "expected_output": "Inspect the existing deployment workflow and configuration; do not silently migrate or assume Wrangler environment flags apply to cf.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "用 cf 查一下账号里有哪些 D1 数据库。",
+      "expected_output": "Search for the correct read command without account identifiers in the search query, check cf authentication, and keep credentials out of output.",
+      "files": []
+    }
+  ]
+}

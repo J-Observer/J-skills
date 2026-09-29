@@ -28,6 +28,7 @@ npx skills add yan-labs/yan-skills -g --all
 | [`backlink`](backlink/) | 外链与**登录态数据** | 去哪发、能不能发、发完有没有真的生效 |
 | [`opencli`](opencli/) | 浏览器与**取数的底层** | 怎么把用户那个已登录的 Chrome 开对，怎么不让两个任务抢同一个标签页 |
 | [`imagegen`](imagegen/) | 网站的**视觉素材** | logo、吉祥物、og 图、内页配图、用户场景图、手绘插画——真实生成，页面上不许留占位图 |
+| [`cf-cli`](cf-cli/) | Cloudflare **新版 CLI** | 查账号资源、zone、DNS、域名与 API 命令；现有 Worker 项目仍遵守自己的 Wrangler 构建和部署流程 |
 
 小游戏每日自动化由 [`game-opportunity`](game-opportunity/) 的 `collect-checklist` 和
 `decision-checklist` 两种模式分别执行 10 项采集与决策验收；
@@ -54,6 +55,7 @@ npx skills add yan-labs/yan-skills -g --all
 | 「今天有什么新游戏词」「小游戏机会日报」 | [`game-opportunity`](game-opportunity/) |
 | 「有没有现成的 skill 能做 X」「我想写个 skill，别人写过没」 | [`skillsmp`](skillsmp/) |
 | 「用我的浏览器打开」「登录后台查一下」「标签页被抢了」「doctor 报错」 | [`opencli`](opencli/) |
+| 「用 cf CLI」「创建 Cloudflare zone」「管理 DNS / 绑定域名」 | [`cf-cli`](cf-cli/)；网站上线流程仍由 [`rankup`](rankup/) 总控 |
 | 「一句话，你自己拆解自己跑完」 | [`autopilot`](autopilot/) |
 | 「生成 logo / 吉祥物 / og 图 / 内页配图 / 用户场景图 / 手绘插画」 | [`imagegen`](imagegen/) |
 | 「让 Codex 在后台跑一轮」 | [`codex`](codex/) |
@@ -71,7 +73,7 @@ npx skills add yan-labs/yan-skills -g --all
 
 ## `rankup` — 网站全生命周期总控
 
-版本 `3.26.2`。Rankup 负责调研、建设、上线与增长决策；查关键词、竞品、域名、页面和哥飞经验时，按[哥飞工具箱指南](rankup/references/seo-webcafe.md)安装并加载官方 Skill 包，直接调用其工具。五个探索动作（词→词、词→问题、词→站、站→词、站→站）与市场证据闸门仍由 Rankup 执行。
+版本 `3.28.0`。Rankup 负责调研、建设、上线与增长决策；查关键词、竞品、域名、页面和哥飞经验时，按[哥飞工具箱指南](rankup/references/seo-webcafe.md)安装并加载官方 Skill 包，直接调用其工具。五个探索动作（词→词、词→问题、词→站、站→词、站→站）与市场证据闸门仍由 Rankup 执行。
 
 登录态数据平台可以直接走薄 CLI，把一次探路沉淀成可续跑清单：
 
@@ -458,6 +460,9 @@ npx skills add yan-labs/yan-skills --skill rankup -g -y
 # 只要 backlink
 npx skills add yan-labs/yan-skills --skill backlink -g -y
 
+# Cloudflare 新版 CLI 的使用规范
+npx skills add yan-labs/yan-skills --skill cf-cli -g -y
+
 # 更新
 npx skills update rankup -g -y
 ```
@@ -483,7 +488,8 @@ rankup review
 | Node.js 18+ | 两个 Skill 都要 | 全部脚本的运行时 |
 | Python 3.10+ | `rankup` 的 `gt.py`、`skill-link-check` | 首次运行 `gt.py` 自动建 venv |
 | [OpenCLI](https://github.com/yan-labs/OpenCLI) CLI + 浏览器扩展 | `opencli` / `backlink` / `rankup` 的全部浏览器动作 | 复用你自己已登录的 Chrome。**必须装我们的构建，不是 Chrome 应用商店那个**，见下 |
-| Wrangler / Stripe CLI | 按任务 | 只在真正走到那个阶段时才需要 |
+| [cf CLI](https://blog.cloudflare.com/cloudflare-cf-cli-launch/) | `rankup` 的 Web / Cloudflare 路径 | `npm i -g cf`；账号级资源和 API 命令按 [`cf-cli`](cf-cli/) 核对。安装 Skill 不会安装 CLI |
+| Wrangler / Stripe CLI | 按任务 | 现有 Worker 项目用锁定的 Wrangler 版本；Stripe 只在支付阶段需要 |
 
 ### 装 OpenCLI（CLI + 浏览器扩展）
 

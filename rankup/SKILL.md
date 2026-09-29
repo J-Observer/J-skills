@@ -2,7 +2,7 @@
 name: rankup
 description: 管理网站和原生 App 的需求验证、立项、开发、上线及增长。用户明确提到 rankup，或任务涉及选词、SERP、SEO/GEO、索引、搜索平台、流量、网站体检、建站、接支付/选支付商（Stripe、Anyway、PayPal）、付费与变现及增长时使用。先定位项目与具体问题，再按七段生命周期加载对应参考文件；单纯写文案、做设计或问通用开发问题，不因关键词碰巧出现就强制启动完整流程。
 metadata:
-  version: "3.27.0"
+  version: "3.28.0"
 ---
 
 # Rankup 3.0
@@ -321,6 +321,8 @@ G 组那条线：`scripts/review.mjs --project-root .` 出五块报告；再挖�
 ## 安装与版本
 
 先装 `opencli`（`npx skills add yan-labs/yan-skills --skill opencli -g -y`）：OpenCLI 本体要装我们自己的构建，不是应用商店版（商店版默认前台抢标签页，失败不报错）。`opencli doctor` 报扩展版本过低时照它说的做。**一切浏览器动作（含测试、验收、E2E、截图和公开 SERP）一律用 `opencli browser <描述性会话名>` 驱动用户的 Chrome，使用 dedicated 窗口，不用其他浏览器自动化工具**——理由与判据见 [`discipline.md`](references/discipline.md) 五。
+
+Web 项目的 Cloudflare 工具链需要 `cf` CLI 和本仓库的 `cf-cli` Skill：`npm i -g cf`、`npx skills add yan-labs/yan-skills --skill cf-cli -g -y`。账号级资源、zone、DNS 与域名操作先按 [`cloudflare-stack.md`](references/cloudflare-stack.md) 和 `/cf-cli` 查当前命令；现有项目的构建、bindings 与部署继续使用项目锁定的 Wrangler，不因装了 `cf` 就迁移配置。
 
 ```bash
 npx skills add yan-labs/yan-skills --skill rankup -g -y   # 全局安装

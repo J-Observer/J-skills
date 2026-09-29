@@ -31,6 +31,7 @@
 | 「这个领域现在有哪些 skill」「别人写过没」 | **`/skillsmp`**（1.6M 索引）。要「最近 7 天新冒出来的」才用 `demand/github-skill-search.mjs --mode recent` |
 | 「写篇中文长文」「这稿子 AI 味太重」 | **`/human-writing`** 起稿 → **`/shuorenhua`** 过滤。仅限中文；英文站内容两个都不适用 |
 | 「扩词想不出角度了」 | **`/marketing-psychology`**（痛点/对比/决策词）+ **`/marketing-ideas`**（场景/人群词）。用法已写在 [`trends.md`](trends.md) W2 第一步 |
+| 「用 cf CLI」「管理 Cloudflare zone / DNS / 域名」 | **`/cf-cli`**（本仓库）；项目已有的构建与部署工作流见 [`cloudflare-stack.md`](cloudflare-stack.md) |
 | 「部署 Worker」「wrangler 报错」 | **`/wrangler`**（已在 [`cloudflare-stack.md`](cloudflare-stack.md) 接入）；要 D1/R2/Vectorize/Agents SDK 的深度用法才升到 `/cloudflare` |
 | 上面都不是 | **rankup 自己**。先查 [`capability-map.md`](capability-map.md) |
 
@@ -123,10 +124,10 @@
 | **什么时候不要加载** | 已经有足够词表（去 `/keyword-research` 分层）；定价与转化问题（rankup 有 [`experiences/conversion.md`](experiences/conversion.md)，是带数字的实战裁定，比通用心理学更该先看） |
 | **取舍理由** | 接（维持现状并登记）。[`trends.md`](trends.md) 里已有的那句「这些 skill 不可用时自己顶上做扩词即可，角度不变」是对的，保留 |
 
-### `/wrangler`、`/cloudflare` —— 已接入，本条只做登记
+### `/cf-cli`、`/wrangler`、`/cloudflare` —— 已接入，本条只做登记
 
-`/wrangler` 已经写在 [`cloudflare-stack.md`](cloudflare-stack.md)（`npx skills add cloudflare/skills --skill wrangler -g -y`，
-且被 `validate-rankup.mjs` 的必需内容断言锁住）。分工：日常 `wrangler deploy` / `wrangler types` / D1 迁移用 `/wrangler`；
+`/cf-cli` 是本仓库的新版 Cloudflare CLI 使用规范：先 `cf cli search` 再读命令帮助与 API schema；账号级资源、zone、DNS 和域名操作用它发现当前能力。`/wrangler` 已经写在 [`cloudflare-stack.md`](cloudflare-stack.md)（`npx skills add cloudflare/skills --skill wrangler -g -y`，
+且被 `validate-rankup.mjs` 的必需内容断言锁住）。分工：现有项目的 `wrangler deploy` / `wrangler types` / D1 迁移仍用 `/wrangler`；
 要 Workers AI、Vectorize、Agents SDK、WAF、Tunnel 这类平台深度用法才升到 `/cloudflare`。
 rankup 自己只保留 `cf-zone-setup.mjs`（zone onboarding，**Wrangler 没有 zone 命令**）、
 `cf-analytics-setup.mjs`、`cf-agent-baseline.mjs` 三个补缺口的脚本。
