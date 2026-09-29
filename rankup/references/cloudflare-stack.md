@@ -83,11 +83,13 @@ Start 的 `@cloudflare/vite-plugin` 构建链目前没有把我们逼到这些�
 - Durable Objects 只在需要协调、序列化写入或每实体强一致状态时使用，不能替代普通 D1 查询。
 - Secret 名称、用途、环境、存储位置、负责人、访问状态和轮换信息可以写入 `.rankup/secrets.md`；真实值绝不进入 `.rankup/`、源码、Git、测试夹具、命令行参数或可回传日志。
 
-## 4. Wrangler 和 bindings 工作流
+## 4. cf CLI、Wrangler 和 bindings 工作流
 
-Cloudflare 配置或部署任务应使用 Wrangler，并按需调用 Wrangler/Workers 专业 Skill。安装 Skill：
+Web 项目的 Cloudflare 工具链需要 `cf` CLI。它覆盖账号级 API（包括 zone、DNS 等），用本仓库 `/cf-cli` Skill 先搜索并核对当前命令。现有项目的构建、bindings 和部署仍按项目锁定的 Wrangler 工作流；装 `cf` 不等于迁移项目。安装 CLI 与 Skill：
 
 ```bash
+npm i -g cf
+npx skills add yan-labs/yan-skills --skill cf-cli -g -y
 npx skills add cloudflare/skills --skill wrangler -g -y
 npx skills add cloudflare/skills --skill workers-best-practices -g -y
 ```
@@ -179,12 +181,11 @@ npx skills add cloudflare/skills --skill workers-best-practices -g -y
 部署到 `workers.dev` 不需要 zone；只有配置了 custom domain / routes 的 `wrangler deploy`
 会因为找不到 zone 而失败，custom domain 也无从绑定。
 
-**Wrangler 没有 zone 命令。** 实测其完整命令面覆盖 Workers / Pages / KV / R2 / D1 /
+**Wrangler 没有 zone 命令；`cf` 有 `zones list/create`。** 实测 Wrangler 命令面覆盖 Workers / Pages / KV / R2 / D1 /
 Queues / AI / Containers / secret / email，**没有任何创建或列出 zone 的子命令**——
-zone 属于账号层资源，不在 Wrangler 职责内。因此不要试图用 `wrangler` 完成这一步，
-也不要因为 Wrangler 做不到就断言"这件事只能人工做"。
+zone 属于账号层资源，不在 Wrangler 职责内。已登录 `cf` 时，先按 `/cf-cli` 运行只读查询、核对 `cf zones create --help` 与 `cf schema zones create`，再决定是否创建；zone 创建成功仍只是 pending，必须回读 NS 与激活状态。现有 `cf-zone-setup.mjs` 是已验证的端到端脚本，重复站点接入优先复用它，不能因 `cf` 新增命令就跳过脚本里的 DNSSEC、重定向与验收步骤。
 
-### 两条路径，按优先级
+### cf 未认证或命令未覆盖时的两条路径
 
 **路径 A（优先）：操作用户自己的浏览器。**
 Cloudflare 后台是登录态页面，按本 Skill 的浏览器规则，必须驱动**用户本机那个真实的、
