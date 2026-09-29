@@ -35,7 +35,7 @@ node scripts/anyway/scripts/stg/webhook-capture.mjs --evidence-dir <项目侧证
 node scripts/anyway/scripts/stg/pay-test.mjs --env stg --link <stg支付链接> --ref <项目侧引用> --email <测试邮箱> --evidence-dir <项目侧证据目录>
 ```
 
-`anyway.mjs help` 列出只读查询和 webhook 验签命令。`create-product.mjs`、`create-webhook.mjs` 可用 `--env prod` 指向生产后台；前者支持 `--dry-run` 只预览参数、`--type subscription` 创建月付订阅（默认一次性），不传 `--dry-run` 会实际创建商品，后者只有 `--commit` 才提交。`pay-test.mjs` 在 stg 自动提交测试卡；`--env prod` 指向生产支付链接，卡号、有效期和 CVC 只从进程环境变量 `ANYWAY_CARD_NUMBER`、`ANYWAY_CARD_EXPIRY`、`ANYWAY_CARD_CVC` 读取。生产付款会产生真实交易，须由项目发布流程决定是否执行；本次只验证 stg 的只读命令和 dry-run。
+`anyway.mjs help` 列出只读查询和 webhook 验签命令。`create-product.mjs`、`create-webhook.mjs` 可用 `--env prod` 指向生产后台；前者支持 `--dry-run` 只预览参数、`--type subscription --interval month|year` 选择月付或年付（省略周期时仍为月付，默认类型仍为一次性），提交前会核对表单周期，提交后仍须核对结账页实际周期；不传 `--dry-run` 会实际创建商品，后者只有 `--commit` 才提交。`pay-test.mjs` 在 stg 自动提交测试卡；`--env prod` 指向生产支付链接，卡号、有效期和 CVC 只从进程环境变量 `ANYWAY_CARD_NUMBER`、`ANYWAY_CARD_EXPIRY`、`ANYWAY_CARD_CVC` 读取。生产付款会产生真实交易，须由项目发布流程决定是否执行。
 
 ## 已知坑（2026-09-07 stg 单次实测）
 

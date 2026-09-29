@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// 用途：在已登录后台创建一次性或月订阅商品与支付链接，再用只读 Merchant API 复核。
-// 参数：--name --description --price --currency --success-url [--type one-time|subscription] [--dry-run] [--env stg|prod] [--env-file <path>] [--session anyway-dashboard] [--json]。
+// 用途：在已登录后台创建一次性或月/年订阅商品与支付链接，再用只读 Merchant API 复核。
+// 参数：--name --description --price --currency --success-url [--type one-time|subscription] [--interval month|year] [--dry-run] [--env stg|prod] [--env-file <path>] [--session anyway-dashboard] [--json]。
 // 登录态：OpenCLI 已连接用户浏览器，且当前环境的商户后台已登录；复核需要相应 API key。
-// 已知坑：商品表单没有 cancel URL；提交即发布并创建支付链接。验证日期：2026-09-07（原流程）。
+// 已知坑：商品表单没有 cancel URL；提交即发布并创建支付链接；已归档同名商品不阻止重建。验证日期：2026-09-29。
 
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
@@ -42,6 +42,7 @@ const PRICE = String(flags.price ?? '');
 const CURRENCY = flags.currency || 'USD';
 const SUCCESS_URL = flags['success-url'] || '';
 const TYPE = flags.type || 'one-time';
+const INTERVAL = flags.interval || 'month';
 const DRY_RUN = !!flags['dry-run'];
 
 const SESSION = flags.session || 'anyway-dashboard';
@@ -98,7 +99,7 @@ function checkDoctor() {
 function findExistingProduct(name) {
   const res = runAnywayApi(['products', 'list', '--all']);
   const records = res.records || [];
-  return records.find((p) => p.name === name) || null;
+  return records.find((p) => p.name === name && p.status !== 'ARCHIVED') || null;
 }
 
 function getLinks(productId) {
@@ -108,9 +109,10 @@ function getLinks(productId) {
 async function main() {
   if (!NAME || !DESCRIPTION || !PRICE) throw new Error('usage: --name --description --price required');
   if (!['one-time', 'subscription'].includes(TYPE)) throw new Error('--type must be one-time or subscription');
+  if (!['month', 'year'].includes(INTERVAL) || (TYPE !== 'subscription' && flags.interval)) throw new Error('--interval month|year requires --type subscription');
 
   if (DRY_RUN) {
-    console.log(JSON.stringify({ env: ENV, name: NAME, description: DESCRIPTION, price: PRICE, currency: CURRENCY, type: TYPE, successUrl: SUCCESS_URL, create: false }, null, 2));
+    console.log(JSON.stringify({ env: ENV, name: NAME, description: DESCRIPTION, price: PRICE, currency: CURRENCY, type: TYPE, ...(TYPE === 'subscription' ? { interval: INTERVAL } : {}), successUrl: SUCCESS_URL, create: false }, null, 2));
     return;
   }
 
@@ -136,7 +138,16 @@ async function main() {
     runOpencliBrowser(['click', '--text', TYPE === 'subscription' ? '订阅' : '一次性', '--nth', '0']);
     if (TYPE === 'subscription') {
       runOpencliBrowser(['click', '[role=combobox]']);
-      runOpencliBrowser(['click', '--role', 'option', '--name', '每月']);
+      runOpencliBrowser(['click', '--role', 'option', '--name', INTERVAL === 'year' ? '每年' : '每月']);
+      let selected;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        selected = runOpencliBrowser(['get', 'text', '[role=combobox]'], { allowFail: true });
+        if (selected.value) break;
+        await new Promise((r) => setTimeout(r, 300));
+      }
+      if (selected.value?.trim() !== (INTERVAL === 'year' ? '每年' : '每月')) {
+        throw new Error(`billing interval was not selected: expected ${INTERVAL}, got ${selected.value || 'unknown'}`);
+      }
     }
 
     if (CURRENCY !== 'USD') {
