@@ -22,7 +22,7 @@
 | 「这个词能不能做」「这词多少量」「难不难」 | **rankup 自己**（官方 `gefei-keywords` Skill + `backlink/scripts/semrush-keyword.mjs`）。不要叫 keyword-research，它不带取数 |
 | 「帮我挖一批长尾词」→ 已经**有**几十上百个词，要分组排序 | **`/keyword-research`**。rankup 取数，它做意图分层与簇排序 |
 | 「帮我挖一批长尾词」→ 手上**只有**一个词根 | **rankup 自己**（`demand/word-roots.mjs` 扩形态 → `demand/serp-query.mjs --expand` 拿 relatedSearches/PAA → 再交给 keyword-research 分层） |
-| 「怎么被 AI 引用」「AEO/GEO 怎么做」→ 问的是**为什么、值不值** | **rankup 自己**（[`seo-growth.md`](seo-growth.md) 三-B：Google 官方指南、Information Gain、Preferred Sources） |
+| 「怎么被 AI 引用」「AEO/GEO 怎么做」→ 问的是**为什么、值不值** | **rankup 自己**（[`seo-ai-search.md`](seo-ai-search.md)：Google 官方指南、Information Gain、Preferred Sources） |
 | 「怎么被 AI 引用」→ 问的是**这篇文章要写成什么形状** | **`/ai-seo`**（逐平台来源选择机制 + 内容改写模式 + llms.txt/OKF 知识包） |
 | 「加个结构化数据」「JSON-LD 怎么写」 | **`/seo-geo`**，且只读它的 `references/schema-templates.md`。rankup 全仓没有模板库 |
 | 「帮我看看这站有什么 SEO 问题」 | **rankup 自己**（`seo-audit.mjs --sitemap` + `pagespeed.mjs collect`（`plan` 只出链接不采数，仅兜底）+ `ahrefs-site-audit.mjs`）。**不要加载 seo-audit Skill**，理由见第三节 |
@@ -55,9 +55,9 @@
 | | |
 |---|---|
 | **它能干什么** | 逐平台的来源选择机制（AI Overviews / ChatGPT / Perplexity / Gemini / Copilot / Claude 各自怎么挑源）、内容形态模式、「被引用」与「被推荐」的区别、llms.txt 与 OKF（Open Knowledge Format）知识包 |
-| **与 rankup 的分工** | **补充，边界很清楚。** rankup 的 [`seo-growth.md`](seo-growth.md) 三-B 是**范式与算法时间线**——为什么引用比排名值钱、Google 2026-05-15 官方指南要点、Information Gain、Preferred Sources、Discover 独立算法、2026 更新时间线（用于排障定位）。它回答「值不值得做、做了会怎样」。ai-seo 回答**「一篇文章要写成什么形状才会被挑中」**，以及各平台的差异。rankup 还有 `is-agentic.mjs`（站点层的 Agent 就绪度打分）和 `cf-agent-baseline.mjs`（全网分母），那是**站点结构**层，ai-seo 是**内容**层 |
+| **与 rankup 的分工** | **补充，边界很清楚。** rankup 的 [`seo-ai-search.md`](seo-ai-search.md) 是**范式与算法时间线**——为什么引用比排名值钱、Google 2026-05-15 官方指南要点、Information Gain、Preferred Sources、Discover 独立算法、2026 更新时间线（用于排障定位）。它回答「值不值得做、做了会怎样」。ai-seo 回答**「一篇文章要写成什么形状才会被挑中」**，以及各平台的差异。rankup 还有 `is-agentic.mjs`（站点层的 Agent 就绪度打分）和 `cf-agent-baseline.mjs`（全网分母），那是**站点结构**层，ai-seo 是**内容**层 |
 | **什么时候加载** | 要动手改一篇/一批内容的结构去争取被引用时；要写 llms.txt 的内容而不只是检查它存不存在时 |
-| **什么时候不要加载** | 只是问「AEO 是什么」「这轮要不要管 AI 搜索」（读 seo-growth.md 三-B）；只是要 llms.txt 的存在性检查（`is-agentic.mjs scan`） |
+| **什么时候不要加载** | 只是问「AEO 是什么」「这轮要不要管 AI 搜索」（读 `seo-ai-search.md`）；只是要 llms.txt 的存在性检查（`is-agentic.mjs scan`） |
 | **取舍理由** | 接。rankup 有判据没有做法，且这一层写起来很长，不该复制进 rankup |
 
 ### `/seo-geo` —— **只取 schema 模板，其余全部不用**
