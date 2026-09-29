@@ -1,129 +1,14 @@
 ---
 name: codex
 description: >-
-  **Generate images** with Codex's built-in OpenAI image-generation tool — route every "生成图片 / 配图 / 插图 / image gen / 画一张 / 出一套图" request here; this is the primary use. ALSO runs Codex CLI as a background sub-agent for code analysis, refactoring, review, or an agent team working in parallel. Always runs in background; uses Codex's default model (no `-m` flag) unless the user explicitly overrides.
+  当用户明确要求直接操作 Codex CLI 作为后台代理（自选 sandbox、codex review、apply、resume 等原生命令，或用 git worktree 并行布置多个 worker）做代码分析、编辑、审查时使用。普通的“让 Codex 或 GPT-6 写代码、调研、review”派单走 agent-fleet（fleet code）；图片生成与网站视觉素材走 imagegen。
 ---
 
-# Codex Sub-Agent Skill
+# Codex 后台代理
 
-Codex runs as a **background sub-agent**: you launch it, immediately return control to the user, and poll or read output only when needed. This makes it usable both as a standalone background worker and as one member of a multi-agent team.
+用 Codex CLI 承接用户指定的代码分析、编辑、审查或并行代理任务。图片生成的当前流程见 [`imagegen/SKILL.md`](../imagegen/SKILL.md)；旧版操作与实验记录保存在 [`references/image-experiments.md`](references/image-experiments.md)。
 
-> **This is the most-used capability of this skill on this machine.** The owner reaches
-> for Codex primarily to generate images, so that section comes first. Everything below
-> it — background workers, agent teams — is the same launch machinery applied to code.
-
-## Image Generation
-
-**Codex can generate images.** It has a built-in OpenAI image generation tool. This is a capability of the *agent*, not a CLI subcommand — there is no `codex image` / `codex gen-image` command, and `codex exec --image` is for *attaching* images as input, not producing them.
-
-> Do not go looking through `codex --help` for an image flag, conclude "Codex has no image generation," and tell the user so. That conclusion is wrong. **Treat Codex as an agent: describe the images you want in the prompt and let it choose its own method.**
-
-Launch it exactly like any other Codex worker — background, prompt via stdin:
-
-```bash
-cat /tmp/codex-prompt-img.md | codex exec --skip-git-repo-check \
-  --config model_reasoning_effort="medium" \
-  --sandbox danger-full-access \
-  -C <outdir> 2>/dev/null
-```
-
-- **Sandbox:** needs `danger-full-access` (image generation hits the network). Just run it — see Error Handling; no permission prompt is required on this machine.
-- **Effort:** `medium` is plenty; this is not a reasoning-heavy task.
-
-### Writing the image prompt
-
-Put these in the prompt file:
-
-1. **Output directory** — create it yourself first (`mkdir -p`) and give the absolute path.
-2. **One numbered item per image**, each with its exact filename and a concrete description.
-3. **A shared style block** so a multi-image set stays visually consistent: illustration style, background, an explicit hex palette, and aspect/size.
-4. **"No text, no logos, no watermarks"** — generated lettering is almost always garbled, and in a non-English UI it will be wrong.
-5. **An explicit escape hatch:** "if you genuinely cannot generate images, say so plainly — do not substitute placeholders, ASCII art, or images downloaded from the web."
-6. Ask it to report the absolute path of each file plus the method it actually used.
-
-### After it returns
-
-- **Look at every image with `Read` before wiring it into a deliverable.** Never ship a generated image you have not viewed.
-- **Compress before committing.** Raw output runs ~1 MB per PNG. `sips -s format jpeg -s formatOptions 82 in.png --out out.jpg` typically cuts a 4 MB set to well under 1 MB. Prefer JPEG for flat illustrations with solid backgrounds; keep PNG only when transparency is required.
-- Note the shell-quoting trap: a bare `for f in *.png; do ... done` loop can fail to parse in this environment — drive the loop from a short `python3` heredoc instead.
-- If the images land in a themed page, remember light/dark: illustrations with bright backgrounds need dimming in dark mode, e.g. `filter: brightness(.84) saturate(.92)`.
-
-### 一套图的验收：三道检查，缺一道就会漏掉一类问题
-
-2026-08-22 生成 16 张角色插图时，这三道各自抓到了**不同类别**的缺陷。
-只做其中一两道，就会带着问题继续往下做。
-
-**① 接触印相（缩略图并排）** —— 抓构图失衡。
-
-```python
-# 全部缩到 120px 横向拼一张。120px 通常就是结果页/分享卡的真实尺寸
-subprocess.run(['sips','-Z','120', src, '--out', thumb])
-```
-
-第一版有张图输出很漂亮，缩到 120px 只看得见一把金椅子——角色的脸、表情全糊了。
-**这个缺陷在全尺寸下完全看不出来**，只有缩略图能暴露。
-
-**② alpha 包围盒占比** —— 把"角色够不够大"从感觉变成数字。
-
-```python
-bb = Image.open(f).convert('RGBA').getchannel('A').getbbox()
-frac = ((bb[2]-bb[0])*(bb[3]-bb[1])) / (im.width*im.height)
-```
-
-实测一组六张：41%、47%、49%、53%、60%、66%——要求是 75–80%，**没有一张达标，
-且最大最小差 1.6 倍**。并排看只觉得"有点乱"，量完才知道差在哪、差多少。
-提示词里写 "occupy 75-80% of the frame" 是不够的，**还要写明道具不计入这个比例**，
-否则一个大道具就把角色挤小了。
-
-**③ 独立盲评** —— 抓风格与规则遵从，而且**这道最容易被省掉，省掉就会出错**。
-
-做法：把成对结果随机打乱成 `pairN-A/B`，对照表写到**项目目录之外**，
-派一个没参与生成的 agent 去评，并明确告诉它「看不出差别」是可接受答案。
-
-那天的教训很直接：跑实验的 agent 知道哪张是哪个条件，它的读数指向一个方向；
-**盲评三对全部指向相反方向**，而且给出了一致的机制（多出来的道具）。
-非盲的判断已经被写进结论并发出去了，是盲评把它纠正回来的。
-
-### 图生图 / 参考图：控制点在输出端，不在输入端
-
-**风格不受版权保护，参考图是常规做法**——设计行业管这叫 mood board。
-把他人作品作为参考喂给图生图，用来传达"我要这一类的质感"，是正当且有效的。
-最初这条被写成"不要用他人图做种子"，**过于保守，已由项目所有者推翻并订正**。
-
-真正的风险区很窄：**产出与某个具体受保护角色实质相似**。
-所以控制放在输出端，而不是在输入端一刀切：
-
-1. **参考图用一组，不用一张。** 10 张以上不同来源拼成 mood board，
-   模型抽取的是共性语法而不是某一个设计。单张参考最容易长得像原图。
-2. **参考图只传风格，主体由我们指定。** 提示词里角色的物种、道具、姿势、
-   配色全部自己写死，参考图只负责线条、上色、头身比这类质感层。
-3. **出图后做相似性检查**：把产出和参考组并排看一遍，
-   问"这张会被认成某个已有角色吗"。像了就重生成，改主体特征而不是改风格。
-4. **提示词里仍然不要点名受版权保护的角色**（"in the style of X"）。
-   参考图已经把信息传到了，点名只增加风险不增加效果。
-
-### 描述性形容词见顶时，改用数字
-
-"要更日式一点"这类反馈无法执行，也无法验收。把它翻译成可测量的参数：
-头身比、眼径 ÷ 头宽、眼间距 ÷ 头宽、眼睛在头部的纵向位置、
-线宽 ÷ 图宽（尺度无关）、描边的实际取色、量化后的独立色数、
-HSV 的饱和度与明度区间、面部留白占比。
-
-然后把参考组和自己的产出**用同一段脚本量一遍**，产出「参数 | 参考区间 | 我们的值 | 判定」
-的差距表。这张表把"感觉不对"变成一份可以逐条修的清单。
-
-### 提示词语言：一个 n=3 的观察，不是定论
-
-同一组约束、同样的角色，分别用日语和忠实英译生成三对，独立盲评**三对全选日语版**，
-机制一致——英语版每次都多加了道具（权杖、头巾、额外装饰），违反"只准一个道具"。
-但客观指标里的画面占比反而是英语版更好（71.7% vs 50.5%）。
-
-**3/3 在纯随机下概率为 1/8，达不到显著性门槛。**
-候选机制是：目标语言的设计术语把约束压缩得更狠——`引き算のデザイン` 不只是一条指令，
-它同时是一个风格坐标，而英语的 "design by subtraction" 只是一句话。
-
-**结论：成本为零，可以默认用目标语言写，但不要当成定律讲。** 真正确定有效的是
-把视觉约束写死、写成数字。尚未复现，样本 n=3。
+**路由前提**：按全局 `CLAUDE.md` §2，编码、修 bug、调研与 review 默认用 `fleet code`（`gpt-6-sol`，见 [`agent-fleet`](../agent-fleet/skill/SKILL.md)），不手写 `codex exec`。本 Skill 只在用户明确要求直接操作 Codex CLI（自选 sandbox、`codex review`/`apply`/`resume` 等原生子命令、并行 worker 的 worktree 布置）时使用；简单派单不要先读本文件。
 
 ## Core Principle
 
@@ -131,8 +16,8 @@ HSV 的饱和度与明度区间、面部留白占比。
 
 ## Launching a Codex Sub-Agent
 
-1. **Pick reasoning effort + sandbox** from context — do not interrupt the user with `AskUserQuestion` unless they explicitly ask to be prompted. **Do not pass `-m` / `--model`**; let Codex use its default model from `~/.codex/config.toml`. Defaults:
-   - Reasoning effort: `medium` (use `high`/`xhigh` for refactors, architecture, deep analysis; `low` for trivial edits)
+1. **Pick reasoning effort + sandbox** from context — do not interrupt the user with `AskUserQuestion` unless they explicitly ask to be prompted. Model is `gpt-6-sol` (the default in `~/.codex/config.toml`; pass `-m` only when the user names another model in the current request). Defaults:
+   - Reasoning effort: `medium`; `low` for single-file edits with clear boundaries. **Never escalate to `high`/`xhigh` on your own** (global §2); only when the user asks for it explicitly
    - Sandbox: `read-only` unless the task clearly needs edits (`workspace-write`) or network (`danger-full-access`)
 2. **Write the prompt to a temp file** when it's non-trivial (multi-line, contains quotes, long context). Pipe it via stdin so quoting never breaks:
    ```bash
@@ -143,7 +28,7 @@ HSV 的饱和度与明度区间、面部留白占比。
    ```
 3. **Launch with `run_in_background: true`**. Record the returned shell id and a short tag (e.g. `codex-review`, `codex-refactor-auth`) so you can reference it later.
 4. **Report the launch to the user in one line** — e.g. "Launched Codex sub-agent `codex-review` (medium effort, read-only) in background." Then continue with other work or wait for user input. Do NOT sit and poll.
-5. **Always append `2>/dev/null`** to suppress thinking tokens on stderr unless the user is debugging Codex itself.
+5. 默认加 `2>/dev/null` 压低 stderr 噪音；排查启动失败或调试 CLI 时保留错误输出。
 6. **Always pass `--skip-git-repo-check`**. Put all flags between `exec` and `resume` (if resuming).
 
 ## Checking Results
@@ -166,31 +51,28 @@ Codex sub-agents compose cleanly. To run an agent team:
 ### Team composition guidance
 - **Reviewer team:** multiple `read-only` workers, each with a different lens (security, perf, API design). Cheap and fully parallel.
 - **Builder + reviewer:** one `workspace-write` worker implements, then a `read-only` worker reviews the diff. Sequential, not parallel.
-- **Cross-model adversarial:** pair a Codex worker with a Claude sub-agent (`Agent` tool) to challenge each other's output. See `adversarial-review` skill for the pattern.
+- **Independent review:** maker and checker must be different executors. Have another read-only `gpt-6-sol` worker (`fleet code --review`) check the diff against the brief (global §4.3). Do not pair a Codex worker with a Claude sub-agent as the reviewer.
 
 ## Model Selection
 
-**Default behavior: do not pass `-m` / `--model`.** Codex picks the model from `~/.codex/config.toml`, which is where the user manages their preferred default. Only add an explicit `-m` flag when the user asks for a specific model by name in the current request.
+**Default model: `gpt-6-sol`**, which `~/.codex/config.toml` already sets. Only add an explicit `-m` flag when the user asks for a different model by name in the current request.
 
-**Reasoning effort:** `xhigh` (deep analysis) · `high` (refactor/architecture/security) · `medium` (standard default) · `low` (trivial).
+**Reasoning effort:** `medium` (standard default) · `low` (single-file, clear boundaries). `high` and above are never chosen automatically; use them only on the user's explicit request.
 
 Cached input is 90% off for 24h — reuse the same prompt prefix across workers when possible.
 
-**Do not ration Codex calls on this machine.** The owner's plan is effectively unlimited;
-spawning several workers, or regenerating a batch of images because the first pass was
-slightly off, costs nothing worth protecting. Optimize for getting the right answer, not
-for fewer invocations.
+**Do not ration Codex calls and set no turn, context or time cap** (global §3). The owner's plan does not need protecting from extra workers; optimize for the right answer and run to the acceptance condition. A limit the user states explicitly always wins.
 
 ## Error Handling
 
-- If `codex --version` or a launch fails, stop and report. Do not retry blindly.
+- 如果 `codex --version` 或启动失败，先运行 `codex doctor` 并读取错误，**最多重试一次**；仍失败（含 402、登录失效、模型被拒、产物为空或含裸 tool-call 控制 token）就**停下并如实告知用户**，由用户决定。**不许静默改派 Claude subagent**，Claude subagent 也不得再派 Claude subagent。
 - **Sandbox flags need no permission prompt on this machine.** The owner has granted
   standing authorization for `--full-auto` and `--sandbox danger-full-access`: it is
   their own single-user machine and they prefer agents to act rather than ask. Pick the
   sandbox the task needs and run. **Still disclose it** — the one-line launch report
   names the sandbox, so "no gate" never becomes "no visibility". Never use
   `AskUserQuestion` for a sandbox flag.
-- If a background worker exits non-zero, read its tail output, summarize the failure, and ask the user how to proceed.
+- If a background worker exits non-zero, read its tail output, summarize the failure, retry at most once after diagnosing, and if it still fails stop and tell the user. Exit code 0 is not acceptance: check the diff and artifacts.
 
 ## CLI surface worth knowing (verified against codex-cli 0.147.0, 2026-08-22)
 
@@ -218,20 +100,15 @@ Two `exec` flags the recipes above should use more:
 
 ## CLI Version
 
-Check with `codex --version`. Default model is configured in `~/.codex/config.toml` — do not override it unless the user explicitly requests a different model.
+Check with `codex --version`. Default model `gpt-6-sol` is configured in `~/.codex/config.toml` — do not override it unless the user explicitly requests a different model.
 
-**This skill is not in the `yan-skills` repo** — it was dropped when that repo was slimmed
-to `gt` + `autopilot`, and now lives only at `~/.claude/skills/codex` with no version
-control. Edits here are local and unbacked; if it matters, move it back into a repo.
+本 Skill 当前位于 `yan-skills/codex/`；安装位置和符号链接以实际工作树为准。
 
 ## Anti-patterns
 
 - Running `codex exec` in the foreground and making the user wait.
 - Calling `AskUserQuestion` before every launch — decide from context.
 - **Asking permission for a sandbox flag.** Standing authorization exists on this machine; asking is friction, not safety. Disclose the sandbox in the launch line instead.
-- Rationing calls or batch sizes to "save quota" — the plan is effectively unlimited here.
 - Spawning parallel `workspace-write` workers on overlapping paths.
 - Polling a background shell in a tight loop instead of waiting for the completion notification.
 - Forgetting `2>/dev/null` and flooding the main thread with thinking tokens.
-- **Grepping `codex --help` for a feature, not finding a flag, and declaring Codex can't do it.** Codex is an agent — capabilities like image generation live inside the agent, not in the CLI surface. Describe the goal and let it work.
-- Wiring a Codex-generated image into a deliverable without opening it first, or committing the uncompressed multi-MB original.

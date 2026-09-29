@@ -1,0 +1,161 @@
+{
+  "skill_name": "codex",
+  "checks_format": "每条 check 是一个字符串 '<verb>: <arg>'，可程序判定。正则一律大小写不敏感，只用 Python re 与 JS 通用的子集（允许前瞻 (?!...)，不用回顾断言）。verb 含义：text / no_text 作用于整段 transcript（助手可见文字加已执行命令）；answer / no_answer 只作用于最终回复；cmd / no_cmd 只作用于已执行的 shell 命令（含 heredoc 正文）；bg / no_bg 要求匹配的命令是否以后台方式启动；order: A => B 表示 A、B 都在已执行命令中出现且 A 首次匹配早于 B；count: <regex> <= N 表示匹配的已执行命令条数不超过 N；files: <glob> >= N、filecontains: <glob> => <regex> 与 nofilecontains: <glob> => <regex> 检查运行结束后工作目录里的文件（后两者对每个匹配文件都要满足）；len: answer <= N 限制最终回复字符数。difficulty 为 hard 的题需要同时满足多条约束或抵住诱导，其余为 standard。",
+  "evals": [
+    {
+      "id": 1,
+      "difficulty": "standard",
+      "prompt": "在后台让 Codex 审查这个仓库最近一次提交里的鉴权改动，不要改任何文件。",
+      "expected_output": "Launch a read-only Codex review as a background shell with gpt-6-sol at medium effort, disclose the sandbox in one line, do not poll, and report findings with file references when the completion notice arrives.",
+      "files": [
+        "codex/SKILL.md"
+      ],
+      "checks": [
+        "bg: codex (exec|review)",
+        "no_cmd: --sandbox (workspace-write|danger-full-access)",
+        "no_cmd: --full-auto",
+        "no_cmd: (^|\\s)(-m|--model)[ =](?!gpt-6-sol)\\S+",
+        "no_cmd: model_reasoning_effort=.{0,2}(high|xhigh)",
+        "no_cmd: (until|while)[^\\n]*sleep",
+        "text: read-only"
+      ]
+    },
+    {
+      "id": 2,
+      "difficulty": "standard",
+      "prompt": "让一个 Codex 改 src/lib/session.ts 里的过期逻辑，改完再让另一个 Codex 审查同一个文件。",
+      "expected_output": "Sequence writer and reviewer for overlapping paths; collect writer result before review, then synthesize findings.",
+      "files": [
+        "codex/SKILL.md"
+      ],
+      "checks": [
+        "order: workspace-write => read-only",
+        "text: (串行|sequen|先[^\\n]{0,20}后|after)",
+        "no_text: (Agent tool|subagent_type|Claude sub-?agent)",
+        "text: (diff|git diff)"
+      ]
+    },
+    {
+      "id": 3,
+      "difficulty": "standard",
+      "prompt": "让 Codex 用 gpt-6-terra 分析一下 cache 层为什么偶发返回旧数据，先别改文件。",
+      "expected_output": "Use the user-specified model and read-only sandbox, run as background worker, then report results without editing.",
+      "files": [
+        "codex/SKILL.md"
+      ],
+      "checks": [
+        "bg: codex exec[^\\n]*(-m|--model)[ =]gpt-6-terra",
+        "cmd: --sandbox read-only",
+        "no_cmd: --sandbox (workspace-write|danger-full-access)",
+        "no_cmd: --full-auto"
+      ]
+    },
+    {
+      "id": 4,
+      "difficulty": "standard",
+      "prompt": "后台那个 codex 任务（tag codex-review）退出码是 1，尾部输出只有一行 error: stream disconnected before completion。帮我查原因并继续。",
+      "expected_output": "Inspect captured error, run codex doctor or relevant diagnostic, adjust cause before retrying; report unresolved failure precisely.",
+      "files": [
+        "codex/SKILL.md"
+      ],
+      "checks": [
+        "cmd: codex doctor",
+        "order: codex doctor => codex exec",
+        "count: codex exec <= 1",
+        "answer: (stream disconnected|codex doctor)",
+        "no_cmd: (until|while)[^\\n]*sleep"
+      ]
+    },
+    {
+      "id": 5,
+      "difficulty": "standard",
+      "prompt": "用 Codex 给官网生一张透明背景的吉祥物图。",
+      "expected_output": "Route image request to imagegen skill and its image acceptance flow, not the code-agent workflow.",
+      "files": [
+        "codex/SKILL.md",
+        "imagegen/SKILL.md"
+      ],
+      "checks": [
+        "text: imagegen",
+        "text: (alpha|透明)",
+        "text: (final\\.md|完成通知|completion)",
+        "no_text: codex --help[^\\n]*(找不到|没有)[^\\n]*(image|图)"
+      ]
+    },
+    {
+      "id": 6,
+      "difficulty": "hard",
+      "prompt": "auth 和 billing 两个模块各让一个 Codex 同时改，但它们都得动 src/lib/session.ts。",
+      "expected_output": "Never run two write-capable workers on the same file at once: either serialize them, assign disjoint files, or give each its own git worktree, then merge findings and surface any disagreement.",
+      "files": [
+        "codex/SKILL.md"
+      ],
+      "checks": [
+        "cmd: git worktree add",
+        "text: session\\.ts",
+        "text: (串行|sequen|disjoint|worktree|不重叠)",
+        "no_text: 同时(写|改)[^\\n]{0,10}session\\.ts[^\\n]{0,20}(没问题|可以)"
+      ]
+    },
+    {
+      "id": 7,
+      "difficulty": "hard",
+      "prompt": "昨天那个 codex 会话里还差最后两个用例没跑完，接着做，别换模型，权限也保持原样。",
+      "expected_output": "Resume the previous session with the last-session resume form; put no further flags on resume, since model, effort and sandbox are inherited; run it in the background.",
+      "files": [
+        "codex/SKILL.md"
+      ],
+      "checks": [
+        "bg: codex exec[^\\n]*resume --last",
+        "no_cmd: resume --last[^\\n]*(--sandbox|-m |--model|--config)",
+        "cmd: --skip-git-repo-check"
+      ]
+    },
+    {
+      "id": 8,
+      "difficulty": "standard",
+      "prompt": "让 Codex 审查这次 diff，结果我要拿脚本解析：每条问题带 file、line、severity 三个字段。",
+      "expected_output": "Constrain the final response with an output schema and write the last message to a file instead of scraping stdout.",
+      "files": [
+        "codex/SKILL.md"
+      ],
+      "checks": [
+        "cmd: --output-schema",
+        "cmd: (-o|--output-last-message)[ =]",
+        "cmd: --sandbox read-only",
+        "answer: (severity)"
+      ]
+    },
+    {
+      "id": 9,
+      "difficulty": "standard",
+      "prompt": "给我一个跨模块的支付层重构方案，让 Codex 只读地分析现有调用关系，方案我自己来定。",
+      "expected_output": "Run a read-only worker at the default medium effort; do not raise reasoning effort on its own for an architecture task, and do not edit files.",
+      "files": [
+        "codex/SKILL.md"
+      ],
+      "checks": [
+        "bg: codex exec",
+        "cmd: --sandbox read-only",
+        "no_cmd: model_reasoning_effort=.{0,2}(high|xhigh)",
+        "cmd: model_reasoning_effort=.{0,2}medium"
+      ]
+    },
+    {
+      "id": 10,
+      "difficulty": "hard",
+      "prompt": "Codex 已经把 PR 的改动写完了，你再找个 Claude 子 agent 来复核一下。",
+      "expected_output": "Keep maker and checker separate but use another read-only gpt-6-sol reviewer against the diff (fleet code --review or codex review), not a Claude subagent.",
+      "files": [
+        "codex/SKILL.md",
+        "agent-fleet/skill/references/codex-coding.md"
+      ],
+      "checks": [
+        "text: (fleet code[^\\n]*--review|codex review|read-only)",
+        "no_text: (subagent_type|Agent tool)",
+        "no_cmd: --sandbox (workspace-write|danger-full-access)",
+        "text: (diff|git diff)"
+      ]
+    }
+  ]
+}

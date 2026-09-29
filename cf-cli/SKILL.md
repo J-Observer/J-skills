@@ -1,11 +1,11 @@
 ---
 name: cf-cli
-description: Use Cloudflare's new `cf` CLI to discover and run Cloudflare API commands, manage account resources and domains, or build, deploy, and migrate projects using `cloudflare.config.ts`. Trigger when the user mentions `cf`, the new Cloudflare CLI, agentic CLI, `cf cli search`, or asks to use `cf` instead of Wrangler. For existing Wrangler projects, inspect their current workflow before choosing a CLI.
+description: Use when the user asks for Cloudflare's `cf` CLI, `cf cli search`, or `cloudflare.config.ts` to inspect resources, manage zones or DNS, attach domains, or deploy. Existing Wrangler projects keep their configured workflow unless migration is requested.
 ---
 
 # Cloudflare `cf` CLI
 
-`cf` is Cloudflare's unified CLI, currently in beta. Its commands and API coverage change quickly. Discover the installed command instead of translating a remembered Wrangler command.
+`cf` 命令与覆盖范围会变化。以已安装版本和命令帮助为准，不把 Wrangler 参数直接套用。
 
 ## Start with the installed CLI
 
@@ -22,7 +22,7 @@ description: Use Cloudflare's new `cf` CLI to discover and run Cloudflare API co
 
 ## Choose the right workflow
 
-- **Existing Wrangler project:** keep its current build and deployment path unless migration is requested. `cf migrate` changes project configuration; inspect the diff and test before switching. During beta, `cf` still delegates some JavaScript builds and Rust/Python Worker work to Wrangler. Use the installed Wrangler skill for commands that remain on Wrangler.
+- **Existing Wrangler project:** keep its current build and deployment path unless migration is requested. `cf migrate` changes project configuration; inspect the diff and test before switching. 如 `cf` 当前版本将构建委托给 Wrangler，按已安装命令与项目脚本执行。 Use the installed Wrangler skill for commands that remain on Wrangler.
 - **New `cf` project:** use `cf init` and the generated `cloudflare.config.ts`; read the generated config and framework integration before `cf dev`, `cf build`, or `cf deploy`. Do not manually copy a `wrangler.jsonc` shape into the TypeScript config.
 - **Zone onboarding:** discover and inspect `cf zones list` and `cf zones create`. Zone creation returns a pending zone; activation still requires the domain's nameservers or the documented partial-zone verification. Check existing zones, DNSSEC, and account scope before creating one.
 - **Pages custom domain:** discover and inspect `cf pages projects domains create` for the project/domain association. DNS and nameserver requirements depend on whether it is an apex domain, subdomain, and Cloudflare-managed zone. Association and DNS must both be verified. See [Pages custom domains](https://developers.cloudflare.com/pages/configuration/custom-domains/).

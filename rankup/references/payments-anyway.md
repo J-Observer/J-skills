@@ -44,3 +44,13 @@ node scripts/anyway/scripts/stg/pay-test.mjs --env stg --link <stg支付链接> 
 - 一次测试付款仅观察到 `order.paid` 投递；未见中间态事件。这是观察结果，不能据此排除其他事件在别的流程出现。
 - 临时隧道在部分网络里默认 QUIC 会卡住；实测 `cloudflared tunnel --protocol http2 --url http://127.0.0.1:<port>` 可注册。若本机代理拦截 trycloudflare 的 TLS，不能只凭本机请求失败断定 webhook 不可达，应以项目侧 evidence 文件和端点接收记录判定。
 - Merchant API 订单响应的商品字段为平铺 `productId`，不能按 webhook payload 的嵌套 `product.id` 解析。结账页的字段和币种切换可能改变，运行前核对当前页面。
+- webhook 后台（开发者 → Webhook）没有投递日志、响应码、重投或"发送测试事件"入口；确认投递只能靠调用方自己的 `wrangler tail`（或等价日志）配合一次真实付款，不能只看后台的"启用"状态。
+
+## 已知坑（2026-09-29 stg 复测，`pay-test.mjs` 修复）
+
+- **必须用 `--window dedicated`，不能用 `--window background`**：结账页在 opencli 的 background（用户当前窗口的隐藏标签页）模式下无法滚动——`window.scrollTo`/`scrollIntoView` 静默无效，opencli 自身的 CDP 级 `scroll` 命令会卡到 115s 超时。提交按钮常年在首屏视口之外（实测按钮顶部约 1006px vs 视口高度约 701px），后台模式下永远无法让它进入可点击命中区，这是早期"提交按钮 ready 一直为 false"的根因，不只是缺 `scrollIntoView`。dedicated 模式下滚动立即生效。
+- **US 账单地址新增了必填的"地址"（`#billingAddressLine1`）和"城市"（`#billingLocality`）字段**（2026-09-07 原脚本只填了 `#billingName`/`#billingCountry`/`#billingPostalCode`）；不填会在点击"支付"后被前端校验静默拦下——按钮点击有响应、无报错、无网络请求，页面就是不跳转，很容易误判为反自动化/停留时长风控。`pay-test.mjs` 现支持 `--address-line1`/`--city`，默认给出一个合法示例地址。
+- `open` 对 `anyway.sh → buy.stripe.com` 这条多跳跳转的成功/失败信号不可靠：opencli 有时报 "Navigation rejected"，但实际页面已经完整加载到正确的 Stripe Checkout（用 `state`/`screenshot` 现场核实过）。`pay-test.mjs` 现在不把 `open` 报错当致命错误，改为看随后的 `wait selector #email` 是否真的出现；配合最多 3 次、退避 10s/20s 的整体重试，能扛过这类假阴性和本机 opencli 自动化窗口池（`capacity=1`，单容量）被别的并发任务占用的情况。
+- 紧跟 `open` 之后如果立刻用 `eval` 做等待（例如 `setTimeout` 轮询），偶尔会撞上上一个执行上下文正在销毁、下一个还没建好的窗口而抛错；改用 opencli 自带的 `wait time`（不依赖页面 JS 上下文）更稳。
+- 一次真实付款会同时触发 webhook（POST `/api/webhooks/anyway`）和 checkout-return 回跳（GET `/api/checkout/return`），两条路径相隔可能只有几秒；调用方的入账逻辑必须在这种并发下保持幂等（按 Anyway `orderId` 去重，而不是按 webhook-id），否则会双重入账。
+- 想抓一次真实 webhook 的原始 body/headers 用于重放：在 Worker 里加 `console.log` 临时打印，`wrangler tail --format pretty` 在本次实测中没有把这行 log 显示出来（原因未定位，可能是该格式本身不透传 log 或做了内容过滤）；下次需要真正重放时改用 `--format json` 先用一次无害请求验证 log 能否透传，再配合真实付款抓包，避免像本次一样在还没拿到原始报文时就把测试付款次数用完。

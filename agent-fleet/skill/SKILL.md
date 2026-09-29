@@ -1,11 +1,11 @@
 ---
 name: agent-fleet
-description: 按全局 CLAUDE.md §2 路由表默认使用：大部分任务（写代码、修 bug、补测试、调研、报告、通用任务）优先派本机 Codex GPT-6，文案/翻译一律派 Gemini 且正面写，Grok 可分担擦边或其他任务，判断节点派 JEV；用户点名 agent-fleet、便宜模型或其他模型时也用。编程优先本机 Codex CLI 的 GPT-6 Sol，中等思考；简单任务轻度。本地 CLI 通过 Claude Agent SDK 运行可读写文件和执行命令的 Agent；使用前核对目标模型当前配置、真实 Key 状态、工作目录信任边界和任务归属。第三方模型响应需按任务验收，不能只凭 CLI 返回 ok 判成功。
+description: 使用本机 fleet 分派 Codex GPT-6、Gemini、Grok 或 JEV 任务时使用；包括用户点名 agent-fleet、便宜模型、多模型并行，用户说“让 Codex 或 GPT-6 做某事”的编码、调研与 review 派单，以及按全局 CLAUDE.md §2 路由任务。只做单一模型的直接任务且无需 fleet 时不触发；用户明确要直接操作 Codex CLI 原生命令（自选 sandbox、codex review、apply、resume）时用 codex Skill；生成图片用 imagegen。
 ---
 
 # agent-fleet
 
-本机多模型任务入口：日常使用 `fleet`；给定 brief，执行者直接完成任务并留下简报、结果和日志。
+本机多模型任务入口：使用 `fleet` 运行 brief，结束后按实际产物验收。先核对目标模型当前配置、真实 Key 是否存在、工作目录信任边界和任务归属；密钥只看状态，不打印值。
 
 ## 命令速查
 
@@ -25,26 +25,15 @@ description: 按全局 CLAUDE.md §2 路由表默认使用：大部分任务（�
 | `fleet stop latest` / `fleet resume latest` | 收尾或续跑 |
 | `fleet list-models` / `fleet help` | 看配置或用法 |
 
-`brief` 若是现存文件路径就读取内容，否则作为任务文本。短命令和 `run` 默认当前目录、`--max-turns 500`、安静写日志；`--verbose` 输出进度。`--cwd`、`--max-turns`、`--system-prompt` 等显式参数可覆盖默认值。旧的 `agent-fleet run ...` 写法仍可用。完整结果在 `~/.agent-fleet/runs/*.result.md`，过程在同名 `.log`；stdout 默认只给简报。
+`brief` 若是现存文件路径就读取内容，否则作为任务文本。短命令和 `run` 默认当前目录、不限轮数、安静写日志；`--verbose` 输出进度。`--cwd`、`--max-turns`、`--system-prompt` 等可显式指定。旧的 `agent-fleet run ...` 写法仍可用。完整结果在 `~/.agent-fleet/runs/*.result.md`，过程在同名 `.log`；stdout 默认只给简报。
 
-## 分配原则
+## 模型路由与任务边界
 
-1. **默认 GPT-6**：大部分任务优先 `fleet code`（本机 Codex `gpt-6-sol`），包括编码、调研、报告、数据整理和其他通用任务；不再按任务细分挑模型。
-2. **文案必须 Gemini**：页面文案、营销/产品文案、翻译、多语言、母语校对一律 `fleet copy`，不派 GPT-6。文案一律正面表述：讲能做什么、带来什么好处，不贬低竞品、不写恐吓式或负面对比。
-3. **Grok 可分担**：擦边题材，以及其他调研或 GPT-6 不可用时的备选，用 `fleet grok`。
-4. **JEV 只做判断**，Claude 只做 CLAUDE.md §2 明确归它的事。
+大部分任务（编码、修 bug、补测试、调研、技术文档、报告、数据整理）优先 `fleet code`：本机 Codex `gpt-6-sol`，默认 medium，单文件且边界明确时用 `--low`。页面、营销和产品文案、翻译、多语言及母语校对一律 `fleet copy`，写能做什么和带来什么好处，不贬低竞品或用恐吓式对比。Grok 可分担擦边题材、其他调研或作为 GPT-6 备选；JEV 只做结构化判断。Claude 只做全局 CLAUDE.md §2 明确归它的任务。
 
-**派给 GPT-6 只做被点名的那件事（硬性）**
-- 让它做功能，它就只写功能代码。做完就交，不做任何没被要求的事。
-- **默认不做**（除非 brief 逐项点名要求）：写测试或测试脚本、先写测试再写功能、加安全校验/防御代码/权限边界/输入校验/异常兜底、重构、抽象封装、加配置项、写文档或注释、改无关文件、装依赖、提交/推送/部署/发布、调用外部写接口。
-- 已有的测试和构建：brief 要求跑才跑，只跑、不补。
-- 拿不准要不要做的，一律不做，在最终回复里用一行列出「建议但未做」。
-- brief 里逐字写上：「只做本 brief 列出的事。不写测试、不加安全防护或边界校验、不重构、不做任何未点名的额外工作或 action；拿不准就不做，在回复里列一行建议。」
-- 验收时出现未点名的产物（多出的测试文件、防御代码、无关改动）算越界，判不合格。
+GPT-6 只做 brief 点名的事。除非逐项要求，不写测试或测试脚本、不先写测试、不加安全校验/防御代码/权限边界/输入校验/异常兜底、不重构或抽象封装、不加配置项、文档或注释、不改无关文件、不装依赖、不提交/推送/部署/发布、不调用外部写接口。已有测试和构建只在 brief 要求时运行；拿不准的事不做，最终回复用一行列「建议但未做」。未点名的产物算越界。brief 必须逐字包含：「只做本 brief 列出的事。不写测试、不加安全防护或边界校验、不重构、不做任何未点名的额外工作或 action；拿不准就不做，在回复里列一行建议。」
 
-**衡量 GPT-6**：便宜（ChatGPT 会员额度，不额外花钱），足够聪明，但啰嗦。给它的 brief 必须写：最终回复只给结论、改动路径和验证结果，约 15 行内；长内容写进文件；不许扩大范围。面向读者的文字不交给它。
-
-## 模型路由
+GPT-6 走 ChatGPT 会员额度，按现有账号约定不额外花钱；其 brief 必须限定最终回复只给结论、改动路径和验证结果，约 15 行内，长内容写入文件。面向读者的文案交 Gemini。
 
 | 短名 | 实际模型 | 适合 |
 |---|---|---|
@@ -55,7 +44,7 @@ description: 按全局 CLAUDE.md §2 路由表默认使用：大部分任务（�
 | `code` | 本机 Codex `gpt-6-sol` | **默认执行者**：编码、调研、报告、通用任务；默认 medium，`--low` 为 low |
 | `judge` | `jev` | 分类、选择、打分 |
 
-`code` 在本机 Codex 缺失、登录失效或模型明确不支持时，自动改走 `kollab-gateway-gpt-sol`。选择以当前配置和实际结果为准；查看其他模型用 `fleet list-models`。Codex 审查范围见 [编程与 review](references/codex-coding.md)。
+`code` 在本机 Codex 缺失、登录失效或模型明确不支持时，自动改走 `kollab-gateway-gpt-sol`；其他失败不自动重试。选择以当前配置和实际结果为准；查看其他模型用 `fleet list-models`。Codex 审查范围见 [编程与 review](references/codex-coding.md)。
 
 ## 简报与验收
 
@@ -68,16 +57,11 @@ description: 按全局 CLAUDE.md §2 路由表默认使用：大部分任务（�
 | `fail` | 执行失败、空结果或裸控制 token；看错误后修复 |
 | `stopped` | 已收尾中断；检查已完成部分 |
 
-`ok` 只说明进程结果，不能代替任务验收；`dirty` 和 `commits` 也可能包含同一工作树里其他人的改动。细节见 [README](../README.md)。
+`ok` 只说明进程结果，不能代替任务验收；空结果、裸 tool-call 控制 token、`suspect` 或 `fail` 都不能算成功。核对 brief、产物和要求的检查；`dirty` 和 `commits` 也可能包含同一工作树里其他人的改动。细节见 [README](../README.md)。
 
 ## brief 写法
 
-- 开头说明目标和真实交付物。
-- 写明允许改的文件、不可碰的范围、并行工作边界。
-- 涉及浏览器的步骤必须写「用 opencli（`opencli browser <会话名>`），禁止 Playwright/agent-browser」。
-- 写明必须跑的检查和完成标准。
-- 需要改文件时加 `--expect-changes`。
-- 最终回复要列出改动与验证结果，不能只说“已完成”。
+开头说明目标、真实交付物、允许改的文件、不可碰的范围、并行工作边界、必须跑的检查和完成标准。需要改文件时加 `--expect-changes`；涉及浏览器时写明用 opencli（`opencli browser <会话名>`），禁止 Playwright/agent-browser。最终回复列改动与验证结果，不能只说“已完成”。
 
 ## 安全边界
 

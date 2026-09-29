@@ -21,6 +21,54 @@
       "prompt": "我要一次性调研 5 个竞品，每个竞品都要看它的两个后台页面（一个流量总览、一个关键词页）。打算开 5 个 subagent 并行跑。帮我把执行方案写清楚，我怕又出现上次那种情况——agent 说打开成功了，结果读回来的是别人的页面。",
       "expected_output": "10 个页面就要 10 个会话名（N 页 N 名）；名字描述工作且不硬编码；subagent 继承父环境所以必须给每个显式 --session 或不同后缀；开工前先把会话全开好再进工作循环；--window background；每个 agent 退出前显式 close；不要用 tab new/tab select/open --tab。",
       "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "我本地预览的上传工具已经能打开。请用我正在登录的浏览器验收一次上传、结果页和手机宽度截图，并说明你会如何收尾。",
+      "expected_output": "选择 opencli browser 的 dedicated 专用窗口；用描述性会话名，open、state、upload、click、network、screenshot 并读回真实结果；移动端宽度按浏览器能力处理；完成后 close。不得用 Playwright、headless 或另起 Chrome profile。",
+      "files": [],
+      "checks": [
+        "包含 opencli browser 和 --window dedicated",
+        "包含 upload、screenshot、close",
+        "不得使用 Playwright/headless/独立 Chrome"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "今天要看 Semrush 的 20 个关键词，其中 4 个分析 agent 同时在跑。昨天页面偶尔显示空指标，另有一次 open 超时。给一个可执行的采集与复核顺序。",
+      "expected_output": "先查现有 rankup/backlink 脚本并运行 pressure.mjs --tool semrush；固定站点会话名，每次访问一个原子 batch，整轮持 yan-tools-share-<tool>.lock，顺序采集落盘后分析 agent 只读文件；unknown 不当作空闲；超时在原会话探活，不新建会话；空指标检查 degraded 证据和原文样本，不把 HTTP 200 当成功数据。",
+      "files": [],
+      "checks": [
+        "包含 pressure.mjs --tool semrush",
+        "包含固定会话名、batch、整轮工具锁",
+        "分析 agent 只读落盘数据",
+        "超时后在原会话检查；不另开标签重试",
+        "区分 HTTP 200 与有效指标"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "我的扩展侧边面板里明明有一张跨域表，frames 却是空数组。另一个同事能列出 frame，但面板重新打开后 eval 读到了主页面。请定位两人的可能差别并列出应看的证据。",
+      "expected_output": "分别核对 doctor 的 Extension 版本；frames 空数组考虑低于 1.1.0 的 OOPIF 缺失，能列 frame 但 eval 错路由考虑扩展 1.1.0 已知回归及 1.1.1 修复；运行 frames --debug 看 attachedEventCount/autoAttachError，核对 CLI 与扩展加载版本并 reload；不能把主页面结果冒充面板数据。",
+      "files": [],
+      "checks": [
+        "区分 frames 空数组和 eval 错路由两种症状",
+        "包含 1.1.0 和 1.1.1 版本线索",
+        "包含 frames --debug",
+        "不得把主页面数据视为面板数据"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "我想让 OpenCLI 自己填完一张长表并点提交。当前机器上的版本是否支持 auto 我不确定；表里还有条款勾选和验证码。给出先查什么、能自动做到哪里、如何确认提交完成。",
+      "expected_output": "先通过命令帮助或当前版本核对 auto 是否存在，不把实验分支当已发布；支持时用 --goal/--data，提交须 --allow-submit，条款须 --confirm-terms，CAPTCHA 人工完成；长表置信度限制按文档处理；提交后的完成状态要有页面回显与表单状态等双证据，不能只信模型 DONE。",
+      "files": [],
+      "checks": [
+        "先确认 auto 是否可用",
+        "包含 --allow-submit 和 --confirm-terms",
+        "CAPTCHA 交人工",
+        "提交结果需要页面证据，不能只凭 DONE"
+      ]
     }
   ]
 }

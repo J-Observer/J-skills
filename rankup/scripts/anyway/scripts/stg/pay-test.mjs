@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 // 用途：在测试后台通过 OpenCLI 完成测试卡结账，并用只读 Merchant API 复核订单。
-// 参数：--link <支付链接> --ref <引用> --email <邮箱> [--env stg|prod] [--env-file <path>] [--meta k=v] [--session anyway-paytest]。
+// 参数：--link <支付链接> --ref <引用> --email <邮箱> [--env stg|prod] [--env-file <path>] [--meta k=v]
+//       [--session anyway-paytest] [--address-line1 <街道地址>] [--city <城市>]。
 // 登录态：OpenCLI 已连接用户浏览器；目标商户后台已登录；复核需要该环境 API key。
-// 已知坑：stg 用测试卡，prod 的卡信息从进程环境变量读取；币种切换可能重建表单。验证日期：2026-09-07（仅 stg 原流程）。
+// 已知坑：stg 用测试卡，prod 的卡信息从进程环境变量读取；币种切换可能重建表单；必须用
+// --window dedicated（非 background，后者在此结账页无法滚动，见下方 WINDOW_MODE 注释）；
+// 美国账单地址的"地址"“城市”字段现为必填，留空会导致提交按钮点击后无任何反应。
+// 验证日期：2026-09-29（stg，含完整 4 次重试循环、真实跳转）。原流程验证日期 2026-09-07。
 
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -73,6 +77,8 @@ const CARD_CVC = ENV === 'stg' ? '123' : process.env.ANYWAY_CARD_CVC;
 if (ENV === 'prod' && (!CARD_NUMBER || !CARD_EXPIRY || !CARD_CVC)) throw new Error('prod payment requires ANYWAY_CARD_NUMBER, ANYWAY_CARD_EXPIRY and ANYWAY_CARD_CVC environment variables');
 const NAME = flags.name || 'Test Buyer';
 const COUNTRY = flags.country || 'US';
+const ADDRESS_LINE1 = flags['address-line1'] || '548 Market St';
+const CITY = flags.city || 'San Francisco';
 const POSTAL = flags.postal || '94103';
 // Text of the currency-toggle button to click before filling the form — see
 // the comment at the click site below for why this matters.
@@ -99,9 +105,27 @@ function buildPayUrl() {
 // OpenCLI helpers
 // ---------------------------------------------------------------------------
 
+// Window mode: 'dedicated', not 'background'. Confirmed by live debugging
+// (2026-09-29): on this checkout page, a `--window background` tab (hidden
+// tab inside the user's current Chrome window) does not scroll at all —
+// `window.scrollTo`/`scrollIntoView` silently no-op (scrollY stays pinned)
+// and opencli's own CDP-level `scroll` command hangs for 115s and times out.
+// A `--window dedicated` tab (its own automation window) scrolls normally
+// and instantly. Since the submit button sits below the fold on this page's
+// viewport (observed button top ~1006px vs. viewport height ~701px), a
+// background tab can never make it hit-testable via elementFromPoint —
+// that's the actual root cause of the "submit button ready=false" timeout
+// seen in prior runs, not (only) a missing scrollIntoView call. Mixing modes
+// (background for the main flow, dedicated-by-default for screenshot/close)
+// also caused "automation window slots busy" failures when a screenshot was
+// taken mid-run — using 'dedicated' consistently for every call avoids that
+// too. Trade-off: this uses the single-capacity dedicated window pool and
+// is visible, instead of running hidden in the background.
+const WINDOW_MODE = 'dedicated';
+
 function oc(args, { allowFail = false, timeoutMs = 45_000 } = {}) {
   try {
-    const out = execFileSync('opencli', ['browser', SESSION, '--window', 'background', ...args], {
+    const out = execFileSync('opencli', ['browser', SESSION, '--window', WINDOW_MODE, ...args], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: timeoutMs,
@@ -122,7 +146,7 @@ function oc(args, { allowFail = false, timeoutMs = 45_000 } = {}) {
 // ignores the exit code and `verified` field entirely.
 function ocField(cmd, target, value) {
   try {
-    const out = execFileSync('opencli', ['browser', SESSION, '--window', 'background', cmd, target, value], {
+    const out = execFileSync('opencli', ['browser', SESSION, '--window', WINDOW_MODE, cmd, target, value], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: 45_000,
@@ -143,7 +167,7 @@ function ocField(cmd, target, value) {
 function ocBatch(commands, { timeoutMs = 45_000 } = {}) {
   const out = execFileSync(
     'opencli',
-    ['browser', SESSION, '--window', 'background', 'batch', '--commands', JSON.stringify(commands)],
+    ['browser', SESSION, '--window', WINDOW_MODE, 'batch', '--commands', JSON.stringify(commands)],
     { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: timeoutMs },
   );
   return JSON.parse(out.trim());
@@ -161,7 +185,7 @@ function screenshotEvidence(tag) {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   const file = path.join(EVIDENCE_DIR, `pay-test-${stamp}-${tag}.png`);
   try {
-    execFileSync('opencli', ['browser', SESSION, 'screenshot', file], {
+    execFileSync('opencli', ['browser', SESSION, '--window', WINDOW_MODE, 'screenshot', file], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: 20_000,
@@ -243,25 +267,74 @@ async function main() {
   fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
   log(`[open] session="${SESSION}" payment link opened`);
 
-  try {
-    oc(['open', payUrl]);
-  } catch (err) {
-    screenshotEvidence('open-failed');
-    throw err;
+  // Default opencli nav timeout (15s) is sometimes too tight for a fresh
+  // dedicated window: window creation + the anyway.sh -> Stripe hosted
+  // checkout redirect chain can exceed it, especially right after a prior
+  // session released the pool's single dedicated-window slot. 30s avoids a
+  // spurious timeout on an otherwise-fine load.
+  //
+  // `open`'s own success/failure signal is unreliable for this multi-hop
+  // redirect (anyway.sh -> buy.stripe.com): opencli sometimes reports
+  // "Navigation rejected" for the intermediate anyway.sh navigation getting
+  // superseded by the Stripe redirect, even though the tab lands on a fully
+  // loaded, correct Stripe Checkout page (confirmed 2026-09-29 by manually
+  // reproducing the "rejected" error, then reading the resulting page state:
+  // right product, right price, real form fields, not stuck or errored). So
+  // `open` failing here is NOT treated as fatal by itself on its own — the
+  // real, reliable signal of whether the checkout form actually loaded is
+  // the `wait selector #email` right after it.
+  //
+  // Separately, this machine's automation windows are a single-capacity
+  // shared pool (`opencli browser window list` -> `Pool: capacity=1`): an
+  // unrelated concurrent task holding that one dedicated-window slot can
+  // make `open` fail hard (session never gets created at all, not just a
+  // spurious "rejected") until that other task releases it (observed
+  // 2026-09-29: a concurrent `fa-anyway-e2e` session held the slot). So the
+  // whole open-then-wait-for-#email sequence is retried a few times with a
+  // growing pause, rather than failing on the first attempt.
+  const OPEN_ATTEMPTS = 3;
+  let emailAppeared = null;
+  let lastOpenErrorDetail = null;
+  for (let attempt = 1; attempt <= OPEN_ATTEMPTS && !emailAppeared; attempt += 1) {
+    if (attempt > 1) {
+      const backoffS = 10 * (attempt - 1);
+      log(`[open] retry ${attempt}/${OPEN_ATTEMPTS} after ${backoffS}s (previous attempt did not reach a checkout form — likely transient: shared dedicated-window pool busy, or a redirect-context race)`);
+      oc(['wait', 'time', String(backoffS)], { allowFail: true });
+    }
+    // Not routed through `oc()`'s allowFail path here specifically, so the
+    // real opencli error text survives for the final error message below if
+    // every attempt ultimately fails — `oc(..., {allowFail:true})` discards
+    // it, which made a genuine permanent failure (bad link, real outage)
+    // just as opaque as the transient false-negative case this retry exists
+    // to route around.
+    try {
+      execFileSync('opencli', ['browser', SESSION, '--window', WINDOW_MODE, 'open', payUrl, '--timeout', '30000'], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: 45_000,
+      });
+      lastOpenErrorDetail = null;
+    } catch (err) {
+      lastOpenErrorDetail = String(err.stderr || err.stdout || err.message || err).trim();
+      log(`[open] opencli reported a navigation error (often a false negative on this redirect chain) — continuing to verify via #email instead of failing immediately: ${lastOpenErrorDetail}`);
+    }
+    // Give the Anyway -> Stripe redirect and Stripe Checkout's client bundle
+    // a moment to settle before waiting on specific fields. Uses opencli's
+    // own `wait time` (no page-context JS) rather than an `eval` sleep:
+    // right after a multi-hop redirect the old execution context can still
+    // be mid-teardown, and an `eval` landing in that window throws.
+    oc(['wait', 'time', '2.5'], { allowFail: true });
+    emailAppeared = oc(['wait', 'selector', '#email', '--timeout', '20000'], { allowFail: true });
   }
-
-  // Give the Anyway -> Stripe redirect and Stripe Checkout's client bundle a
-  // moment to settle before we start waiting on specific fields.
-  oc(['eval', '(async()=>{await new Promise(r=>setTimeout(r,2500));return true})()']);
-
-  const emailAppeared = oc(['wait', 'selector', '#email', '--timeout', '20000'], { allowFail: true });
   if (emailAppeared === null) {
     screenshotEvidence('checkout-form-not-found');
     throw new Error(
-      'Stripe Checkout email field (#email) did not appear within 20s after opening the payment ' +
-        'link. The checkout page structure may have changed — see the evidence screenshot. ' +
-        '(Expected flow: the Anyway payment link 302s to a top-level buy.stripe.com hosted checkout ' +
-        'page with plain DOM form fields, not an iframe embed.)',
+      `Stripe Checkout email field (#email) did not appear after ${OPEN_ATTEMPTS} attempts` +
+        (lastOpenErrorDetail ? ` (last "open" error: ${lastOpenErrorDetail})` : ' (the "open" call itself reported success each time)') +
+        '. The checkout page structure may have changed, or the shared dedicated-window automation ' +
+        'pool stayed busy with another task the whole time — see the evidence screenshot and ' +
+        '`opencli browser window list`. (Expected flow: the Anyway payment link 302s to a ' +
+        'top-level buy.stripe.com hosted checkout page with plain DOM form fields, not an iframe embed.)',
     );
   }
 
@@ -406,6 +479,18 @@ async function main() {
       ['fill', '#cardCvc', CARD_CVC],
       ['fill', '#billingName', NAME],
       ['select', '#billingCountry', COUNTRY],
+      // `#billingAddressLine1` / `#billingLocality` only render once a
+      // billing country is selected (US here), and — confirmed live
+      // 2026-09-29 — the checkout form now client-side-validates both as
+      // required for a US address: leaving them empty draws a red required
+      // outline on submit and the pay button click is silently swallowed
+      // (no navigation, no error, no network request — this was the actual
+      // cause of every prior "submit never progressed" failure, not a
+      // bot/dwell-time heuristic as originally suspected). They didn't exist
+      // in the 2026-09-07 single-field-per-country form this script was
+      // originally written against.
+      ['fill', '#billingAddressLine1', ADDRESS_LINE1],
+      ['fill', '#billingLocality', CITY],
       // Postal code only renders for some countries (e.g. US) — best-effort,
       // not a hard requirement (last entry, excluded from hardFailures below).
       ['fill', '#billingPostalCode', POSTAL],

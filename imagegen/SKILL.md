@@ -2,7 +2,7 @@
 name: imagegen
 metadata:
   version: "1.0.0"
-description: 生成网站与内容所需的一切视觉素材——用户说 生成图片、配图、插图、画一张、出一套图、logo、吉祥物、封面、海报、og 图、分享图、favicon 源图、用户场景图、真人图（"一个人坐在电脑前"）、手绘/蜡笔/水彩风插画、产品宣传图、电影感画面、"网站需要配图"、image gen、imagegen 时必用。也覆盖 rankup 建站流程里的"页面缺图、还是占位图、og:image 没图、每页要独立分享图、favicon 还没做"——这些场景不许用占位图，必须真实生成，一律加载本 Skill。底层走 Codex 内置的 OpenAI 图像生成工具；本 Skill 负责把需求翻成好提示词、跑通、验收、压缩、落盘。
+description: 当用户要求生成图片、配图、插图、logo、吉祥物、封面、海报、og 图、favicon 源图、真人场景图，或建站时页面缺图、仍有占位图时使用。包括“画一张”“出一套图”“网站需要配图”“image gen”。本 Skill 负责提示词、生成、三道验收、压缩与落盘；只是让 Codex CLI 做代码代理任务时用 codex，普通派单走 agent-fleet，页面 SEO 与上线闸门走 rankup。
 ---
 
 # imagegen
@@ -60,7 +60,7 @@ No text, no letters, no logos, no watermarks anywhere.
 1. `mascot-logo.png` — 1024x1024, transparent background PNG (true alpha, not a white square).
    A friendly round owl holding a tiny wrench. Flat vector style, bold clean shapes,
    2-3 flat tones per element, no gradients, no drop shadows. Occupies 75-80% of the
-   frame, centered, props included in that measure.
+   frame, centered, exclude the wrench from that measure.
 
 2. `og-image.png` — 1200x630 (1.91:1), opaque. Photorealistic editorial photo: a person
    in their late twenties at a wooden desk in front of a laptop, soft window light from
@@ -97,9 +97,9 @@ Report per file: absolute path, actual pixels, bytes, alpha yes/no, method used.
 
 ## 验收：三道检查，缺一道漏一类问题
 
-出处：`codex/SKILL.md`「一套图的验收」，2026-08-22 一次 16 张角色图的实录，三道各自抓到了不同缺陷。
+出处：`codex/references/image-experiments.md`「一套图的验收」，2026-08-22 一次 16 张角色图的实录，三道各自抓到了不同缺陷。
 
-**先用 `Read` 逐张打开看过**，再谈下面三道；没看过的图不准接进页面。
+**先用 `Read` 逐张打开看过**，再谈下面三道；没看过的图不准接进页面。三道都是必做，缺一道漏一类问题。
 
 1. **接触印相**（抓构图失衡）：全部缩到 120px 横向拼一张——这就是结果页/分享卡的真实尺寸。全尺寸下漂亮、缩略图只剩一把椅子的图，只有这一步能暴露。
    `sips -Z 120 in.png --out thumbs/in.png`

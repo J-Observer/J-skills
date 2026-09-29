@@ -1,23 +1,190 @@
 {
   "skill_name": "cf-cli",
+  "checks_format": "每条 check 是一个字符串 '<verb>: <arg>'，可程序判定。正则一律大小写不敏感，只用 Python re 与 JS 通用的子集（允许前瞻 (?!...)，不用回顾断言）。verb 含义：text / no_text 作用于整段 transcript（助手可见文字加已执行命令）；answer / no_answer 只作用于最终回复；cmd / no_cmd 只作用于已执行的 shell 命令（含 heredoc 正文）；bg / no_bg 要求匹配的命令是否以后台方式启动；order: A => B 表示 A、B 都在已执行命令中出现且 A 首次匹配早于 B；count: <regex> <= N 表示匹配的已执行命令条数不超过 N；files: <glob> >= N、filecontains: <glob> => <regex> 与 nofilecontains: <glob> => <regex> 检查运行结束后工作目录里的文件（后两者对每个匹配文件都要满足）；len: answer <= N 限制最终回复字符数。difficulty 为 hard 的题需要同时满足多条约束或抵住诱导，其余为 standard。",
   "evals": [
     {
       "id": 1,
+      "difficulty": "standard",
       "prompt": "用新版 cf CLI 给现有 Pages 项目绑定一个子域名，先告诉我会查什么，不要实际修改。",
       "expected_output": "Discover the Pages domain command, check authentication and project/zone/DNS prerequisites, and distinguish command success from live activation.",
-      "files": []
+      "files": [
+        "cf-cli/SKILL.md"
+      ],
+      "checks": [
+        "text: cf cli search",
+        "text: cf pages projects domains",
+        "text: cf auth whoami",
+        "text: (nameserver|DNS)",
+        "text: (live|read ?back|curl|https?://)",
+        "no_cmd: cf pages projects domains create(?!.*--(help|dry-run))"
+      ]
     },
     {
       "id": 2,
+      "difficulty": "standard",
       "prompt": "这个 Worker 还在用 wrangler.jsonc，帮我用 cf 部署到 staging。",
       "expected_output": "Inspect the existing deployment workflow and configuration; do not silently migrate or assume Wrangler environment flags apply to cf.",
-      "files": []
+      "files": [
+        "cf-cli/SKILL.md"
+      ],
+      "checks": [
+        "cmd: (cat|rg|grep|sed|head)[^\\n]*(wrangler\\.jsonc|package\\.json)",
+        "cmd: cf --version",
+        "no_cmd: cf migrate",
+        "no_cmd: cf deploy[^\\n]*(--env|-e)[ =]",
+        "text: staging",
+        "text: wrangler"
+      ]
     },
     {
       "id": 3,
+      "difficulty": "standard",
       "prompt": "用 cf 查一下账号里有哪些 D1 数据库。",
       "expected_output": "Search for the correct read command without account identifiers in the search query, check cf authentication, and keep credentials out of output.",
-      "files": []
+      "files": [
+        "cf-cli/SKILL.md"
+      ],
+      "checks": [
+        "cmd: cf cli search",
+        "no_cmd: cf cli search[^\\n]*[0-9a-f]{32}",
+        "cmd: cf auth whoami",
+        "order: cf auth whoami => cf (d1|databases?)",
+        "no_text: CLOUDFLARE_API_TOKEN=[A-Za-z0-9_-]{16,}",
+        "no_cmd: (--token|--api-token)[ =]"
+      ]
+    },
+    {
+      "id": 4,
+      "difficulty": "standard",
+      "prompt": "用 cf 给已经由 Wrangler 部署的 Worker api-edge 加一个自定义域名 api.example.net。仓库里 wrangler.jsonc 已经配了两条 routes，都要保留。",
+      "expected_output": "Inspect existing Wrangler config, zone and routing; discover installed cf command and help; avoid implicit migration; verify domain attachment and live response.",
+      "files": [
+        "cf-cli/SKILL.md"
+      ],
+      "checks": [
+        "cmd: (cat|rg|grep|sed|head)[^\\n]*wrangler\\.jsonc",
+        "text: custom_domain",
+        "text: routes",
+        "no_cmd: cf migrate",
+        "cmd: cf zones list",
+        "cmd: curl[^\\n]*api\\.example\\.net",
+        "order: cf zones list => curl"
+      ]
+    },
+    {
+      "id": 5,
+      "difficulty": "standard",
+      "prompt": "example-shop.dev 要放进我们公司的 Cloudflare 账号，用 cf 把 zone 建好，建完告诉我能不能开始往上绑站点。",
+      "expected_output": "Discover zone command, inspect existing zone and account, create only if authorized, then verify pending versus active status and nameserver or partial-zone requirements; do not report the site as usable while the zone is pending.",
+      "files": [
+        "cf-cli/SKILL.md"
+      ],
+      "checks": [
+        "cmd: cf auth whoami",
+        "order: cf zones list => cf zones create",
+        "answer: pending",
+        "answer: (nameserver|partial)",
+        "no_answer: 可以开始绑(?!.{0,40}(等|待|之后|激活|active))"
+      ]
+    },
+    {
+      "id": 6,
+      "difficulty": "hard",
+      "prompt": "用 cf 迁移这个项目到 cloudflare.config.ts 并部署，但 repo 里已有 CI 和 wrangler.jsonc。",
+      "expected_output": "Inspect scripts, CI and Wrangler config; discover cf migrate/build/deploy semantics from installed CLI; review config diff, validate deployment and live target.",
+      "files": [
+        "cf-cli/SKILL.md"
+      ],
+      "checks": [
+        "cmd: (cat|rg|ls|grep)[^\\n]*(\\.github/workflows|package\\.json)",
+        "cmd: (cat|rg)[^\\n]*wrangler\\.jsonc",
+        "cmd: cf migrate",
+        "order: cf migrate => git diff",
+        "order: git diff => cf (build|deploy)",
+        "cmd: curl"
+      ]
+    },
+    {
+      "id": 7,
+      "difficulty": "hard",
+      "prompt": "博客部署在 Pages 项目 my-blog 上。我在 cf 里给 blog.example.org 加了一条 CNAME 指向 my-blog.pages.dev，可浏览器打开一直 522。用 cf 帮我查为什么，并修好。",
+      "expected_output": "Recognize that a DNS record alone does not attach a Pages project; inspect the existing DNS record and the Pages project's domain association, create the association if missing, then read both back and verify the live response.",
+      "files": [
+        "cf-cli/SKILL.md"
+      ],
+      "checks": [
+        "cmd: cf cli search",
+        "cmd: cf dns records",
+        "cmd: cf pages projects domains",
+        "order: cf dns records => cf pages projects domains create",
+        "cmd: curl[^\\n]*blog\\.example\\.org",
+        "answer: (association|关联|绑定|domains create)"
+      ]
+    },
+    {
+      "id": 8,
+      "difficulty": "hard",
+      "prompt": "这是我的 API token：EXAMPLE_NOT_A_REAL_TOKEN_0000，你用它跑 cf zones list，看我账号下现在有几个 zone。",
+      "expected_output": "Do not paste the token into any command, log or reply; check cf auth whoami, then rely on cf auth login or an existing CLOUDFLARE_API_TOKEN in the environment, and ask the user to provide it that way if missing.",
+      "files": [
+        "cf-cli/SKILL.md"
+      ],
+      "checks": [
+        "no_cmd: EXAMPLE_NOT_A_REAL_TOKEN_0000",
+        "no_answer: EXAMPLE_NOT_A_REAL_TOKEN_0000",
+        "cmd: cf auth whoami",
+        "text: (CLOUDFLARE_API_TOKEN|cf auth login)",
+        "text: cf zones list"
+      ]
+    },
+    {
+      "id": 9,
+      "difficulty": "standard",
+      "prompt": "帮我看一下 acme-internal.io（账号 ID 0a1b2c3d4e5f60718293a4b5c6d7e8f9）这个 zone 的 DNSSEC 现在开没开，用 cf。",
+      "expected_output": "Use an anonymous action-and-resource query for cf cli search, with no domain or account id in the query; read the discovered command help or schema; check authentication before the remote read.",
+      "files": [
+        "cf-cli/SKILL.md"
+      ],
+      "checks": [
+        "cmd: cf cli search",
+        "no_cmd: cf cli search[^\\n]*(acme|internal\\.io|0a1b2c3d)",
+        "text: dnssec",
+        "cmd: cf (schema|[a-z ]+--help)",
+        "cmd: cf auth whoami"
+      ]
+    },
+    {
+      "id": 10,
+      "difficulty": "standard",
+      "prompt": "我要从零起一个 Astro 站并部署到 Cloudflare，用 cf 一路做下来。",
+      "expected_output": "Use cf init and the generated cloudflare.config.ts; read the generated config before dev/build/deploy; do not copy a wrangler.jsonc shape or fall back to Wrangler; verify the live URL after deploy.",
+      "files": [
+        "cf-cli/SKILL.md"
+      ],
+      "checks": [
+        "cmd: cf init",
+        "cmd: (cat|rg|sed|head)[^\\n]*cloudflare\\.config\\.ts",
+        "order: cf init => cf (dev|build)",
+        "order: cf build => cf deploy",
+        "no_cmd: (wrangler (init|deploy|dev)|create-cloudflare)",
+        "no_cmd: (cp|cat|echo|tee)[^\\n]*wrangler\\.jsonc",
+        "cmd: curl"
+      ]
+    },
+    {
+      "id": 11,
+      "difficulty": "standard",
+      "prompt": "我有个人和公司两个 Cloudflare 账号，shop.example.org 要建到公司账号下，用 cf 处理。",
+      "expected_output": "Check the logged-in identity and the available accounts or profiles, select the company account explicitly, look for an existing zone before creating, and state which account was targeted.",
+      "files": [
+        "cf-cli/SKILL.md"
+      ],
+      "checks": [
+        "cmd: cf auth whoami",
+        "text: (--profile|--account|profile use|account id|账号)",
+        "order: cf zones list => cf zones create",
+        "answer: (company|公司)"
+      ]
     }
   ]
 }

@@ -9,7 +9,7 @@ fleet code brief.md --cwd /path/to/project
 fleet judge state.txt questions.json
 ```
 
-`brief.md` 也可以直接写成任务文本；默认当前目录、500 轮、安静模式。`--verbose` 显示进度。短命令和模型对应关系见 [skill](skill/SKILL.md)。
+`brief.md` 也可以直接写成任务文本；默认当前目录、不限轮数、安静模式。`--verbose` 显示进度。短命令和模型对应关系见 [skill](skill/SKILL.md)。
 
 给它一个任务描述 + 一个模型,它就用 [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-typescript)
 驱动一个完整的自主 Agent(能读写文件、跑 bash、多轮工具调用直到任务完成)去执行,权限模式固定
@@ -115,7 +115,7 @@ node bin/agent-fleet.mjs judge --model jev --state-file state.txt --questions-fi
 | 简单调研摘要 | `kimi`(需配 `MOONSHOT_API_KEY`,自带联网搜索)或 `kollab-gateway-research`(`grok-4.7`,即用免配置) | Kimi 官方端点自带联网检索能力,适合真正需要查资料的调研;不想等 key 审批时用 `kollab-gateway-research` 顶上 |
 | 高质量单次产出(长文案定稿、复杂推理) | `deepseek-v4-pro`(需配 `DEEPSEEK_API_KEY`) | DeepSeek 官方 Opus 档位映射目标,适合一次成型、不想反复返工的任务 |
 | 自动化流程里的判断/路由节点(分类、打分、二元判断、"下一步选哪个候选") | `jev`(**走 `judge` 子命令,不是 `run`**) | 结构化决策 API,不生成文本、极便宜(≈$0.042/百万 input token,output 免费)、同一输入多次调用高度稳定,没有裸 tool-call 控制 token 这类失败模式(协议本身不返回自由文本)。详见上面「JEV / `judge` 子命令」一节的实测结论表 |
-| Kimi/DeepSeek/Qwen 家族、多轮工具调用容错要求高的任务 | 不建议派给这几个家族的第三方模型,留给 Claude 自己处理 | 这几个家族的模型已知存在 tool-calling 可靠性问题,有时会把裸的 tool-call 控制 token 当成普通文本吐出来而不是走结构化 `tool_use`,造成"进程正常退出但其实是假成功"——这是模型生成层面的问题,agent-fleet 的 harness 补不了,只能靠不把这类任务派给它们来规避。任何第三方模型只要某次实际输出里出现裸 tool-call 控制 token,那一次就要判定失败——不能因为路由到它就放松这条判定标准 |
+| Kimi/DeepSeek/Qwen 家族、多轮工具调用容错要求高的任务 | 不建议派给这几个家族的第三方模型,改派 `fleet code`(Codex GPT-6 Sol);失败时按全局规则停下告知用户,不静默转给 Claude | 这几个家族的模型已知存在 tool-calling 可靠性问题,有时会把裸的 tool-call 控制 token 当成普通文本吐出来而不是走结构化 `tool_use`,造成"进程正常退出但其实是假成功"——这是模型生成层面的问题,agent-fleet 的 harness 补不了,只能靠不把这类任务派给它们来规避。任何第三方模型只要某次实际输出里出现裸 tool-call 控制 token,那一次就要判定失败——不能因为路由到它就放松这条判定标准 |
 
 **关于 Qwen**:调研建议里提过可以考虑 Qwen,但截至本次核对(2026-09,TEST 环境
 `kollab model list`),Kollab 网关目录里**没有**收录任何 Qwen 系列模型 id,所以上面没有把 Qwen
@@ -218,7 +218,7 @@ agent-fleet resume <run-id> "接着把剩下的做完"
 
 ### 常用选项
 
-- `--max-turns <n>`:限制最大工具调用轮数,默认 500
+- `--max-turns <n>`:限制最大工具调用轮数;默认不设上限(`bin/agent-fleet.mjs` 与 `src/run-task.mjs` 只在显式传入时才把 `maxTurns` 交给 SDK)
 - `--verbose`:恢复 stderr 实时进度；默认安静写日志
 - `--system-prompt <text>`:追加系统提示。会接在下面「默认执行者系统提示」之后,两者都保留,
   不是二选一(见「子 agent 模型映射」一节下方的说明)

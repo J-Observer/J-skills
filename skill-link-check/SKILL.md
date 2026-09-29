@@ -1,6 +1,6 @@
 ---
 name: skill-link-check
-description: Audit project and global .agents/skills and .claude/skills layouts. Verify that .agents/skills contains the real source and .claude/skills mirrors it through a parent or per-skill symlink. Use whenever a skill or slash command is missing, not loading, duplicated, inconsistent, or described as "skill 没生效", "skill 不一致", "为什么 skill 没识别到", "检查 skill 链接", ghost skill, broken skill link, or missing skill. Also use when a skill exists in one directory but not the other.
+description: Use when a skill or slash command is missing, duplicated, not loading, or inconsistent between `.agents/skills` and `.claude/skills`; includes “skill 没生效”“检查 skill 链接” and broken skill links. Audits project and global skill layouts without changing them.
 ---
 
 # Skill Link Check
@@ -26,21 +26,13 @@ npx skills update skill-link-check -g -y
 
 最常见的漂移是 Skill 被直接创建成 `.claude/skills/<name>/` 真实目录，却没有进入 `.agents/skills/`。它看似已安装，实际不会随正常备份、同步或迁移流程保存。
 
-## Goal Contract
+## 完成条件与退出码
 
-在 `/goal`、autopilot 或其他持续执行器中，本 Skill 的完成条件是“审计证据完整”，不是“退出码必须为 0”。发现问题是有效结果，不能为了让检查通过而擅自修复。
+在 `/goal` 或持续执行任务里，以审计证据完整为完成条件：从目标项目运行脚本，报告每个适用作用域的布局、问题分类和退出状态。有问题时列数量、路径和建议命令；无问题时报告 clean。脚本不修改被审计目录。
 
-```xml
-<goal>审计所有适用作用域，判定 Skill 源目录与运行时镜像是否一致，并为每个问题提供可复核证据和修复命令。</goal>
-<gate>检查脚本已从用户目标项目运行；每个适用作用域都有布局模式、问题分类和退出状态。</gate>
-<done-when>无问题时明确报告 clean；有问题时完整列出数量、类别、路径和建议命令；未自动修改任何被审计目录。</done-when>
-```
-
-因此：
-
-- 退出码 `0`：审计完成且没有发现问题。
-- 退出码 `1`：审计完成且发现问题，不代表 Skill 执行失败。
-- Python traceback、参数错误或无法读取目标：才属于执行失败，需要修复后重跑。
+- `0`：审计完成且无问题。
+- `1`：审计完成且发现问题；这仍是有效结果。
+- Python traceback、参数错误或目标不可读：执行失败，查明后重跑。
 
 ## 运行方式
 
