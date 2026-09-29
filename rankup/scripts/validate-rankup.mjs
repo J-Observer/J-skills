@@ -22,6 +22,16 @@ const requiredReferences = [
   "project-memory.md",
   "integrations.md",
   "seo-growth.md",
+  "seo-serp.md",
+  "seo-data-channels.md",
+  "seo-opportunity.md",
+  "seo-ai-search.md",
+  "seo-agentic-scan.md",
+  "seo-geo.md",
+  "seo-ssr.md",
+  "seo-workflow.md",
+  "seo-experiences.md",
+  "seo-experiences-2026-07.md",
   "evolution.md",
   "trends.md",
   "search-platforms.md",
@@ -35,6 +45,7 @@ const requiredReferences = [
 
 const requiredContent = {
   "references/seo-webcafe.md": ["gefei-keywords", "gefei-competitor", "gefei-domain", "gefei-page", "knowledge_ask", "disable-model-invocation"],
+  "references/seo-geo.md": ["GEO 反推测试", "推荐位竞争分析", "证据边界", "内页测试"],
   "SKILL.md": [
     "npx skills add yan-labs/yan-skills --skill rankup -g -y",
     "npx skills update rankup -g -y",
@@ -334,8 +345,13 @@ async function validate() {
     } catch {
       errors.push(`missing reference: references/${reference}`);
     }
-    if (!skillMarkdown.includes(`references/${reference}`)) {
-      errors.push(`SKILL.md does not link references/${reference}`);
+    // 渐进式加载:允许经由 seo-growth.md 索引一跳可达,不必 SKILL.md 直链
+    const indexMarkdown = await read("references/seo-growth.md").catch(() => "");
+    if (
+      !skillMarkdown.includes(`references/${reference}`) &&
+      !(indexMarkdown.includes(reference) && skillMarkdown.includes("references/seo-growth.md"))
+    ) {
+      errors.push(`SKILL.md does not link references/${reference} (even via index)`);
     }
   }
 
