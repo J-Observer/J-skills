@@ -46,8 +46,8 @@ metadata:
 | 「我们做个内页吧」「把这个关键词做成内页」「关键词没问题了，做成内页」 | 4 | **一个关键词对应一个内页**：目标词登记、TDK、独立 OG 含图、密度、无占位、体检全套；页面上的控件同样只准来自组件库（红线，见 `discipline.md` 十六）；**按 `lifecycle.md` 段 4「新增内页 / 新模板的随手清单」逐条带上，不是等段 4 集中体检才补**；`lifecycle.md` 段 4 + `checklists.md` 段 4 |
 | 「看一下 SEO 有没有问题」「看一下 GEO 有没有问题」「GEO/SEO 有没有问题」 | 4 | 先跑 Rankup 自有体检；第三方页面复核加载官方 `gefei-page`，见 [`seo-webcafe.md`](references/seo-webcafe.md) 与 [`playbooks/site-review.md`](references/playbooks/site-review.md) |
 | 「能不能上线了」「上线前还差什么」「TDK」「关键词密度」「标题描述怎么写」 | 4 | `checklists.md` 段 4 + [`seo-box.md`](references/seo-box.md) |
-| 「怎么被 AI 引用」「llms.txt」「对 AI 代理友好吗」「AEO/GEO」 | 4 | [`seo-growth.md`](references/seo-growth.md) 三-B |
-| 「AI 会不会推荐我们」「GEO 反推」「试试 AI 搜这个词会推荐谁」 | 4 | `seo-growth.md` 三-B GEO 反推测试 |
+| 「怎么被 AI 引用」「llms.txt」「对 AI 代理友好吗」「AEO/GEO」 | 4 | [`seo-ai-search.md`](references/seo-ai-search.md)（SEO 索引入口见 [`seo-growth.md`](references/seo-growth.md)） |
+| 「AI 会不会推荐我们」「GEO 反推」「试试 AI 搜这个词会推荐谁」 | 4 | [`seo-geo.md`](references/seo-geo.md) |
 | 「帮我生成 logo / 配图 / 封面 / 海报」「要张 og 图」「画个吉祥物」 | 3–4 | `/imagegen`：图片必须真实生成，不允许占位图 |
 | 「建站当天做图标」「生成一整套网站图标」「favicon 怎么做」「标准图标集」 | 3–4 | `scripts/make-favicons.mjs --src <logo.png> --out <public目录>`：由一张 ≥512×512 品牌源图生成标准图标全集（`favicon.ico`/48/96/192/180/512） |
 | 「做个好看的页面」「有没有什么好的设计参考」「Hero 怎么设计」「找个组件参考」「landing page 怎么排」「有什么动画效果」「页面设计灵感」 | 3 | 先浏览 [`design-references.md`](references/design-references.md) 收录站的相关分类，选 2–3 个案例参考后再实现；基础控件仍走 shadcn 组件库红线 |
@@ -150,13 +150,13 @@ Day-1 清单里最容易漏、也最贵的三条单列在这里，其余见 `lif
 ### 4 上线前 SEO / GEO
 
 - **触发**：「能不能上线了」「TDK」「密度」「怎么被 AI 引用」「站慢不慢」。
-- **入口**：[`lifecycle.md`](references/lifecycle.md) 段 4；判读 [`seo-box.md`](references/seo-box.md)、[`seo-webcafe.md`](references/seo-webcafe.md)、[`seo-growth.md`](references/seo-growth.md) 三-B。常用：`scripts/seo-audit.mjs --sitemap`、`scripts/pagespeed.mjs collect --strategy both`（`plan` 只打印链接不采数，仅兜底）、`scripts/is-agentic.mjs scan --save`、`scripts/ai-crawler-access.mjs --url <正式域名>`、官方 `gefei-page` Skill（按其说明直接使用工具）。写文案的兄弟 Skill：中文 `/write`（先确认它的五个附属 Skill 都在，缺的用 `find-skills` 装齐；装不上才退到 `/human-writing` 起稿 + `/shuorenhua` 去 AI 味）；被 AI 引用的内容形状读 `/ai-seo` 的 content-patterns；JSON-LD 模板只读 `/seo-geo` 的 schema-templates，不跑它的脚本；配图 `/imagegen`。分工与加载条件见 [`skill-ecosystem.md`](references/skill-ecosystem.md)。
+- **入口**：[`lifecycle.md`](references/lifecycle.md) 段 4；判读 [`seo-box.md`](references/seo-box.md)、[`seo-webcafe.md`](references/seo-webcafe.md)、[`seo-ai-search.md`](references/seo-ai-search.md)。常用：`scripts/seo-audit.mjs --sitemap`、`scripts/pagespeed.mjs collect --strategy both`（`plan` 只打印链接不采数，仅兜底）、`scripts/is-agentic.mjs scan --save`、`scripts/ai-crawler-access.mjs --url <正式域名>`、官方 `gefei-page` Skill（按其说明直接使用工具）。写文案的兄弟 Skill：中文 `/write`（先确认它的五个附属 Skill 都在，缺的用 `find-skills` 装齐；装不上才退到 `/human-writing` 起稿 + `/shuorenhua` 去 AI 味）；被 AI 引用的内容形状读 `/ai-seo` 的 content-patterns；JSON-LD 模板只读 `/seo-geo` 的 schema-templates，不跑它的脚本；配图 `/imagegen`。分工与加载条件见 [`skill-ecosystem.md`](references/skill-ecosystem.md)。
 
 | 硬规则 | 为什么 |
 |---|---|
 | 在预览域上做完，预览域 **noindex** | 半成品被收录，第一印象就是半成品 |
 | **一个关键词对应一个内页**；「做成内页」必做：目标词登记进 `keywords.md`、TDK、独立 OG 含图、密度、无占位、体检全套 | 一页扛多个词会互相稀释，首页覆盖太多词是排名波动的常见根因 |
-| 每页目标词 + 密度达标；价格表等无关区块改**客户端加载**，SSR 只输出目标文案（与 `seo-growth.md` 的「首次交互后注入」是同一节） | 密度按 SSR 输出的 HTML 算，无关区块会把目标词冲淡 |
+| 每页目标词 + 密度达标；价格表等无关区块改**客户端加载**，SSR 只输出目标文案（与 [`seo-ssr.md`](references/seo-ssr.md) 的「首次交互后注入」是同一节） | 密度按 SSR 输出的 HTML 算，无关区块会把目标词冲淡 |
 | **占位专项复查**是上线 review 必做项：按 sitemap 逐 URL grep（正则见 `discipline.md` 十四）+ 人工抽查首页/定价/关于/联系/法律页每个链接可点、每张图有内容，重跑不采信上一轮 | 段 3 的开发期禁令拦不住上线后仍有占位——这是漏法本身，闸门必须落在「上线前」这个时间点上才管用 |
 | **图标专项未通过不许上线**：段 4 必过 `checklists.md` 图标专项，操作统一见 `lifecycle.md` 段 4 · A 节；发布后正式域名回读 | 必须核对全部实际引用与图案，文件存在、200 或标签页正常都不能代替实图核验；搜索结果刷新单独观察 |
 | 每页独立 meta / OG 且**必须有图** | 共享 OG 让全站在社交分享里一张脸，没图的分享卡没人点 |
