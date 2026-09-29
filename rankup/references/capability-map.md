@@ -191,7 +191,7 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 
 | 能力 | 一句话能干什么 | 入口 | 典型触发说法 |
 |---|---|---|---|
-| 2026 AI 搜索范式 | AI Overviews / AI Mode / Preferred Sources / Discover 独立算法 / Information Gain；引用优先于排名 | [`references/seo-growth.md`](seo-growth.md) 三-B | 「怎么被 AI 引用」「AEO 怎么做」 |
+| 2026 AI 搜索范式 | AI Overviews / AI Mode / Preferred Sources / Discover 独立算法 / Information Gain；引用优先于排名 | [`references/seo-ai-search.md`](seo-ai-search.md) | 「怎么被 AI 引用」「AEO 怎么做」 |
 | Agent 就绪度评分 | `scan` 评分+待修项、`diff` 与上次对比、`history`；`--save` 存 `.rankup/agentic/` | `scripts/is-agentic.mjs` | 「llms.txt 要不要写」「对 AI 友好吗」 |
 | 全网基线分母 | Cloudflare Radar 的全网 AI Agent Readiness 聚合通过率（**不是站点扫描器**） | `scripts/cf-agent-baseline.mjs` | 「我这个分数算高吗」 |
 

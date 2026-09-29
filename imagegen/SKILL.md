@@ -145,7 +145,7 @@ magick out.png -format 'alpha_min=%[fx:minima.a] colors=%k\n' info:   # alpha_mi
 | 素材 | 保留格式 | 放哪（示例路径） |
 |---|---|---|
 | logo / 图标集 | 透明 PNG 源 + SVG（如有）；导出 512/192/180/32/16 | `<project>/public/brand/`，`manifest.json` 逐个真实引用 |
-| og:image | **PNG 或 JPEG**（WhatsApp/FB 预览爬虫对 WebP 不稳；`rankup/references/seo-growth.md` 2026-07-18） | `<project>/public/og/<page-slug>.png`，一页一张 |
+| og:image | **PNG 或 JPEG**（WhatsApp/FB 预览爬虫对 WebP 不稳；`rankup/references/seo-experiences.md` 2026-07-18） | `<project>/public/og/<page-slug>.png`，一页一张 |
 | 页内配图 / 场景图 | WebP（同图 175 KB→56 KB），`<img>` 写真实 width/height | `<project>/public/images/<section>/` |
 | 原始生成物与 prompt.md | 原样留档，不进 `public/` | `<project>/design/imagegen/<batch>/` |
 
