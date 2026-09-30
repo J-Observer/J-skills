@@ -64,7 +64,7 @@ function safeCustom(entry, selectedProvider) {
   if (entry.url !== undefined) {
     let url;
     try { url = new URL(entry.url); } catch { fail(`Manifest entry ${entry.id} has an invalid url.`); }
-    const origin = new URL(selectedProvider === 'semrush' ? (process.env.TOOLS_SHARE_APP_ORIGIN_SEMRUSH || 'https://sem.3ue.co') : (process.env.TOOLS_SHARE_APP_ORIGIN || 'https://sim.3ue.co')).origin;
+    const origin = new URL(selectedProvider === 'semrush' ? (process.env.TOOLS_SHARE_APP_ORIGIN_SEMRUSH || 'https://semrush.example.com') : (process.env.TOOLS_SHARE_APP_ORIGIN || 'https://similarweb.example.com')).origin;
     if (url.origin !== origin) fail(`Manifest entry ${entry.id} url must use the selected provider origin.`);
     validateParameters(url.searchParams, entry, selectedProvider, 'url');
     validateParameters(hashParameters(url.hash), entry, selectedProvider, 'url');

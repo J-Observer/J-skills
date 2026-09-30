@@ -33,7 +33,8 @@ export async function runCode({ prompt, cwd = process.cwd(), low = false, review
   const before = snapshotGit(workdir);
   const startedAt = Date.now();
   const fd = openSync(logPath, 'w');
-  const args = ['exec', '--skip-git-repo-check', '-m', 'gpt-6-sol', '-c', `model_reasoning_effort=${low ? 'low' : 'medium'}`, '--sandbox', review ? 'read-only' : 'workspace-write', '-C', workdir, '-o', resultPath, '-'];
+  // 非 review 运行使用 danger-full-access：用户要求 Codex 拥有最大权限（含网络/代理），workspace-write 会断网导致 AWS 等取数任务全部失败；review 保持 read-only 以维持 checker 只读边界。
+  const args = ['exec', '--skip-git-repo-check', '-m', 'gpt-6.1-sol', '-c', `model_reasoning_effort=${low ? 'low' : 'medium'}`, '--sandbox', review ? 'read-only' : 'danger-full-access', '-C', workdir, '-o', resultPath, '-'];
   let child;
   try {
     child = spawn(codexBin, [...codexArgs, ...args], { stdio: ['pipe', fd, fd] });
@@ -60,7 +61,7 @@ export async function runCode({ prompt, cwd = process.cwd(), low = false, review
     result,
     error: outcome.error?.message ?? (outcome.code === 0 ? (result.trim() ? null : 'Codex 没有写出结果') : `Codex 退出码 ${outcome.code ?? outcome.signal ?? '?'}`),
     durationMs: Date.now() - startedAt,
-    model: 'gpt-6-sol',
+    model: 'gpt-6.1-sol',
     cwd: workdir,
     resultPath,
     logPath,

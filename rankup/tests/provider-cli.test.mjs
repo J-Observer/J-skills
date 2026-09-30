@@ -55,7 +55,7 @@ try {
   const badManifest = path.join(temp, 'bad.json');
   await writeFile(badManifest, JSON.stringify([{id: '../bad', provider: 'semrush', report: 'organic-pages', nope: true}]));
   assert.notEqual(run('audit', 'semrush', '--manifest', badManifest, '--out-dir', path.join(temp, 'bad'), '--session', 'fixed', '--dry-run').status, 0);
-  for (const [name, url] of Object.entries({crossOrigin: 'https://example.com/report', token: 'https://sem.3ue.co/report?token=secret', accessToken: 'https://sem.3ue.co/report?access_token=secret', apiKey: 'https://sem.3ue.co/report?api-key=secret', csrf: 'https://sem.3ue.co/report?x-csrf-token=secret', session: 'https://sem.3ue.co/#/report?sessionKey=secret'})) {
+  for (const [name, url] of Object.entries({crossOrigin: 'https://example.com/report', token: 'https://semrush.example.com/report?token=secret', accessToken: 'https://semrush.example.com/report?access_token=secret', apiKey: 'https://semrush.example.com/report?api-key=secret', csrf: 'https://semrush.example.com/report?x-csrf-token=secret', session: 'https://semrush.example.com/#/report?sessionKey=secret'})) {
     const file = path.join(temp, `${name}.json`);
     await writeFile(file, JSON.stringify([{id: name, provider: 'semrush', report: 'custom', url, pageKind: 'table'}]));
     const result = run('audit', 'semrush', '--manifest', file, '--out-dir', path.join(temp, name), '--session', 'fixed', '--dry-run');
@@ -65,13 +65,13 @@ try {
   }
 
   const similarweb = path.join(temp, 'similarweb.json');
-  await writeFile(similarweb, JSON.stringify([{id: 'similarweb', provider: 'Similarweb', module: 'Website Analysis', label: 'Performance', status: 'captured', receiptPath: 'evidence/receipt.json', dataCompleteness: 'unknown', url: 'https://sim.3ue.co/#/digitalsuite/websiteanalysis/overview/website-performance/*/999/28d?webSource=Total&key=example.com', pageKind: 'table'}]));
+  await writeFile(similarweb, JSON.stringify([{id: 'similarweb', provider: 'Similarweb', module: 'Website Analysis', label: 'Performance', status: 'captured', receiptPath: 'evidence/receipt.json', dataCompleteness: 'unknown', url: 'https://similarweb.example.com/#/digitalsuite/websiteanalysis/overview/website-performance/*/999/28d?webSource=Total&key=example.com', pageKind: 'table'}]));
   const similarwebOut = path.join(temp, 'similarweb');
   assert.equal(run('audit', 'similarweb', '--manifest', similarweb, '--out-dir', similarwebOut, '--session', 'fixed', '--dry-run').status, 0);
   assert.equal(Object.hasOwn(JSON.parse(await readFile(path.join(similarwebOut, 'summary.json'), 'utf8')).entries[0], 'args'), false, 'summary omits child arguments');
 
   const authority = path.join(temp, 'authority.json');
-  await writeFile(authority, JSON.stringify([{id: 'authority', provider: 'semrush', report: 'custom', url: 'https://sem.3ue.co/report?authority=ok', pageKind: 'table'}]));
+  await writeFile(authority, JSON.stringify([{id: 'authority', provider: 'semrush', report: 'custom', url: 'https://semrush.example.com/report?authority=ok', pageKind: 'table'}]));
   assert.equal(run('audit', 'semrush', '--manifest', authority, '--out-dir', path.join(temp, 'authority'), '--session', 'fixed', '--dry-run').status, 0);
 
   const manifest = path.join(temp, 'manifest.json');

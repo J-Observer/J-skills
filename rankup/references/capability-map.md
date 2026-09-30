@@ -1,5 +1,23 @@
 # 能力清单：rankup 到底能干什么
 
+## 目录
+
+- [一、流程控制与项目记忆（判「现在该做什么」）](#一流程控制与项目记忆判现在该做什么)
+- [二、需求挖掘与选题（判「做什么方向」）](#二需求挖掘与选题判做什么方向)
+- [三、选词、趋势与竞争度（判「这个词能不能做」）](#三选词趋势与竞争度判这个词能不能做)
+- [四、竞品与数据面板（判「别人是怎么跑起来的」）](#四竞品与数据面板判别人是怎么跑起来的)
+- [五、建站与基础设施](#五建站与基础设施)
+- [六、上线前闸门、测量与品牌资产](#六上线前闸门测量与品牌资产)
+- [七、收录、索引与站长平台](#七收录索引与站长平台)
+- [八、站点体检、性能与第二台爬虫](#八站点体检性能与第二台爬虫)
+- [九、AI 搜索与 Agent 就绪度](#九ai-搜索与-agent-就绪度)
+- [十、外链（专项 Skill：backlink）](#十外链专项-skillbacklink)
+- [十一、社群与经验（判「别人踩过什么坑」）](#十一社群与经验判别人踩过什么坑)
+- [十二、小游戏专项](#十二小游戏专项)
+- [十三、浏览器与取数底座](#十三浏览器与取数底座)
+- [十四、兄弟 Skill 提供的能力（rankup 做不到或做得差的那些）](#十四兄弟-skill-提供的能力rankup-做不到或做得差的那些)
+- [覆盖度自检](#覆盖度自检)
+
 **这份文件的用途只有一个**：用户只说了一句模糊的人话（「我想让我的站流量涨一点」
 「今天弄下 SEO」「帮我看看这个词能不能做」），你需要在**不猜**的前提下知道
 ——rankup 有哪些能力、每个能力的入口在哪、判读依据在哪个文件。
@@ -26,8 +44,8 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 
 | 能力 | 一句话能干什么 | 入口 | 典型触发说法 |
 |---|---|---|---|
-| 环节闸门判据 | 12 个环节各一张表：检查项 / 客观通过条件 / 证据落点 / 复查口径 | [`references/checklists.md`](checklists.md) | 「这个环节能不能过」「本轮还差什么」 |
-| 生命周期步骤 | 七段（每段开头先对账）每段的输入、必做动作、步骤 check、完成门禁 | [`references/lifecycle.md`](lifecycle.md) | 「到哪一步了」「下一步做什么」 |
+| 环节闸门判据 | 七段各一张表：检查项 / 客观通过条件 / 证据落点 / 复查口径 | [`references/checklists.md`](checklists.md) | 「这个环节能不能过」「本轮还差什么」 |
+| 生命周期步骤 | 七段（每段开头先对账）每段的硬规则、输入、必做动作、步骤 check、完成门禁 | [`references/lifecycle.md`](lifecycle.md) 索引 → `lifecycle/stage-N-*.md` | 「到哪一步了」「下一步做什么」 |
 | 项目记忆结构 | `.rankup/` 该有哪些文件、各自的时效契约与提升路径 | [`references/project-memory.md`](project-memory.md) | 「给这个项目建个档」「rankup init」 |
 | 项目体检（文件层） | 缺失文件、超期记录、脚本体检、**生命周期检查点**（哪些工具还没用过） | `rankup/scripts/review.mjs` | 「rankup review」「这站还差什么没做」 |
 | 会话信号挖掘 | 把本项目的 Claude Code / Codex 会话浓缩成人话与结论，供提取经验 | `rankup/scripts/sessions.mjs` | review 第二步；「以前聊过的结论没沉淀」 |
@@ -35,6 +53,11 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 | 版本检查与自更新 | 比对远端清单、必要时更新本 Skill | `rankup/scripts/check-version.mjs` | 每次激活 |
 | Skill 自体门禁 | 项目中立性、凭据泄露、必需引用与内容片段的机械断言 | `rankup/scripts/validate-rankup.mjs` | 改完 Skill 必跑 |
 | 规则晋升与淘汰 | 一条经验该留项目侧还是回流 Skill、怎么废弃 | [`references/evolution.md`](evolution.md) | 「这条经验要不要写进 Skill」 |
+| 维护章节 | 收尾维护五步、清理判据、决策类文档维护、Skill 源码维护、`/rankup doctor` 编排 | [`references/maintenance.md`](maintenance.md) | 「收尾」「整理一下 rankup」「把这个经验写进 rankup」 |
+| 入口环节 | 词级调研第一步：Trends 同框 gpts → 有人做 → AI 探针 → GEO / SEO 路线 | [`references/playbooks/entry.md`](playbooks/entry.md) | 「这个词能不能做」 |
+| 项目记录诊断 | `.rankup/` 目录外文件、备份、接力超长、任务型残留、断链、过期日期、根层登记条目数 | `rankup/scripts/maintain/rankup-doctor.mjs` | 「/rankup doctor」 |
+| 全量扫描 | 给术语 / 脚本名 / 路径 / 阈值，列出 Skill 与指定 `.rankup/` 的全部引用 | `rankup/scripts/maintain/ref-scan.mjs` | 收尾维护第 ① 步 |
+| 文档断链与拆分 | 断链、断锚、超标检查；按计划拆分文档并自动修链接 | `rankup/scripts/maintain/doc-lint.mjs`、`split-doc.mjs` | 改完 Skill 文档必跑 |
 
 ## 二、需求挖掘与选题（判「做什么方向」）
 
@@ -53,7 +76,7 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 
 | 能力 | 一句话能干什么 | 入口 | 典型触发说法 |
 |---|---|---|---|
-| Stripe 引荐榜 | 谁在往 Stripe 收银台送人 = 谁已经在收钱，含 31 个月历史 | `scripts/demand/stripe-referring.mjs` | 「反查谁在赚钱」 |
+| Stripe 引荐榜 | 谁在往 Stripe 收银台送人 = 谁已经在收钱，官方前 20 名与单站 32 个月范围按 1 积分/业务调用；全榜/新进筛选保留旧入口，本轮未重验 | `scripts/demand/stripe-referring.mjs` | 「反查谁在赚钱」 |
 | 长尾支付网关反查 | Creem / Lemon Squeezy / Paddle / Gumroad 等网关的引荐站 | `scripts/demand/payment-referrers.mjs` | 「不用 Stripe 的那些人呢」 |
 | 收入/流量榜单聚合 | traffic.cv、TrustMRR、AI 工具榜、新品发现站统一取数 | `scripts/demand/boards.mjs` | 「有哪些站在涨」「谁的 MRR 高」 |
 | App 付费榜 | Apple 榜单（付费榜 = 已验证的付费意愿），可 `--list-genres` | `scripts/demand/appstore-charts.mjs` | 「用户愿意为什么掏钱」 |
@@ -71,15 +94,15 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 | 游戏平台监控 | 批量跑 sitemap-diff，多语种平台新内页汇成候选报告 | `scripts/demand/game-platform-monitor.mjs` | 「每天盯一遍游戏平台」 |
 | 竞品 sitemap 增量 | 竞品新布的 URL = 它自己花钱调研出来的结论 | `scripts/demand/sitemap-diff.mjs` | 「竞品最近在押哪些词」 |
 | 站群反查 | 给一个域名，找出同一主体运营的其它站 | `scripts/demand/site-network.mjs` | 「他还做了哪些站」 |
-| 域名画像 | 注册日期 / 月访问 / 流量结构 / 核心搜索词（只采不判） | `scripts/demand/aitdk-lookup.mjs` | 「这站是新站吗、量哪来的」 |
+| 域名画像 | 注册日期 / 月访问 / 流量结构 / 核心搜索词（只采不判；默认官方 gefei CLI，按积分余额计费，缺值未知） | `scripts/demand/domain-profile.mjs` | 「这站是新站吗、量哪来的」 |
 | 收入站案例复核 | 薄编排：串起 AITDK/Similarweb/Semrush/sitemap/KD，产出各源对照与倍差事实 | `scripts/demand/revenue-site-audit.mjs` | 「帖子说这站月入 X，真的假的」 |
 | SERP 取数 | serper.dev 拿 Google 第一页 organic + relatedSearches + PAA | `scripts/demand/serp-query.mjs` | 「这个词首页排的是什么」 |
 | 词根扩展 | 给词根并扩成可投喂数据平台的候选串（挖词的起手式） | `scripts/demand/word-roots.mjs` | 「我只有一个词根」 |
 | 搜索框下拉联想 | Google / Bing / DuckDuckGo 三引擎的搜索框联想，按语种带 `--hl` / `--gl`；扩树第二层的入口（词根 → 联想词 → 叶子再联想一次即停），只采集、每引擎独立落 manifest，0 条不等于没词 | `scripts/demand/suggest.mjs` | 「帮我扩树」「这个词大家还怎么搜」 |
 | CPC 折算 | 把关键词表里的 CPC 变成参与决策的信号（纯计算，不联网） | `scripts/demand/keyword-value.mjs` | 「这批词值多少钱」 |
 
-判读依据集中在 [`demand-sources.md`](demand-sources.md)：**十**（候选验证链路）、
-**十·五**（能排上去 ≠ 能赚钱）、**九·六**（自扩词表必漏一半）、**②·六·四**（模型流量何时高估）。
+判读依据集中在 [`demand-sources/validation-chain.md`](demand-sources/validation-chain.md)：**十**（候选验证链路）、
+**十·五**（能排上去 ≠ 能赚钱）、[`demand-sources/competitors-and-roots.md`](demand-sources/competitors-and-roots.md) **九·六**（自扩词表必漏一半）、**[②·六·四](demand-sources/validation-chain.md#②六四-semrush-的自然流量什么时候不能信先看它的词库分布再决定信不信总数)**（模型流量何时高估）。
 
 ### 没有脚本、但一样是正式来源的手工源
 
@@ -139,12 +162,14 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 
 | 能力 | 一句话能干什么 | 入口 | 典型触发说法 |
 |---|---|---|---|
-| 默认建站栈 | TanStack Start Monorepo 脚手架（shadcn 初始化命令唯一）+ Cloudflare-first 资源选型 | [`references/cloudflare-stack.md`](cloudflare-stack.md) + [`references/lifecycle.md`](lifecycle.md) 段 3 | 「新建个站」「搭个工具站」 |
+| 默认建站栈 | TanStack Start Monorepo 脚手架（shadcn 初始化命令唯一）+ Cloudflare-first 资源选型 | [`references/cloudflare-stack.md`](cloudflare-stack.md) + [`lifecycle/stage-3-build.md`](lifecycle/stage-3-build.md) 段 3 | 「新建个站」「搭个工具站」 |
 | 设计组件库参考 | 外部 shadcn 生态组件库（21st.dev 等），做页面级设计（Hero / landing page / 动画动效）时先浏览找案例再实现 | [`references/design-references.md`](design-references.md) | 「做个好看的页面」「找设计参考」「Hero 怎么设计」 |
-| 脚手架四个坑 | 每一条都实际踩过的初始化陷阱 | [`references/lifecycle.md`](lifecycle.md) 段 3 · 3.1 | 「init 报错了」 |
+| 脚手架四个坑 | 每一条都实际踩过的初始化陷阱 | [`lifecycle/stage-3-build.md`](lifecycle/stage-3-build.md) 段 3 · 3.1 | 「init 报错了」 |
 | 域名接入 Cloudflare | zone onboarding 并读回 NS 对（Wrangler 没有 zone 命令）；`status` 只读、`create` 建 | `scripts/cf-zone-setup.mjs` | 「把域名挂到 CF」 |
+| 域龄与首次快照 | 公开 WHOIS 注册日期、Wayback 首次快照与域龄；缺失保留原因 | `scripts/domain-age.mjs` | 「查域龄」「查首次快照」 |
 | 支付 / 邮件 / 第三方接入 | 接入方式与边界；三方库与现成服务优先 | [`references/integrations.md`](integrations.md) | 「接个 Stripe」「这个功能有没有现成的」 |
-| 变现路由 | 意图类型 → 变现方式、Stripe + PayPal 并存规则、广告 / 订阅 / 商店上架判据、监控读数何时回段 1 | [`references/monetization.md`](monetization.md) | 「这站怎么收钱」「接个 PayPal」 |
+| 变现路由 | 意图类型 → 变现方式、Stripe / Anyway / PayPal 选型与并存规则、广告 / 订阅 / 商店上架判据、监控读数何时回段 1 | [`references/monetization.md`](monetization.md) | 「这站怎么收钱」「接个 PayPal」 |
+| Anyway 支付接入 | stg/生产双环境 CLI、后台商品与 webhook、Worker 验签和订单复核 | [`references/payments-anyway.md`](payments-anyway.md)、`scripts/anyway/` | 「接 Anyway」「验证支付回调」 |
 | 多语言架构 | URL 结构、`<html lang>`、hreflang、繁简分治；**禁止按 IP 自动跳转语言** | [`experiences/webcafe-experiences.md`](experiences/webcafe-experiences.md) 三·五 + [`seo-growth.md`](seo-growth.md) | 「要不要上多语言」 |
 
 ## 六、上线前闸门、测量与品牌资产
@@ -158,7 +183,7 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 | 行为分析 | 在 Microsoft Clarity 建项目拿 project ID（会话录制 / 热图） | `scripts/clarity-setup.mjs` | 「想看用户怎么点的」 |
 | Ahrefs 项目接入 | 建项目、经 GSC 验证所有权、启用 Web Analytics 取回 `data-key` | `scripts/ahrefs-setup.mjs` | 「接下 Ahrefs」 |
 | 分析平台判读 | 各平台读数差异与验证方式 | [`references/analytics-platforms.md`](analytics-platforms.md) | 「两个统计对不上」 |
-| 接入清单看板 | 已上线站点至少覆盖的平台（域名无关一批 + 域名相关一批）与各自验证方式 | [`references/lifecycle.md`](lifecycle.md) 段 5 接入清单 → 项目 `.rankup/integrations.md` | 「还有哪些没接」 |
+| 接入清单看板 | 已上线站点至少覆盖的平台（域名无关一批 + 域名相关一批）与各自验证方式 | [`lifecycle/stage-5-launch.md`](lifecycle/stage-5-launch.md) 段 5 接入清单 → 项目 `.rankup/integrations.md` | 「还有哪些没接」 |
 | 产品发布平台 | Product Hunt 等发布排期与画廊图上传（**不要点上传按钮**） | [`references/product-launch.md`](product-launch.md) | 「发个 PH」 |
 
 ## 七、收录、索引与站长平台
@@ -172,7 +197,7 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 | 批量请求编入索引（可选加速） | 默认流程之外的可选工具：逐个 URL 走 GSC「网址检查」搜索框，未收录的点「请求编入索引」，受每日配额限制、自动断点续跑。**不要让 agent 手工逐页点击，一条命令跑完** | `scripts/gsc-request-indexing.mjs` | 「批量请求收录」「把 sitemap 里的页面都提交一下索引」「催一下收录」 |
 | 韩国市场 | Naver Search Advisor 注册、取验证 meta、提交 sitemap（CAPTCHA 需用户点一下） | `scripts/naver-setup.mjs` | 「做韩国市场」 |
 | 平台全景 | Bing / GSC / Naver / Yandex / IndexNow 的接入顺序与「挂进发布流程」 | [`references/search-platforms.md`](search-platforms.md) | 「站长工具都要接哪些」 |
-| 判读：不收录怎么排查 | 排名起不来、被 K 站、GSC 报索引异常、新站波动。默认排查看 sitemap 报告与覆盖率，不逐 URL 催；上一行的脚本是确认要催时才用的可选加速手段 | [`experiences/webcafe-experiences.md`](experiences/webcafe-experiences.md) 十七 ~ 十九 | 「一直不收录」 |
+| 判读：不收录怎么排查 | 排名起不来、被 K 站、GSC 报索引异常、新站波动。默认排查看 sitemap 报告与覆盖率，不逐 URL 催；上一行的脚本是确认要催时才用的可选加速手段 | [`experiences/webcafe-experiences-2.md`](experiences/webcafe-experiences-2.md) 十七 ~ 十九 | 「一直不收录」 |
 
 ## 八、站点体检、性能与第二台爬虫
 
@@ -183,15 +208,17 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 | AITDK 面板全自动取数 | 一条命令抓 AITDK 扩展面板 15 个标签页（Overview/Traffic/Backlinks/Adsense/Issues/GEO/SERP/Density/Headings/Images/Links/Social/Hreflangs/Structured/Whois）+ 页面 HTML/robots/sitemap/whois，并检测 `example.com` 占位域名泄漏 | `scripts/aitdk-opencli.sh <url>`，前置条件与输出形状见 [`seo-box.md`](seo-box.md)「AITDK 面板全自动取数」 | 「跑一下 AITDK」「GEO 标签页那半截」 |
 | 重定向链 | 裸域/www 几跳、旧 URL 是 301 还是 302（302/307 不传权重） | `curl -sIL`，判据 [`experiences/webcafe-topics.md`](experiences/webcafe-topics.md) 五 | 「跳转对不对」 |
 | 判据与分级表 | seo-audit 的 error/warning 阈值、Ahrefs 档位实测、第三方工具接不接的对账 | [`references/seo-box.md`](seo-box.md) | 「这条 warning 要紧吗」 |
-| 站点打不开类排障 | CF Pages 无效路径返回首页、图片慢、绑域名跳两次 | [`experiences/webcafe-experiences.md`](experiences/webcafe-experiences.md) 二十四 | 「站打不开」 |
+| 站点打不开类排障 | CF Pages 无效路径返回首页、图片慢、绑域名跳两次 | [`experiences/webcafe-experiences-2.md`](experiences/webcafe-experiences-2.md) 二十四 | 「站打不开」 |
 
 ## 九、AI 搜索与 Agent 就绪度
 
 | 能力 | 一句话能干什么 | 入口 | 典型触发说法 |
 |---|---|---|---|
-| 2026 AI 搜索范式 | AI Overviews / AI Mode / Preferred Sources / Discover 独立算法 / Information Gain；引用优先于排名 | [`references/seo-growth.md`](seo-growth.md) 三-B | 「怎么被 AI 引用」「AEO 怎么做」 |
+| 2026 AI 搜索范式 | AI Overviews / AI Mode / Preferred Sources / Discover 独立算法 / Information Gain；引用优先于排名 | [`references/seo-ai-search.md`](seo-ai-search.md) | 「怎么被 AI 引用」「AEO 怎么做」 |
 | Agent 就绪度评分 | `scan` 评分+待修项、`diff` 与上次对比、`history`；`--save` 存 `.rankup/agentic/` | `scripts/is-agentic.mjs` | 「llms.txt 要不要写」「对 AI 友好吗」 |
 | 全网基线分母 | Cloudflare Radar 的全网 AI Agent Readiness 聚合通过率（**不是站点扫描器**） | `scripts/cf-agent-baseline.mjs` | 「我这个分数算高吗」 |
+| AI 需求验证与推荐位 | 在目标引擎里重复提问，量化 AI 会推荐谁、推荐位是否被占（付费工具 / 游戏站 / 平台类必做）；流程与判据在 seo-geo.md | `scripts/demand/ai-probe.mjs`，流程 [`references/seo-geo.md`](seo-geo.md) | 「这个词在 AI 里有多大需求」「ChatGPT 会不会推荐我们」 |
+| AI 爬虫读到的 raw HTML | 用四个爬虫 UA 抓同一页，比较 raw HTML 是否一致、是否客户端渲染空壳 | `scripts/ua-parity.mjs`，判读 [`references/seo-ssr.md`](seo-ssr.md)「三-E」 | 「AI 爬虫读得到正文吗」 |
 
 ## 十、外链（专项 Skill：backlink）
 
@@ -207,14 +234,16 @@ rankup 只判「什么时候发、发多少」（SKILL.md 段 6 一行指回这�
 | 质量与毒性判读 | 无专用脚本，靠评分卡 | `backlink/references/link-quality-rubric.md` | 是 |
 | 付费平台登记 | 竞品在哪买的链接、投放平台估价 | `backlink/scripts/paid-platform-registry.mjs` | 读 `paid-platforms.md` |
 | 登录态后台抓表格 | 虚拟滚动、节流、静默丢行的完整陷阱清单 | `backlink/scripts/harvest.browser.js` + `harvest-collect.sh` + `harvest-merge.mjs` | 是（`harvest.md`） |
-| 判读：外链怎么发 | 买链花多少钱、KD → 引荐域数量对照、导航站过滤、发多快算太快 | [`experiences/webcafe-topics.md`](experiences/webcafe-topics.md) 五 + [`experiences/webcafe-experiences.md`](experiences/webcafe-experiences.md) 二十 | — |
+| 判读：外链怎么发 | 买链花多少钱、KD → 引荐域数量对照、导航站过滤、发多快算太快 | [`experiences/webcafe-topics.md`](experiences/webcafe-topics.md) 五 + [`experiences/webcafe-experiences-2.md`](experiences/webcafe-experiences-2.md) 二十 | — |
 
 ## 十一、社群与经验（判「别人踩过什么坑」）
+
+官方能力核对与只读试用（2026-09-30）：`knowledge_search --kind chat` 返回 `docId/title/date/speaker/snippet`，实测 `url=null`，只覆盖哥飞发言节选；目录明确 `knowledge_read` 提供相关段落、群聊去昵称，不是全文，本轮读取试用遇到 TLS 失败，不能视为成功覆盖。官方无论坛全集、悬赏投票榜或完整群聊消息字段的等价工具，因此保留 `webcafe-forum.mjs`：旧 HTTP 悬赏榜实测 20 条，浏览器群聊搜索实测 50 条上限；仍需会员访问权限，未出现工具箱每日配额扣费显示。原文取数与官方知识库积分调用分别记账。
 
 | 能力 | 一句话能干什么 | 入口 | 典型触发说法 |
 |---|---|---|---|
 | 论坛全站取数 | new.web.cafe：`get <任意站内 URL>` 万能入口、悬赏问答（含 `collect` 征集榜）、经验 91 条 / 帖子 722 条 / 教程 40 个、站内搜索 | `scripts/webcafe-forum.mjs` | 「论坛里搜一下」 |
-| 微信群归档搜索 | 14 个群的原文，**就是哥飞.ai 的知识库**，零 AI 额度 | `scripts/webcafe-forum.mjs chat-search "词"` | 「群里怎么说的」 |
+| 微信群归档搜索 | 14 个群的原文归档，会员取数；搜索最多 50 条，未出现工具箱每日配额扣费显示 | `scripts/webcafe-forum.mjs chat-search "词"` | 「群里怎么说的」 |
 | 直接使用哥飞开放 API 工具箱 | 实时工具目录，官方 CLI 从服务端实时读取目录；选词/竞品/域名/页面按官方 Skill 工作流编排，Rankup 自己判读 | [`seo-webcafe.md`](seo-webcafe.md) 指向官方 Skill | 「查词、拓词、拆竞品、审页面、查域名」 |
 | 取数注意 | **匿名不报错**：返回 200 但把正文抹成空串、票数归零 | [`references/webcafe-forum.md`](webcafe-forum.md) 第一节 | 拿到空正文时 |
 | 裁定集：挖需求阶段 | 还没定方向时的判断口径 | [`experiences/demand-discovery.md`](experiences/demand-discovery.md) | 「方向怎么选」 |
@@ -224,14 +253,16 @@ rankup 只判「什么时候发、发多少」（SKILL.md 段 6 一行指回这�
 | 裁定集：群友复盘 | 带数字与失败根因的单点实践 | [`experiences/webcafe-topics.md`](experiences/webcafe-topics.md) | 「有人做过这个吗」 |
 | 收录规则 | 往经验库加东西的三层归属与证据等级 | [`experiences/INDEX.md`](experiences/INDEX.md) | 「这条经验放哪」 |
 
-## 十二、小游戏专项（子 Skill：game-opportunity）
+## 十二、小游戏专项
+
+原子 Skill `game-opportunity`（每日 `collect` / `demand` / `evaluate` 与两份 checklist）已于 2026-09-28 从仓库移除，
+相关命令都不可用；需要时从 git 历史恢复或重写成 `scripts/demand/` 下的脚本，再更新本节。
 
 | 能力 | 一句话能干什么 | 入口 | 典型触发说法 |
 |---|---|---|---|
-| 每日全流程 | `collect`（discover + radar）→ `demand` → `evaluate`，产出当日候选与日报 | `node game-opportunity/scripts/game-opportunity.mjs daily` | 「运行小游戏监测」 |
-| 分步入口 | `discover` / `radar` / `dedupe` / `plan` / `demand` / `evaluate` / `render` | 同上，换子命令 | 「只跑一下发现」 |
-| 证据验收 | `collect-checklist` / `decision-checklist` 各 10 项硬验收（查证据在不在，不查判决对不对） | 同上 | 「今天这轮算完了吗」 |
-| 判读指引 | 双轨闸门分值表、KD × 新站动作表、深查 6 名额规则——**全部是 AI 判读参考，脚本不执行** | `game-opportunity/SKILL.md` | 「这个游戏值不值得做」 |
+| 链路与判断方法 | 发现 → 探索 → 研究 → 判断能不能做 → 观察复查的方法（不依赖已移除模块的部分仍可人工执行） | [`references/game-sites.md`](game-sites.md) | 「有什么游戏站能做」「这个游戏值不值得做」 |
+| 多语种游戏平台新内页 | 批量跑 sitemap-diff，汇成候选报告 | `scripts/demand/game-platform-monitor.mjs` | 「跑一下小游戏监测」 |
+| 持续涌现新词的游戏源 | 新游戏标题取数 | `scripts/demand/game-newtitles.mjs` | 「最近有什么新游戏」 |
 | 建站阶段规则 | 游戏站的页面形态、iframe、变现 | [`references/game-sites.md`](game-sites.md) | 「游戏站怎么搭」 |
 
 ## 十三、浏览器与取数底座
@@ -255,11 +286,11 @@ rankup 只判「什么时候发、发多少」（SKILL.md 段 6 一行指回这�
 |---|---|---|---|
 | 词表分层与聚类 | 已有词表按意图/优先级/内容簇分组（**它自己不取数**，取数仍归 rankup） | `/keyword-research` | 「这一百个词先写哪几篇」「怎么分簇」 |
 | 被 LLM 引用的内容形状 | 逐平台来源选择机制、内容改写模式、llms.txt / OKF 知识包 | `/ai-seo` | 「这篇怎么改才会被 AI 引用」 |
-| JSON-LD schema 模板库 | 结构化数据模板与字段填法（**只取模板，它的脚本一律不用**） | `/seo-geo` 的 `references/schema-templates.md` | 「加个结构化数据」 |
+| JSON-LD schema 模板库 | 结构化数据模板与字段填法（**只取模板，它的脚本一律不用**；外部 Skill，不是本仓库的 `references/seo-geo.md`） | `/seo-geo` 的 `references/schema-templates.md` | 「加个结构化数据」 |
 | 联网调研方法论 | 先广后深的分层检索法，替代裸 WebSearch | `/deep-research` | 「查一下 X 是怎么回事」 |
 | 实时检索与正文抽取 | `search` / `batch_search` 并行 / `extract` 取网页全文 / 垂直领域检索 | `/anysearch` | 「这次更新到底改了什么」 |
 | 中文社媒用户原话 | 小红书 / 推特 / B 站 / V2EX / Reddit / YouTube 等 15 平台取数 | `/agent-reach` | 「大家怎么评价 X」「小红书上怎么说」 |
-| Agent Skill 供给盘点 | 1.6M SKILL.md 索引检索（**要时间序信号仍用 `demand/github-skill-search.mjs --mode recent`**） | `/skillsmp` | 「这个领域有人做过没」「别重复造轮子」 |
+| Agent Skill 供给盘点 | 按关键词检索公开 Skill（**要时间序信号用 `demand/github-skill-search.mjs --mode recent`**）；原 `/skillsmp` 已于 2026-09-28 移除 | `find-skills` | 「这个领域有人做过没」「别重复造轮子」 |
 | 中文长内容起稿 | 中文创作与改稿，含「非虚构长文先列五件材料」的前置门槛 | `/human-writing` | 「写篇中文长文」 |
 | 去 AI 味 | 初稿后的模板感/表演腔清理，保留术语与责任主体 | `/shuorenhua` | 「这稿子 AI 味太重」 |
 | 扩词：心理角度 | 痛点词 / 对比词 / 决策词 | `/marketing-psychology` | 「扩词想不出角度了」 |
@@ -295,7 +326,7 @@ rankup 只判「什么时候发、发多少」（SKILL.md 段 6 一行指回这�
   外加 `playbooks/` 目录；
 - 生命周期 **七段**（每段开头先对账）× 闸门表——`lifecycle.md` 与 `checklists.md` 段编号一一对应，
   旧的 0–10 与 7.5 编号见 `lifecycle.md` 顶部映射表；
-- 专项 / 底座 Skill：`backlink`（必要时加载）、`game-opportunity`（游戏专项）、`opencli`（浏览器底座）；
+- 专项 / 底座 Skill：`backlink`（必要时加载）、`opencli`（浏览器底座）；原 `game-opportunity` 已于 2026-09-28 移除；
 - 兄弟 Skill：判定「值得接」的 12 项见上方 §十四，判定「不接」的与理由见
   [`skill-ecosystem.md`](skill-ecosystem.md)。
 

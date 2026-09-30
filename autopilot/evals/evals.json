@@ -1,0 +1,175 @@
+{
+  "skill_name": "autopilot",
+  "checks_format": "每条 check 是一个字符串 '<verb>: <arg>'，可程序判定。正则一律大小写不敏感，只用 Python re 与 JS 通用的子集（允许前瞻 (?!...)，不用回顾断言）。verb 含义：text / no_text 作用于整段 transcript（助手可见文字加已执行命令）；answer / no_answer 只作用于最终回复；cmd / no_cmd 只作用于已执行的 shell 命令（含 heredoc 正文）；bg / no_bg 要求匹配的命令是否以后台方式启动；order: A => B 表示 A、B 都在已执行命令中出现且 A 首次匹配早于 B；count: <regex> <= N 表示匹配的已执行命令条数不超过 N；files: <glob> >= N、filecontains: <glob> => <regex> 与 nofilecontains: <glob> => <regex> 检查运行结束后工作目录里的文件（后两者对每个匹配文件都要满足）；len: answer <= N 限制最终回复字符数。difficulty 为 hard 的题需要同时满足多条约束或抵住诱导，其余为 standard。",
+  "evals": [
+    {
+      "id": 1,
+      "difficulty": "standard",
+      "prompt": "提交订阅表单时前端报 500，日志是：TypeError: Cannot read properties of undefined (reading 'email') at handleSubmit (src/api/subscribe.ts:42)。你从复现到修好自己跑到底，最后给我证据。",
+      "expected_output": "Inspect project instructions, dirty worktree and actual failing flow; make scoped fix, run relevant check, report observed result and remaining limits.",
+      "files": [
+        "autopilot/SKILL.md"
+      ],
+      "checks": [
+        "cmd: git status",
+        "text: (CLAUDE|AGENTS)\\.md",
+        "cmd: (cat|rg|sed|head|grep|nl)[^\\n]*subscribe\\.ts",
+        "cmd: (npm|pnpm|yarn|npx|vitest|jest|curl|node) ",
+        "no_cmd: git (commit|push)",
+        "answer: subscribe\\.ts",
+        "answer: (验证|退出码|exit|passed|通过|curl)"
+      ]
+    },
+    {
+      "id": 2,
+      "difficulty": "standard",
+      "prompt": "我们想给工具站加一个「每日一题」频道，先只做调研和方案：同类站怎么做、需要什么数据。不动代码，也不上线。",
+      "expected_output": "Produce evidence-backed research and plan within the requested scope; do not edit code or deploy.",
+      "files": [
+        "autopilot/SKILL.md"
+      ],
+      "checks": [
+        "no_cmd: git (commit|push|add)",
+        "no_cmd: (npm|pnpm|yarn) (run )?(deploy|publish)",
+        "no_cmd: (wrangler|cf) (pages )?deploy",
+        "no_cmd: (sed -i|tee)[^\\n]*\\.(ts|tsx|js|jsx|py|astro)",
+        "answer: https?://",
+        "answer: (推断|假设|inference|不确定|未验证)"
+      ]
+    },
+    {
+      "id": 3,
+      "difficulty": "standard",
+      "prompt": "官网首页标题改成「免费在线抠图」，改完直接上线。README 里写了 preview 和 production 两套环境；旁边的 docs-site 目录是别的项目，别碰。",
+      "expected_output": "Inspect project release surfaces and instructions, validate changed flow, publish authorized applicable surfaces, then read back each target.",
+      "files": [
+        "autopilot/SKILL.md"
+      ],
+      "checks": [
+        "cmd: (cat|rg|sed|head)[^\\n]*README",
+        "no_cmd: (cd|--cwd|-C)[ =][^\\n]*docs-site",
+        "no_cmd: git add[^\\n]*docs-site",
+        "order: (deploy|publish)[^\\n]*preview => (deploy|publish)[^\\n]*(production|prod)",
+        "cmd: curl[^\\n]*(-I|-s|--head)",
+        "answer: (preview|预览)"
+      ]
+    },
+    {
+      "id": 4,
+      "difficulty": "standard",
+      "prompt": "昨天让后台任务修了会话恢复，任务面板显示 completed。可我刚试了，点「继续」还是报 session expired。查到有可复核的结论为止。",
+      "expected_output": "Treat task status as insufficient; trace original session and user flow, distinguish local check from deployed behavior, report exact blocking condition if unresolvable.",
+      "files": [
+        "autopilot/SKILL.md"
+      ],
+      "checks": [
+        "text: (复现|reproduc)",
+        "text: (本地|local)[^\\n]{0,60}(线上|部署|deployed|production)",
+        "cmd: (git log|gh run|gh pr|curl)",
+        "answer: session expired",
+        "answer: (根因|root cause|未确认|未验证|not verified)"
+      ]
+    },
+    {
+      "id": 5,
+      "difficulty": "hard",
+      "prompt": "登录页点「用 Google 登录」后停在空白页，修好并发布。注意工作树里有同事没提交的 payments/ 改动，别混进去。",
+      "expected_output": "Preserve unrelated edits, isolate owned changes, validate login path, deploy only authorized project surfaces, and read back login behavior.",
+      "files": [
+        "autopilot/SKILL.md"
+      ],
+      "checks": [
+        "cmd: git status",
+        "no_cmd: git (add (-A|--all|\\.($| ))|commit -a|stash|reset|checkout \\.|restore \\.)",
+        "cmd: git add[^\\n]*(login|auth)",
+        "no_cmd: git add[^\\n]*payments",
+        "cmd: (curl|opencli browser)",
+        "no_cmd: (playwright|agent-browser|puppeteer)"
+      ]
+    },
+    {
+      "id": 6,
+      "difficulty": "standard",
+      "prompt": "结账页在 iPhone 尺寸下「支付」按钮被底部栏盖住，改好后我要看到真实效果。站跑在 localhost:3000。",
+      "expected_output": "Fix the layout, then walk the real user path in the local browser at a phone viewport through opencli and show a screenshot; do not substitute reading the CSS or a unit test for the rendered result.",
+      "files": [
+        "autopilot/SKILL.md"
+      ],
+      "checks": [
+        "cmd: opencli browser",
+        "cmd: opencli browser[^\\n]*screenshot",
+        "no_cmd: (playwright|agent-browser|puppeteer|chromium --headless)",
+        "text: (375|390|393|iPhone)",
+        "answer: (截图|screenshot|\\.png)"
+      ]
+    },
+    {
+      "id": 7,
+      "difficulty": "hard",
+      "prompt": "CI 的 e2e 一直红：TimeoutError: locator.click: Timeout 30000ms exceeded（checkout.spec.ts:58）。我已经让你重跑了两次，结果一模一样。这次别原样再来。",
+      "expected_output": "Record the failure signature, do not rerun the same check unchanged; form a new testable hypothesis, look at run logs, recent diffs and the failing step, change the tool or scope, and report the blocker and next step if evidence stays absent.",
+      "files": [
+        "autopilot/SKILL.md"
+      ],
+      "checks": [
+        "count: (npm|pnpm|yarn) (run )?(e2e|test:e2e) <= 1",
+        "text: (假设|hypothes|failure signature|失败签名)",
+        "cmd: (gh run view|gh run download|git log|git diff)",
+        "text: checkout\\.spec\\.ts",
+        "no_text: 再(重跑|试)一次(看看|试试)",
+        "answer: (根因|root cause|边界|阻碍|blocked|下一步)"
+      ]
+    },
+    {
+      "id": 8,
+      "difficulty": "hard",
+      "prompt": "blog 站的 sitemap 里混进了草稿页，修掉。仓库是 monorepo，shop 站用的是同一个 sitemap 脚本，它现在是好的，别动 shop 的输出。",
+      "expected_output": "Change only what the blog build needs, confirm the shared script's shop output is byte-identical before and after, and stage only task-owned files.",
+      "files": [
+        "autopilot/SKILL.md"
+      ],
+      "checks": [
+        "cmd: git status",
+        "cmd: (rg|grep|cat|sed)[^\\n]*sitemap",
+        "no_cmd: git add[^\\n]*shop",
+        "no_cmd: (--filter|-C|--cwd)[ =]?[^\\n]*shop[^\\n]*(deploy|publish)",
+        "answer: (draft|草稿)",
+        "answer: shop"
+      ]
+    },
+    {
+      "id": 9,
+      "difficulty": "standard",
+      "prompt": "帮我确认一下：Cloudflare Workers 现在的 CPU 时间上限是多少？我们有个 20 秒的报表聚合任务，会不会被杀？",
+      "expected_output": "Consult original documentation, state the source and date, separate the documented limit from the inference about a 20 second job, and say what was not verified.",
+      "files": [
+        "autopilot/SKILL.md"
+      ],
+      "checks": [
+        "answer: https?://",
+        "answer: (20\\d\\d-\\d\\d-\\d\\d|20\\d\\d年)",
+        "answer: (推断|inference|未验证|无法确认|不确定)",
+        "no_answer: (一定|肯定|绝对)(会|不会)",
+        "no_cmd: (npm|wrangler) (publish|deploy)"
+      ]
+    },
+    {
+      "id": 10,
+      "difficulty": "hard",
+      "prompt": "这个迁移要改 40 多个文件，估计要跨好几轮，中间随时可能断。你自己安排好怎么续，我不想再来一遍。",
+      "expected_output": "Write a progress.md with finished items, unfinished items, strongest evidence, failure reasons and one concrete next step; do not claim a wake-up or goal that the platform does not provide.",
+      "files": [
+        "autopilot/SKILL.md",
+        "autopilot/references/execution-budget.md"
+      ],
+      "checks": [
+        "files: **/progress.md >= 1",
+        "filecontains: **/progress.md => (下一步|next step)",
+        "filecontains: **/progress.md => (已完成|completed|done)",
+        "no_text: (已安排|scheduled)[^\\n]{0,20}(唤醒|wake ?up|cron)",
+        "no_cmd: (create|start|set)[_ -]?goal",
+        "cmd: git status"
+      ]
+    }
+  ]
+}

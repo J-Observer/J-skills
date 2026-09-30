@@ -1,5 +1,23 @@
 # Cloudflare-first 全栈架构
 
+## 目录
+
+- [1. 默认项目脚手架](#1-默认项目脚手架)
+- [2. TanStack Start SSR 和 API](#2-tanstack-start-ssr-和-api)
+- [3. 按需求选择资源](#3-按需求选择资源)
+- [4. cf CLI、Wrangler 和 bindings 工作流](#4-cf-cliwrangler-和-bindings-工作流)
+- [5. D1 数据与迁移](#5-d1-数据与迁移)
+- [6. R2 对象与上传](#6-r2-对象与上传)
+- [7. KV、Queues、Workflows 与 Durable Objects](#7-kvqueuesworkflows-与-durable-objects)
+- [8. 环境隔离](#8-环境隔离)
+- [8.5 接入域名 · 8.6 品牌邮箱（已下沉）](#85-接入域名--86-品牌邮箱已下沉)
+- [8.7 Cloudflare 的 AI 爬虫阻止（边缘拦截与 robots.txt）](#87-cloudflare-的-ai-爬虫阻止边缘拦截与-robotstxt)
+- [8.8 基础安全：主动补齐，按用途取舍](#88-基础安全主动补齐按用途取舍)
+- [9. 部署（已下沉）](#9-部署已下沉)
+- [10. Live verification：真实线上验证](#10-live-verification真实线上验证)
+- [11. 已验证的部署陷阱(2026-08 回流)](#11-已验证的部署陷阱2026-08-回流)
+- [12. 匿名页面 HTML 边缘缓存（Cache API）](#12-匿名页面-html-边缘缓存cache-api)
+
 本文件定义 `rankup` 新网站的默认运行平台和资源选择方法。Cloudflare-first 的含义是：没有已批准的例外时，TanStack Start 的 SSR、API、数据、对象存储、异步任务和部署统一使用 Cloudflare；它不意味着预先创建全部 Cloudflare 产品。每项资源都必须由当前需求驱动，并在目标环境完成真实验证。
 
 ## 1. 默认项目脚手架
@@ -49,8 +67,8 @@ SSR 最小验收不是进程启动，而是请求真实路由后同时确认：
 
 已部署的 Worker 不受影响，旧 registry 继续跑；只有显式加这个 flag 才切换。
 
-**对本仓库现有项目的判断（2026-09-11 复核）**：`nonogram-jp`、`crossword-ar`、
-`<project>`（某小工具站）、`videocatch` 四个 Worker 项目的 `wrangler.jsonc`/`wrangler.toml` 都只有
+**对本仓库现有项目的判断（2026-09-11 复核）**：四个同栈 Worker 项目
+的 `wrangler.jsonc`/`wrangler.toml` 都只有
 `nodejs_compat`，没有人加过 `new_module_registry`；`.rankup/` 里也没有任何项目记录过
 `ERR_REQUIRE_ESM`、`import.meta` 报错或因 esbuild 单文件打包导致冷启动变慢的踩坑—— TanStack
 Start 的 `@cloudflare/vite-plugin` 构建链目前没有把我们逼到这些墙上，因此**这不是紧急修复
@@ -83,11 +101,13 @@ Start 的 `@cloudflare/vite-plugin` 构建链目前没有把我们逼到这些�
 - Durable Objects 只在需要协调、序列化写入或每实体强一致状态时使用，不能替代普通 D1 查询。
 - Secret 名称、用途、环境、存储位置、负责人、访问状态和轮换信息可以写入 `.rankup/secrets.md`；真实值绝不进入 `.rankup/`、源码、Git、测试夹具、命令行参数或可回传日志。
 
-## 4. Wrangler 和 bindings 工作流
+## 4. cf CLI、Wrangler 和 bindings 工作流
 
-Cloudflare 配置或部署任务应使用 Wrangler，并按需调用 Wrangler/Workers 专业 Skill。安装 Skill：
+Web 项目的 Cloudflare 工具链需要 `cf` CLI。它覆盖账号级 API（包括 zone、DNS 等），用本仓库 `/cf-cli` Skill 先搜索并核对当前命令。现有项目的构建、bindings 和部署仍按项目锁定的 Wrangler 工作流；装 `cf` 不等于迁移项目。安装 CLI 与 Skill：
 
 ```bash
+npm i -g cf
+npx skills add yan-labs/yan-skills --skill cf-cli -g -y
 npx skills add cloudflare/skills --skill wrangler -g -y
 npx skills add cloudflare/skills --skill workers-best-practices -g -y
 ```
@@ -170,271 +190,9 @@ npx skills add cloudflare/skills --skill workers-best-practices -g -y
 4. secrets 均存在于目标环境，但输出不包含真实值。
 5. 回滚部署或前滚修复路径已记录。
 
-## 8.5 接入域名：把 zone 加进 Cloudflare
+## 8.5 接入域名 · 8.6 品牌邮箱（已下沉）
 
-**域名接入在生命周期的段 5，不在建站之初。** 开发与上线前体检全部在预览域
-（`workers.dev` 或预览 URL，`noindex`）上完成，域名只是代码里的一处配置留位；
-等 `lifecycle.md` 段 5 的黑历史裁决通过、域名定稿之后，绑正式域名的第一步才是
-**让 Cloudflare 接管这个域名**（zone onboarding）。
-部署到 `workers.dev` 不需要 zone；只有配置了 custom domain / routes 的 `wrangler deploy`
-会因为找不到 zone 而失败，custom domain 也无从绑定。
-
-**Wrangler 没有 zone 命令。** 实测其完整命令面覆盖 Workers / Pages / KV / R2 / D1 /
-Queues / AI / Containers / secret / email，**没有任何创建或列出 zone 的子命令**——
-zone 属于账号层资源，不在 Wrangler 职责内。因此不要试图用 `wrangler` 完成这一步，
-也不要因为 Wrangler 做不到就断言"这件事只能人工做"。
-
-### 两条路径，按优先级
-
-**路径 A（优先）：操作用户自己的浏览器。**
-Cloudflare 后台是登录态页面，按本 Skill 的浏览器规则，必须驱动**用户本机那个真实的、
-已登录的浏览器**，不得使用运行环境自带的沙箱浏览器（沙箱没有用户会话，只会看到登录页）。
-流程：打开 Cloudflare 控制台 → Add a domain → 输入域名 → 选择方案 → 读回分配到的
-nameserver 对 → 把这对 NS 交给用户。
-
-这条路的优势不只是省事：**全程不涉及任何凭据**。它只是代替用户点了几下网页，
-没有任何 token 被创建、传输或落盘，因此不产生新的泄露面。
-
-**路径 B（退路）：用户已有 API 凭据时，走脚本。**
-浏览器不可用时（扩展未连接、用户机器网络受限、无图形界面），用
-`scripts/cf-zone-setup.mjs`。让**用户自己**把凭据写进项目根的 `.cf-token`
-（该文件必须先加入 `.gitignore`），或导出为环境变量；脚本自行读取，
-凭据值不经过对话、不进日志、不落提交。
-
-```bash
-node <rankup-skill-dir>/scripts/cf-zone-setup.mjs status <domain>   # 先只读探测
-node <rankup-skill-dir>/scripts/cf-zone-setup.mjs create <domain>   # 建 zone 并读回 NS
-```
-
-**先跑 `status`**：它是只读的，既能验证凭据有效，又能发现 zone 其实已经存在
-（重复创建会报错，而错误信息不会告诉你"其实已经有了"）。
-
-### 凭据选型：这里的默认答案是 scoped token
-
-创建 zone 需要 **`Zone > Zone > Edit`，且资源范围必须是 All zones**。
-zone 尚不存在，所以 zone-scoped 的 token 建不了它——这是官方文档明确写死的约束，
-不是可以绕的配置问题。
-
-**永远优先 scoped API Token，不要用 Global API Key。** 两者在使用现场都只是一串字符，
-但风险差着数量级：Global Key 不能限定 scope、资源或 IP，等同账号完全控制权
-（所有 zone、所有 Worker、DNS、账单），且无法按用途回收；scoped token 可以窄到
-"只允许改 zone 配置"，即使泄露，可造成的最大伤害也被框死。
-
-两者的 HTTP 认证方式还不同，认错会得到一个**极具误导性的错误**：
-
-| 凭据 | 长度 | header |
-|---|---|---|
-| API Token | 40 字符 | `Authorization: Bearer <token>` |
-| Global API Key | 37 位十六进制 | `X-Auth-Email` + `X-Auth-Key`（必须带账号邮箱） |
-
-把 Global Key 当 Bearer 发出去，返回的是 `400 / 6003 Invalid request headers`。
-这条错误看起来像"请求头写错了"，会把排查引向请求构造，**而真实成因是凭据类型不匹配**。
-判据：先按长度判别凭据形态，再选 header。
-
-### 换 NS 之前必须先关 DNSSEC
-
-**注册商默认签名已是常态**——新注册的域名可能立刻就是 `DNSSEC: signedDelegation`。
-带着旧的 DS 记录把 NS 指向新服务商，验证型 resolver 会 SERVFAIL，**域名整个打不开**，
-而症状伪装成"NS 还没生效，再等等"，排查方向完全错，代价是白等一天。
-
-顺序不可颠倒：
-
-1. 注册商后台关闭 DNSSEC；
-2. `whois -h <注册局 whois 主机> <domain>` 复查到 `DNSSEC: unsigned` 才继续；
-3. 在 Cloudflare 建 zone、取得 NS 对；
-4. 注册商侧 **整体替换** NS（删掉原有的，不是追加——混合 NS 会解析错乱）；
-5. 等 zone 变为 active；
-6. 用 Cloudflare 提供的 DS 记录重新启用 DNSSEC。
-
-Spaceship 注册的域名可用官方 API 操作，免去逐站手改 NS：
-`scripts/spaceship-api.mjs get <domain>` 只读核对；
-`scripts/spaceship-api.mjs set-ns <domain> <Cloudflare NS1> <Cloudflare NS2>` 整体替换并跳过已一致的配置。
-先按上面步骤关闭旧 DNSSEC、确认注册局 DS 已消失，再执行 `set-ns`。
-脚本从 macOS 钥匙串读取 `rankup.spaceship.api-key` 与 `rankup.spaceship.api-secret`
-（账户名 `kcsx`），不会把凭据放到命令参数、项目文件或日志里。
-通用官方端点可用 `scripts/spaceship-api.mjs request GET /domains/<domain>`；
-写入请求的 JSON 从标准输入读取，其他操作的路径与参数按[Spaceship 官方 API](https://docs.spaceship.dev/)核对。
-Spaceship 另有[官方远程 MCP](https://www.spaceship.com/en-GB/knowledgebase/spaceship-mcp/)（`https://mcp.spaceship.com/mcp`，OAuth 授权，含 `domain_set_nameservers`）；目前官方仅验证 Claude 客户端，其他 MCP 客户端需实际连接验收。
-
-**NS 对是按 zone 分配的**，加站点之后才知道是哪一对，无法预先告知或猜测；
-换一个域名就是另一对，不可套用上一个项目的值。
-
-### 判定域名状态只看注册局 whois
-
-不要用本机 `dig` 判断域名是否被占用或 NS 是否已切换：解析器或 VPN 可能返回劫持应答
-（例如落在 `198.18.0.0/15` 基准测试保留段的地址），看起来像一条正常记录。
-**权威来源是注册局 whois**，且每批查询都应带正对照（一个确定已注册的域名）与
-负对照（一个随机串），否则无法把"查不到"与"查询链路故障"区分开。
-
-### 一个会误判成"Cloudflare 打不开"的现象
-
-若用户机器无法访问某个身份提供商（例如 OAuth 跳转的域被网络阻断），
-Cloudflare 后台点"用该身份登录"会失败，表现为**控制台整个打不开**。
-此时应分别探测身份提供商与 Cloudflare 各自的可达性，而不是断定 Cloudflare 不可用——
-改用邮箱密码登录通常即可解决。
-
-### www / http 收敛
-
-「从 WWW 重定向到根」这类 Single Redirects 模板默认只匹配 `https://www.*`，
-`http://www` 入口会先被「Always Use HTTPS」接走再撞规则，多跳一次而不是一跳到位。
-**结论**：改成按主机名匹配（不含协议）+ `concat` 拼目标 URL，不要靠关闭
-「Always Use HTTPS」解决——判据与具体规则写法见
-[`seo-box.md`](seo-box.md)「二 · 重定向链：要能力，不要那个网站」。
-
-### 域名绑定到 Workers（全 API，零界面操作）
-
-**目标**：以后用户只需要说"域名买完了"并给出域名，就能自动走完 zone 接入
-→ Workers 自定义域名绑定 → 环境变量 → 索引放开的全流程，只把分配到的 NS
-地址返回给用户去注册商那边改，不需要用户或 Claude 再点任何 Cloudflare 控制台
-页面。这条是上面"路径 B 脚本"和"§9.1 Workers Builds API"两段经验在**域名接入
-这一步**的延伸整合，记录一次完整实测串联起来的顺序，供以后直接照抄。
-
-**前提**：
-- 凭据（scoped API Token 或 Global API Key，选型判据见上文「凭据选型」）已就绪，
-  `wrangler whoami` 能成功返回 Account ID。
-- 目标 Worker 已通过 Workers Builds 部署（push `main` 自动构建，见 §9.1）。
-
-**触发**：用户说"域名买完了""帮我绑域名""这个域名绑一下"并给出域名名称。
-
-**流程（按顺序执行）**：
-
-1. **添加 zone**：`POST /zones`，`account.id` 填目标账号，`type: full`。
-   响应的 `result.id` 是 zone_id；`result.name_servers` 是唯一要回传给用户的东西；
-   `result.original_registrar` 能看出域名在哪个注册商——流程不依赖具体注册商，
-   只要用户能进去改 NS 就行。这一步也可以直接用已有的 `scripts/cf-zone-setup.mjs
-   create <domain>`，两者等价，脚本内部同样是这个端点。
-
-   **随即显式关闭 AI 爬虫拦截**：先 `GET /zones/{zone_id}/bot_management` 记录现值，再以具备 Bot Management 编辑权限的凭据调用 `PUT /zones/{zone_id}/bot_management`，将 `ai_bots_protection`、`ai_training`、`ai_search`、`ai_user` 全部设为 `disabled`；回读四个字段。正式域名可访问后再用 [`ai-crawler-access.mjs`](../scripts/ai-crawler-access.mjs) 逐 UA 实测，不能只看 robots.txt。【实测 2026-09-28】
-
-2. **绑定 Workers 自定义域名**（裸域 + `www` 各一条）：`PUT
-   /accounts/{account_id}/workers/domains`，请求体为
-   `{"hostname": "<domain 或 www.<domain>>", "zone_id": "<zone_id>", "service":
-   "<worker-name>", "environment": "production"}`。Cloudflare 自动签发证书
-   （响应带 `cert_id`），不需要手动去 SSL/TLS 页面等待。
-   **端点必须是 `/accounts/{account_id}/workers/domains`（单条 PUT，一次绑一个
-   hostname），不是 `/workers/scripts/{name}/domains`**——后者不存在，会报
-   parse error，是本次实测踩到的第一个坑。
-
-3. **设置 `SITE_URL` 环境变量**：不要用 Workers 的 `PUT .../settings` API 改——
-   那个端点要求 `Content-Type: multipart/form-data`，不接受 JSON，比直接改配置
-   麻烦。改在项目的 `wrangler.jsonc`（通常在 `apps/<site>/wrangler.jsonc`）的
-   `vars` 里写 `"SITE_URL": "https://<domain>"`，提交推送 `main`，Workers Builds
-   自动重新部署（见 §9.1）。
-
-4. **把 NS 地址交给用户**：取步骤 1 响应里的 `result.name_servers`（一对），
-   按上文「换 NS 之前必须先关 DNSSEC」的顺序提醒用户——先关注册商侧 DNSSEC，
-   再整体替换 NS（不是追加），而不是直接甩两个地址过去让用户自己踩坑。
-
-5. **等 NS 生效**：判定方式见上文「判定域名状态只看注册局 whois」，不要用本机
-   `dig` 下结论；也可以轮询 `GET /zones/<zone_id>`，看 `status` 从 `pending`
-   变成 `active`。通常几分钟到 24 小时不等，不要在这一步空等或反复轮询占用前台。
-
-6. **NS 生效、正式域名验证通过后立刻放开索引**：在 `wrangler.jsonc` 的 `vars` 里加
-   `"ALLOW_INDEX": "true"`，提交推送，走 Workers Builds 自动重新部署。
-   同样不必走 Workers settings API——直接改配置文件更省事，理由同步骤 3。
-   **不要等 GSC/Bing/IndexNow 这批站长工具接完再放开**——那是分析与站长工具接入，
-   跟正式域名能不能被抓取无关，拿它当索引闸门只会平白拖长正式域名带着 `noindex`
-   公开可访问的窗口，见 [`lifecycle.md`](lifecycle.md) 段 5.4 第 22 条的真实教训。
-
-7. **协议/host 收敛到规范 URL**：zone 没开 Always Use HTTPS、`www` 子域也没收敛到
-   裸域（或反过来），会让 http / http-www / https-www 三种非规范协议+host 组合
-   都能直接 200 访问到内容——这是一批表面上互不相干的问题（Ahrefs 之类的第二双
-   眼睛报出的重复内容、多个 sitemap 出现同一批 URL、内链走了非规范 host）背后
-   共同的根因，属于建站接入环节本应一次做好的 Day-1 类项，晚做的返工成本明显
-   更高。用 `scripts/cf-zone-setup.mjs` 的 `check-redirects`/`apply-redirects`
-   子命令：
-
-   ```bash
-   node <rankup-skill-dir>/scripts/cf-zone-setup.mjs check-redirects <domain>
-   node <rankup-skill-dir>/scripts/cf-zone-setup.mjs apply-redirects <domain> --to apex
-   ```
-
-   `--to apex` 把 `www.<domain>` 收敛到裸域，`--to www` 收敛到 `www` 子域，二选一
-   必填、没有默认值——方向是意图声明，不能靠猜。两个已验证的坑（2026-09-13）：
-   - `target_url` 的 `expression` **不支持 `if()`**，wirefilter 表达式语法会报
-     `unknown identifier`——查询串保留与否交给同级的 `preserve_query_string`
-     参数处理，不要在 expression 里手写判空逻辑。
-   - **不要套用 Cloudflare 控制台自带的「从 WWW 重定向到根」模板规则**：它硬编码
-     匹配 `https://www.*`（要求协议已经是 https），来源若是 `http://www.*` 会先
-     被 Always Use HTTPS 接走升级协议、再撞上这条规则，变成两跳而不是一跳。手写
-     规则按 `http.host`（不含协议前缀）匹配，不管来源协议是 http 还是 https 都
-     一次性跳到位，这是刻意的设计，不是疏漏。
-
-**这一条经验补充的坑，前两段没写全的部分**：
-- Workers Custom Domains 的正确端点是账号级的 `/accounts/{account_id}/
-  workers/domains`，裸域和 `www` 子域名各发一次请求，不是一次调用绑两个 host。
-- 环境变量（`SITE_URL`、`ALLOW_INDEX`）走 `wrangler.jsonc` 而不是 Workers
-  settings API，是因为后者的 `multipart/form-data` 要求在纯脚本化流程里明显
-  更麻烦，不是这个 API 做不到。
-- 域名在哪个注册商买的不影响这条流程，只要用户能进去改 NS 就行。
-
-**实测验证**：2026-09-11，两个域名分别绑定到各自的 Workers 项目，从 zone
-创建到自定义域名生效、环境变量部署，全流程走 API 完成，全程零界面操作；
-协议/host 收敛（步骤 7，`check-redirects`/`apply-redirects`）：2026-09-13
-在真实账号上验证通过。
-
-## 8.6 品牌邮箱：Cloudflare Email Routing
-
-域名在 Cloudflare 上之后，用 **Email Routing** 给站点加一个官方邮箱（如 `hello@<domain>`），
-零成本把收到的邮件转发到个人邮箱。先用 `wrangler --version` 和 `wrangler email routing --help`
-核验本机支持的命令与参数；支持则优先 CLI，不支持则直接用官方 API，不要求打开控制台。
-
-```bash
-wrangler email routing settings <domain>          # 查看状态
-wrangler email routing enable <domain>            # 启用（自动配 MX/SPF/DKIM）
-wrangler email routing addresses list             # 已验证的目标地址
-wrangler email routing addresses create <email>   # 注册目标（首次需点确认链接）
-wrangler email routing rules create <domain> \    # 创建转发规则
-  --match-type literal --match-field to \
-  --match-value "hello@<domain>" \
-  --action-type forward --action-value "<email>"
-wrangler email routing rules list <domain>        # 验证规则
-wrangler email routing dns get <domain>           # 验证 DNS 记录
-```
-
-**路径 B：Cloudflare API。** CLI 不支持或认证不可用时直接使用官方 REST API；
-按操作核验 Email Routing 或 DNS 编辑权限。凭据只从环境变量或安全存储读入进程内的认证头，
-不得打印、落入报告或放进命令实参；不要复制带明文认证头的 curl 命令。
-
-| 操作 | API 路径（基址 `https://api.cloudflare.com/client/v4`） |
-|---|---|
-| 启用 Email Routing（先核验所需 DNS 与现有收件配置不冲突） | `POST /zones/{zone_id}/email/routing/enable` |
-| 查看状态 | `GET /zones/{zone_id}/email/routing` |
-| 列出转发规则 | `GET /zones/{zone_id}/email/routing/rules` |
-
-**实测陷阱**：Dashboard 上 Email Routing 的「启用/禁用」开关有时点击无响应——
-routing 显示「已禁用」但 DNS 记录和规则都在。此时 API `POST .../enable`
-能立刻把 `enabled` 翻成 `true`、`status` 变为 `ready`。
-如果 Dashboard 开关不动，别反复点——直接走 API。【实测 2026-09-03】
-
-**冲突风险**：`enable` 会写入 Cloudflare 自己的 MX 记录。如果域名已有 MX
-（Google Workspace / Zoho 等），启用前先确认不会抢走现有邮箱的收件。
-
-**只管收件**：Email Routing 只做转发，不提供发件能力。
-需要用域名邮箱发信时另接实际发信服务，并验证该服务的 SPF / DKIM 与 DMARC 对齐；不能因已接 Routing 就认定能外发。
-
-### 邮件防冒充：与收信一起验收
-
-新建或绑定域名、接入 `hello@`、上线验收及现站 `rankup review` 时，**主动核查 SPF、DKIM、DMARC 并补齐可确认的缺口**；收信成功不能代替防冒充验收。先读现有 DNS、代码与发送服务配置，区分只收信、实际外发及用途未知，并核对独立发信子域及其 DMARC 策略。
-
-- **只收信**须有证据或用户确认：核对没有会受父域策略影响的发信子域后，可在 `_dmarc.<domain>` 添加 TXT：`v=DMARC1; p=reject; sp=reject; adkim=r; aspf=r`。已有独立发信子域先验证其认证与策略，不能直接套 `sp=reject`。保留 Cloudflare Routing 所需 MX / SPF / DKIM，不为套用「不发信」模板而改坏转发记录。
-- **有外发**：盘点验证码、通知、营销、人工回复等实际发送服务；逐个验证 SPF / DKIM 及与可见 From 的 DMARC 对齐，再启用 `quarantine` / `reject`。`p=none` 只是观察，不能标记已防护；只收信无需虚构外发 DKIM 测试。
-- **用途未知**：继续只读核验及其他可完成工作，仅阻塞拒收/隔离策略变更，不得默认为只收信。
-
-通用 DNS TXT 使用 [Cloudflare DNS Records API](https://developers.cloudflare.com/api/resources/dns/subresources/records/methods/create/)；先读后写，不创建重复 DMARC、不覆盖其他 TXT、不降级现有策略：
-
-| 操作 | API 路径（同上基址） |
-|---|---|
-| 查询目标记录 | `GET /zones/{zone_id}/dns_records?type=TXT&name=_dmarc.<domain>` |
-| 仅在缺失时新增 | `POST /zones/{zone_id}/dns_records`，正文含 `type: "TXT"`、`name: "_dmarc.<domain>"`、已确定的 `content`、`ttl: 1` |
-| 已存在且确需调整 | `PATCH /zones/{zone_id}/dns_records/{dns_record_id}`，精确使用查询所得 ID，仅修改需要的字段 |
-
-写入后 API 回读，并查询权威 DNS 与公共递归 DNS，确认唯一有效 DMARC 及策略内容一致；DNS 未生效时只能记待验证，不能报完成。在项目 `.rankup/integrations.md` 记录用途依据、变更前后、记录 ID、验证时间和回滚方法（恢复旧值；本次新增则删除该精确 ID），不保存凭据。收信测试与实际外发邮件头的 SPF / DKIM / DMARC 认证测试分开记录；无外发时后者标不适用，不主动发送未经授权的测试邮件。
-
-策略含义与配置参考：[Cloudflare 邮件安全记录](https://developers.cloudflare.com/dmarc-management/security-records/)。
-
-**地址只有一个约定：`hello@<domain>`**，不用 `contact@` / `admin@` / `info@`。
-详见 `lifecycle.md` 段 5 批 B 第 26 条的完整操作指南与注意事项。
+§8.5「接入域名：把 zone 加进 Cloudflare」（含域名绑定到 Workers 全 API 流程、AI 爬虫 Bot Management 四字段）与 §8.6「品牌邮箱：Cloudflare Email Routing」（含 SPF / DKIM / DMARC）全文见 [`cloudflare/domain-email.md`](cloudflare/domain-email.md)。
 
 ## 8.7 Cloudflare 的 AI 爬虫阻止（边缘拦截与 robots.txt）
 
@@ -475,135 +233,9 @@ Cloudflare 的 Bot Management 拦截与托管 robots.txt 是不同层。新 zone
 
 官方参考：[响应头规则](https://developers.cloudflare.com/rules/transform/response-header-modification/)、[静态资产响应头](https://developers.cloudflare.com/workers/static-assets/headers/)、[HSTS](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/http-strict-transport-security/)。
 
-## 9. 部署
+## 9. 部署（已下沉）
 
-**默认方式是 Cloudflare 原生 Git 集成，不写 GitHub Actions 部署 workflow。** 原因：GitHub Actions
-免费额度用完就断（已因账单问题整批失败过），而 Cloudflare 的构建额度对站点这个量级几乎用不完。
-仓库里不应该出现给网站部署用的 `.github/workflows/*.yml`（跑测试、lint 的 workflow 不受此限）。
-本地 `pnpm -C apps/<site> run deploy`（`wrangler deploy` / `wrangler pages deploy`）只作应急兜底；
-Git 集成的自动构建与本地手动部署两条路径并存时，**以 Cloudflare 自动构建产生的 deployment 为准**。
-**没有”额度用完自动切换”这种机制**，不要向用户承诺。
-
-### 段 3 建站部署必做清单
-
-脚手架跑通、仓库建好之后，**以下五步必须在段 3 内完成**，不留到段 5：
-
-1. **安装 Cloudflare Vite 插件**：`pnpm -C apps/web add -D @cloudflare/vite-plugin`，在 `vite.config.ts` 里把 `cloudflare({ viteEnvironment: { name: "ssr" } })` 放在 `tanstackStart()` **之前**。
-2. **创建 `wrangler.jsonc`**：在 `apps/web/` 下建，必填 `name`、`compatibility_date`、`nodejs_compat`、`main: "@tanstack/react-start/server-entry"`、`assets.binding`。
-2b. **配置 `pnpm.onlyBuiltDependencies`**：在根 `package.json` 的 `pnpm.onlyBuiltDependencies` 数组里加入 `workerd` 和 `unrs-resolver`。Workers Builds CI 默认禁止 postinstall 脚本，不加这两个包会导致 workerd 原生二进制文件缺失、vite plugin 无法正确生成 `dist/server/wrangler.json`，deploy 阶段报 entry-point not found。
-4. **接入 Workers Builds**：跑 `cf-builds-connect.mjs`（参数模板见 §9.1 表格），确认 trigger 已建、环境变量已写。GitHub App 首次装到 org/user 时需要浏览器 OAuth，装完后全程走脚本。
-5. **触发并验证首次构建**：Workers Builds 连接后**不会自动构建**，需手动触发一次或 push 一个命中 watch paths 的提交，确认构建成功且线上可访问。
-
-**判据**：push `main` 后 3-5 分钟内 Cloudflare 自动构建部署，线上响应更新。未达到此判据，段 3 部署环节不算完成。
-
-### 9.1 接入方式：Git 存储库连接 / Workers Builds
-
-**优先用脚本走 API，不开浏览器。** 下面的控制台路径只在 GitHub App 还没装到目标 org/user
-（一次性 OAuth 授权，API 做不到）时才需要，装完之后新项目全程走 `cf-builds-connect.mjs`；
-判据见 [`discipline.md`](discipline.md) 五「有 API/CLI 且有凭据就不开浏览器」。
-
-控制台路径：Workers & Pages → 选中项目 → Settings → 构建（Build）→ Git 存储库「连接」。
-GitHub App 授权必须由用户本人在控制台点，安装时选 **Only select repositories**（不要整个组织）。
-
-#### API 路线（Workers Builds，已验证 2026-09-10）
-
-用 `node scripts/cf-builds-connect.mjs --help` 看完整参数；`--dry-run` 只打印将要调用的
-端点与 payload（密钥隐去）。前提仍是 GitHub App 已装到目标 org/user 且勾了目标仓库——这一步
-没有 API，只需做一次，做完之后同一个 org 下的所有仓库都不用再开浏览器。
-
-**端点链**（脚本内部按顺序调用）：
-
-1. `GET /accounts/{account_id}/workers/services/{worker}` 取 `default_environment.script_tag`。
-2. `PUT /accounts/{account_id}/builds/repos/connections` 建仓库连接，拿 `repo_connection_uuid`。
-   需要 `provider_account_id`（GitHub org/user 的数字 id，不是登录名）；脚本用 `gh api
-   orgs/<owner>` / `gh api users/<owner>` 猜，猜不出就去已接过的姊妹项目跑一遍
-   `GET /accounts/{account_id}/builds/workers/{script_tag}/triggers` 抄 `repo_connection` 字段。
-3. `POST /user/tokens` 新建窄权限 build token：Workers Scripts Write、Account Settings
-   Read、User Details Read；绑自定义域名（`custom_domain` / `route`）时再加 Workers Routes
-   Write，`resources` 限定到那一个 zone，不给全账号权限。
-4. `POST /accounts/{account_id}/builds/tokens` 把上一步的 token 登记为该 Worker 专属的
-   build token，拿 `build_token_uuid`。
-5. `POST /accounts/{account_id}/builds/triggers` 建 trigger：`external_script_id`
-   （即 script_tag）、`repo_connection_uuid`、`build_token_uuid`、`branch_includes`、
-   `root_directory`、`build_command`、`deploy_command`、`path_includes`/`path_excludes`。
-6. `PATCH /accounts/{account_id}/builds/triggers/{trigger_uuid}/environment_variables`
-   写构建变量（`NODE_VERSION`、`PNPM_VERSION`，对齐 `package.json` 的 `packageManager`）。
-
-**watch 排除清单**（`--path-exclude`，避免文档/设计改动触发无谓构建）：
-`.rankup/**`、`**/*.md`、`.claude/**`、`.design/**`。
-
-**permission groups 的坑**：账号级权限组（Workers Scripts Write / Account Settings Read /
-Workers Routes Write）在 `GET /accounts/{account_id}/tokens/permission_groups`；用户级权限组
-（User Details Read）在另一个端点 `GET /user/tokens/permission_groups`——两者不在同一张列表
-里，混着查会报「找不到权限组」。
-
-**连接后不会自动构建**：与下方 9.1.1 的实测一致，Workers Builds 连接成功不会触发首次构建，
-需要一次命中 watch paths 的 push，或手动调 `POST
-/accounts/{account_id}/builds/triggers/{trigger_uuid}/builds` 触发一次来验证。首次构建实测
-51–82 秒成功。
-
-**Pages 项目（纯静态站）**：
-
-| 配置项 | 值 |
-|---|---|
-| Production branch | `main` |
-| Root directory | 留空 |
-| Build command | `pnpm install --frozen-lockfile && pnpm -C apps/<site> run build` |
-| Build output directory | `apps/<site>/<outdir>` |
-| 环境变量 | `NODE_VERSION`、`PNPM_VERSION`（对齐 `package.json` 的 `packageManager`） |
-| Build watch paths | include `apps/<site>/*`、`apps/<site>/**/*`、`pnpm-lock.yaml` |
-
-**Workers Builds（TanStack Start / SSR）**：
-
-| 配置项 | 值 |
-|---|---|
-| Branch | `main` |
-| Root directory | 留空 |
-| Build command | `pnpm install --frozen-lockfile && pnpm -C apps/<site> run build` |
-| Deploy command | `pnpm -C apps/<site> exec wrangler deploy --config dist/server/wrangler.json` |
-| 环境变量 | `NODE_VERSION`、`PNPM_VERSION`（同上） |
-| Build watch paths | include `apps/<site>/*`、`apps/<site>/**/*`、`packages/**`、`pnpm-lock.yaml` |
-
-**deploy_command 必须指向 vite build 生成的配置**：`@cloudflare/vite-plugin` 在 `vite build` 时
-生成 `apps/<site>/dist/server/wrangler.json`（内含 `"main":"index.js"` 和 `"no_bundle":true`），
-wrangler 实际读的是这个生成配置。源 `wrangler.jsonc` 的 `main` 是虚拟路径
-`@tanstack/react-start/server-entry`，在 CI 环境下 wrangler 无法解析，deploy 阶段会报
-`entry-point file not found`。本地 `wrangler dev` 能跑是因为 vite plugin 做了 redirect，
-但 `wrangler deploy --config wrangler.jsonc` 在 CI 里不走这条路。
-
-【实测 2026-09-06，某 pnpm monorepo（Node 26，pnpm 10.33.4）】Pages 项目连接后
-自动触发首次构建，50 秒内成功，Node 26 可用；Worker 项目连接后**不会自动触发构建**，
-需要一次命中 watch paths 的 push 才会构建。项目内如已有该仓库自己的部署实测记录文档，
-优先参考它，不要跨项目硬编码路径。
-
-**Git 集成缺少的东西，不要以为它会自动做**：不会跑冒烟测试、不会自动回滚、不会跑 IndexNow。
-回滚用控制台的 Rollback 或 `wrangler rollback`；IndexNow 在确认发布成功后本地手动跑
-`scripts/indexnow-submit.mjs`。
-
-#### 9.1.1 实测注意（2026-09-06）
-
-- **Workers Builds 连接不自动构建**：Pages 连接后立即自动构建；Workers Builds 连接后不会自动触发，需一次命中 watch paths 的 push。Pages 里被 watch paths 排除的 commit 显示 skipped，属正常。
-- **控制台路径**：Worker 部署列表 `/workers/services/view/<worker>/production/deployments`；构建历史 `/workers/services/view/<worker>/production/builds`（「部署」标签页内「前往构建历史」）；单次构建详情页顶部标题右侧有「重试构建」按钮。
-- **构建状态 API**：按 worker 列构建 `/accounts/<id>/builds/workers/<worker>/builds` 实测始终返回空数组（已知问题）；但**单次构建状态和日志可用**：`GET /accounts/<id>/builds/builds/<build_uuid>` 返回构建详情（status/build_outcome），`GET /accounts/<id>/builds/builds/<build_uuid>/logs` 返回构建日志。build_uuid 在手动触发或 webhook 响应中获取。**trigger 配置可 PATCH 更新**：`PATCH /accounts/<id>/builds/triggers/<trigger_uuid>` 可以修改 deploy_command、build_command 等字段，无需删除重建。
-- **幽灵依赖坑**：apps/web 直接 import 只在 packages/ui 声明的包（如 `sonner`），本地能过、Cloudflare `pnpm install --frozen-lockfile` 后解析失败。接入前必须在 `mktemp -d` 做干净克隆验证：`git clone --depth 1 + pnpm install --frozen-lockfile + pnpm -C apps/<site> run build` 全部通过，所有直接 import 的包都要在本包 package.json 声明。
-- **实测耗时**：Pages 静态站约 50 秒，Worker（TanStack Start）约 58 秒；Node 26.8.1 可用。
-- **skipped 构建的真实原因（2026-09-07 用 API 确认更正）**：此前记录"手动 wrangler deploy 抢占排队中的自动构建导致 skipped"是错误归因。真实原因是 Cloudflare Pages 的 build watch paths 不匹配 `apps/<site>/**` 这种写法——单独的 `**` 通配符不会命中该目录下的一级文件，导致对应 commit 被判定为不在 watch 范围内而 skipped。改成 `apps/<site>/*` + `apps/<site>/**/*`（一级文件 + 更深层级都覆盖）后重试构建即可成功。手动 `wrangler deploy`/`wrangler pages deploy` 与 Git 自动构建各自生成独立的 deployment 记录，并存时以后完成的那次为准，不会导致对方被标记 skipped。配置与重试都可走 Pages API（`source.config.path_includes` 改 watch paths、`deployments/<id>/retry` 重试构建），不必开浏览器。Pages 一次自动构建约 1 分钟，Workers 约 1 分钟，push 后等 3 到 5 分钟再看。
-- **用 wrangler 查状态，不用浏览器**：Pages 项目用 `pnpm -C apps/<site> exec wrangler pages deployment list --project-name <项目>`，Source 列是 commit hash 的就是 Git 自动构建，Status 为 Idle 表示排队、Active 表示当前生产。Workers Builds 没有 wrangler 命令，`wrangler deployments list` 只能看版本与时间，构建成功与否要看控制台 `/workers/services/view/<worker>/production/builds`。
-- **GitHub App 接入，看不到 Webhooks**：Cloudflare 与仓库的连接走 GitHub App，仓库 Settings → Webhooks 里看不到条目，属正常。
-
-### 9.2 应急兜底：本地 `wrangler deploy`
-
-只在 Git 集成不可用（临时调试、Git 集成尚未连上）时使用，不作为常态部署路径：
-
-1. 检查工作树和精确提交。
-2. 运行类型检查、测试和生产构建。
-3. 执行或确认目标环境 D1 迁移。
-4. 使用 Wrangler 部署明确环境。
-5. 读取部署结果，记录 Worker 版本/部署 ID、时间、Git SHA 和 URL。
-6. 等待目标部署实际进入可服务状态。
-7. 执行下一节的 live verification。
-
-Wrangler 报”上传成功”只证明产物送达某个控制面步骤，不证明 custom domain、生效版本、bindings 或业务路径正常。
+§9「部署」（Cloudflare 原生 Git 集成、Workers Builds、模板与坑）全文见 [`cloudflare/deploy.md`](cloudflare/deploy.md)。
 
 ## 10. Live verification：真实线上验证
 

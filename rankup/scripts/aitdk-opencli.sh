@@ -54,9 +54,9 @@
 #      that frame's execution context and the next eval fails with
 #      "has already been declared".
 #
-#   5. opencli binary: the globally-installed `opencli` on PATH is a different
-#      npm install that lacks the frame support this needs. Override with
-#      OPENCLI_BIN if the local checkout moves.
+#   5. opencli binary: defaults to `opencli` on PATH. If that installation
+#      lacks frame support, set OPENCLI_BIN to a compatible executable or
+#      command before running this script.
 #
 # Parsing is best-effort. AITDK renders labels and values as separate innerText
 # lines, sometimes label-run-then-value-run (Overview) and sometimes
@@ -73,6 +73,8 @@
 # section loop require repeated identical readings before accepting the score; see
 # the comments at both call sites for the exact symptoms this was observed
 # to produce.
+# 2026-09-28: GEO can take up to 3 minutes to appear; poll every 5s and report a timeout if no score appears.
+# 2026-09-28: First dedicated-session navigation can intermittently return Navigation rejected after creating the target tab; check its URL before retrying in the same session.
 #
 # Usage:
 #   aitdk-opencli.sh <url> [session-name] [output-file] [options]
@@ -86,7 +88,8 @@
 #
 # Options:
 #   --skip-panel          skip Part B (AITDK extension panel) entirely, Part A only
-#   --window <mode>       dedicated (default) | foreground — see "window modes" below
+#   --geo-only            capture Overview, Issues, GEO only for targeted rechecks
+#   --window <mode>       dedicated (default) | background | foreground — see "window modes" below
 #   --slot <name>         pin this run to a named OpenCLI dedicated window slot
 #                         (`^[A-Za-z0-9_.-]{1,40}$`). Omit it for a one-off call — the
 #                         session then borrows an idle window from OpenCLI's own pool
@@ -146,13 +149,14 @@ set -euo pipefail
 # out literally (no stored variable) or put it in its own `.sh` file and run
 # that with `bash file.sh`; don't rely on unquoted variable expansion for
 # ad-hoc opencli one-liners typed directly into a zsh shell.
-OPENCLI_BIN="${OPENCLI_BIN:-node /Users/kcsx/Project/kcsx/opencli/dist/src/main.js}"
+OPENCLI_BIN="${OPENCLI_BIN:-opencli}"
 
 # ---------- args ----------
 # Order-independent flag parsing (positionals collected separately) so
 # aitdk-batch.sh can append --window/--slot/--window-bounds after the three
 # positional args without disturbing them.
 SKIP_PANEL=0
+GEO_ONLY=0
 WINDOW_MODE="dedicated"
 SLOT=""
 WINDOW_BOUNDS=""
@@ -160,11 +164,12 @@ POSITIONAL=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --skip-panel) SKIP_PANEL=1; shift ;;
+    --geo-only) GEO_ONLY=1; shift ;;
     --window) WINDOW_MODE="${2:-}"; shift 2 ;;
     --slot) SLOT="${2:-}"; shift 2 ;;
     --window-bounds) WINDOW_BOUNDS="${2:-}"; shift 2 ;;
     -h|--help)
-      echo "Usage: $(basename "$0") <url> [session-name] [output-file] [--skip-panel] [--window dedicated|foreground] [--slot <name>] [--window-bounds x,y,w,h]" >&2
+      echo "Usage: $(basename "$0") <url> [session-name] [output-file] [--skip-panel|--geo-only] [--window dedicated|background|foreground] [--slot <name>] [--window-bounds x,y,w,h]" >&2
       exit 0 ;;
     --) shift; while [[ $# -gt 0 ]]; do POSITIONAL+=("$1"); shift; done ;;
     -*) echo "Unknown option: $1 (see --help)" >&2; exit 1 ;;
@@ -182,12 +187,12 @@ OUTFILE_GIVEN=0
 [[ -n "$OUTFILE" ]] && OUTFILE_GIVEN=1
 
 if [[ -z "$URL" ]]; then
-  echo "Usage: $(basename "$0") <url> [session-name] [output-file] [--skip-panel] [--window dedicated|foreground] [--slot <name>] [--window-bounds x,y,w,h]" >&2
+  echo "Usage: $(basename "$0") <url> [session-name] [output-file] [--skip-panel|--geo-only] [--window dedicated|background|foreground] [--slot <name>] [--window-bounds x,y,w,h]" >&2
   exit 1
 fi
 
-if [[ "$WINDOW_MODE" != "dedicated" && "$WINDOW_MODE" != "foreground" ]]; then
-  echo "--window must be 'dedicated' or 'foreground' (got: $WINDOW_MODE)" >&2
+if [[ "$WINDOW_MODE" != "dedicated" && "$WINDOW_MODE" != "background" && "$WINDOW_MODE" != "foreground" ]]; then
+  echo "--window must be 'dedicated', 'background' or 'foreground' (got: $WINDOW_MODE)" >&2
   exit 1
 fi
 if [[ -n "$SLOT" && ! "$SLOT" =~ ^[A-Za-z0-9_.-]{1,40}$ ]]; then
@@ -278,7 +283,24 @@ log "Opening $URL (session: $SESSION, window: $WINDOW_MODE${SLOT:+, slot: $SLOT}
 # that opencli can no longer address the AITDK panel frame at all (`eval --frame`
 # silently falls back to the main page); dedicated mode keeps the tab visible without
 # raising the window, see the "window modes" comment near the top of this file.
-$OPENCLI_BIN browser "$SESSION" open "$URL" >/dev/null
+for attempt in 0 1 2; do
+  if open_output="$($OPENCLI_BIN browser "$SESSION" open "$URL" 2>&1)"; then
+    break
+  fi
+  if [[ "$open_output" != *"Navigation rejected"* || "$attempt" -eq 2 ]]; then
+    printf '%s\n' "$open_output" >&2
+    exit 1
+  fi
+  sleep 3
+  current_url="$($OPENCLI_BIN browser "$SESSION" eval 'location.href' 2>/dev/null || true)"
+  current_url="${current_url#\"}"
+  current_url="${current_url%\"}"
+  if [[ "$current_url" == "$URL" ]]; then
+    log "Target URL already open after Navigation rejected; continuing"
+    break
+  fi
+  warn "Navigation rejected; retrying in the same session ($((attempt + 1))/2)"
+done
 
 # ---------- 2. let the page settle ----------
 sleep 6
@@ -384,8 +406,8 @@ fi
 ok "Captured on-page SEO data"
 
 # ---------- 3b. placeholder-domain detection (example.com leakage) ----------
-# Known failure mode on this workspace's TanStack Start sites (nonogram-jp,
-# crossword-ar): SITE_URL isn't injected at build time, so og:url / canonical
+# Known failure mode on TanStack Start sites: SITE_URL isn't injected at
+# build time, so og:url / canonical
 # / twitter:image etc. fall back to a literal "example.com" placeholder that
 # then ships to production. Flag it instead of silently reporting bad data.
 ISSUES_JSON='[]'
@@ -669,13 +691,17 @@ fi
 
 log "Part B: driving the AITDK extension panel (frame-eval path)"
 
-# Sections to read, in sidebar order. These are the exact button labels inside
+# Sections to read, with GEO first to match the successful manual trigger. These are the exact button labels inside
 # the panel iframe. Deliberately omitted: Settings, Archive (local UI),
 # Similarweb / Semrush / Ahrefs / PageSpeed / Twitter (navigate off-site).
-PANEL_SECTIONS=(
-  Overview Traffic Backlinks Adsense Issues GEO SERP Density
-  Headings Images Links Social Hreflangs Structured Whois
-)
+if [[ "$GEO_ONLY" -eq 1 ]]; then
+  PANEL_SECTIONS=(GEO Overview Issues)
+else
+  PANEL_SECTIONS=(
+    GEO Overview Traffic Backlinks Adsense Issues SERP Density
+    Headings Images Links Social Hreflangs Structured Whois
+  )
+fi
 # Sections that fetch remote data and need a longer settle.
 SLOW_SECTIONS=" Traffic Backlinks Adsense GEO SERP "
 
@@ -893,18 +919,21 @@ for label in "${PANEL_SECTIONS[@]}"; do
   # actual score digits either haven't rendered yet or are frozen at "0 / 100"
   # mid-animation. On 2026-09-24 the live AITDK GEO skeleton persisted for
   # over 2 minutes on one site. A new non-zero score may also be an animated
-  # intermediate (8 before 57 was observed). Poll for up to 3 minutes
+  # intermediate (8 before 57 was observed). Poll for up to AITDK_GEO_WAIT seconds
   # until three consecutive readings agree. See geo_score_from_text()
   # above for why the generic empty-check cannot catch this case.
   if [[ "$label" == "GEO" ]]; then
-    geo_attempt=0
+    geo_wait="${AITDK_GEO_WAIT:-180}"
+    geo_elapsed=0
     geo_score="$(geo_score_from_text "$SECTION_TEXT")"
     geo_prev=""
     geo_prev_prev=""
-    while [[ "$geo_attempt" -lt 18 ]] && ! geo_score_is_stable "$geo_score" "$geo_prev" "$geo_prev_prev"; do
-      geo_attempt=$((geo_attempt + 1))
-      warn "Section 'GEO': score not stable yet (read: '${geo_score:-<none>}') — waiting 10s and re-reading ($geo_attempt/18)"
-      sleep 10
+    while [[ "$geo_elapsed" -lt "$geo_wait" ]] && ! geo_score_is_stable "$geo_score" "$geo_prev" "$geo_prev_prev"; do
+      geo_step=5
+      if (( geo_wait - geo_elapsed < geo_step )); then geo_step=$((geo_wait - geo_elapsed)); fi
+      warn "Section 'GEO': score not stable yet (read: '${geo_score:-<none>}') — waiting ${geo_step}s and re-reading"
+      sleep "$geo_step"
+      geo_elapsed=$((geo_elapsed + geo_step))
       ensure_frame || true
       geo_prev_prev="$geo_prev"
       geo_prev="$geo_score"
@@ -913,11 +942,14 @@ for label in "${PANEL_SECTIONS[@]}"; do
       BODY_LEN="$(jq -r '(.bodyLength // 0)' <<<"$SECTION_JSON" 2>/dev/null || echo 0)"
       geo_score="$(geo_score_from_text "$SECTION_TEXT")"
     done
-    if ! geo_score_is_stable "$geo_score" "$geo_prev" "$geo_prev_prev"; then
-      warn "Section 'GEO': score still unstable after ${geo_attempt} extra read(s) (last: '${geo_score:-<none>}') — recording as-is; do not trust this score without checking manually"
-      panel_errors+=("geo: score unstable after retries (last read: '${geo_score:-<none>}')")
-    elif [[ "$geo_attempt" -gt 0 ]]; then
-      ok "Section 'GEO': score settled at $geo_score after ${geo_attempt} extra read(s)"
+    if [[ -z "$geo_score" || "$geo_score" == "0" ]]; then
+      warn "GEO 未出分（等待 ${geo_elapsed} 秒）"
+      panel_errors+=("GEO 未出分（等待 ${geo_elapsed} 秒）")
+    elif ! geo_score_is_stable "$geo_score" "$geo_prev" "$geo_prev_prev"; then
+      warn "Section 'GEO': score still unstable after ${geo_elapsed}s (last: '$geo_score') — recording as-is; do not trust this score without checking manually"
+      panel_errors+=("geo: score unstable after ${geo_elapsed}s (last read: '$geo_score')")
+    elif [[ "$geo_elapsed" -gt 0 ]]; then
+      ok "Section 'GEO': score settled at $geo_score after ${geo_elapsed}s"
     fi
   fi
 

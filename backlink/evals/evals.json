@@ -85,6 +85,70 @@
         "Keeps authority, traffic, form, submitted, public, indexed, and rel evidence separate.",
         "Uses distinct OpenCLI sessions for parallel screeners and never bypasses login, CAPTCHA, paywall, or anti-spam controls."
       ]
+    },
+    {
+      "id": 8,
+      "prompt": "我拿到一份别人整理的 500 个免费外链站名单。帮我筛出这次真正值得提交的目标，保留被排除项的依据；现在不要提交。",
+      "expected_output": "Produces a normalized, deduplicated candidate queue with observed route/gate evidence and separately retained network-family exclusions; unverified routes remain targets, never verified placements. No submission occurs.",
+      "files": [
+        "backlink/data/submission-targets.json",
+        "backlink/data/network-fingerprints.json",
+        "backlink/references/instant-publish.md"
+      ],
+      "checks": [
+        "Uses scripts/third-party-list-ingest.mjs with data/network-fingerprints.json.",
+        "Preserves excluded family matches and their reasons.",
+        "Does not set relObserved, anchorRendered, or indexability for an unverified target.",
+        "Does not submit forms or treat the list author’s DA/dofollow columns as observed evidence."
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "这个无 API 的登录态报表有 1430 页，我要尽可能完整导出。先告诉我这次实际拿到了多少，剩下哪些还没拿到。",
+      "expected_output": "Uses the pagination harvesting reference and staged probe, small sample, then resumable collection; reports captured pages and rows separately from total, with no complete claim if capture stops early.",
+      "files": [
+        "backlink/references/pagination-harvest.md",
+        "backlink/scripts/harvest-paginated.mjs"
+      ],
+      "checks": [
+        "Checks pagination mechanism with --probe before collecting.",
+        "Uses a two-page trial and explicit page budget, rather than defaulting to all 1430 pages.",
+        "Uses resumable output and compares captured page or row counts with the report total.",
+        "Reports partial capture honestly if stopped or pagination is unverifiable."
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "我昨天把站提交到几个目录，也向 Brave 提交了网址。现在把已经生效的外链和收录状态整理出来；其中一个目录只显示“审核中”。",
+      "expected_output": "Checks exact public pages and the project ledger, keeps directory submissions and Brave index submission separate, and reports pending review without promoting it to a live backlink.",
+      "files": [
+        "backlink/data/index-submission.json",
+        "backlink/scripts/ledger.mjs"
+      ],
+      "checks": [
+        "Uses the project .backlink/ledger.json before reporting states.",
+        "Does not count Brave URL submission as a backlink or as proof of indexing.",
+        "Does not promote “审核中” to public.",
+        "Records indexed state with the engine name, such as indexed@brave.",
+        "Checks exact anchor and rel for a claimed public placement."
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "Semrush 的竞品流量比 Similarweb 小四倍，Semrush 页面有表头但数据区是空的。我还要比较两个国家的关键词和一个域名的总访问量。请给我可信的结论。",
+      "expected_output": "Separates Semrush organic traffic from Similarweb total visits, diagnoses quota or hydration before interpreting the empty body, verifies country scope for keywords, and only compares total visits with the Semrush .Trends metric if available.",
+      "files": [
+        "backlink/references/authorized-data-sources.md",
+        "backlink/references/data-source-operations.md",
+        "backlink/references/traffic-screen.md"
+      ],
+      "checks": [
+        "Labels each figure by source, metric, month, geography, device, and verification date.",
+        "Does not classify an empty table body with rendered headers as zero traffic.",
+        "Checks the body for a daily report quota message and considers a different authorized node if present.",
+        "Uses an explicit country database for each country keyword read.",
+        "Does not compare Semrush organic estimate directly to Similarweb total visits."
+      ]
     }
   ]
 }

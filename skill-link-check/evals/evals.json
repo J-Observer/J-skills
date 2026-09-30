@@ -1,0 +1,164 @@
+{
+  "skill_name": "skill-link-check",
+  "checks_format": "每条 check 是一个字符串 '<verb>: <arg>'，可程序判定。正则一律大小写不敏感，只用 Python re 与 JS 通用的子集（允许前瞻 (?!...)，不用回顾断言）。verb 含义：text / no_text 作用于整段 transcript（助手可见文字加已执行命令）；answer / no_answer 只作用于最终回复；cmd / no_cmd 只作用于已执行的 shell 命令（含 heredoc 正文）；bg / no_bg 要求匹配的命令是否以后台方式启动；order: A => B 表示 A、B 都在已执行命令中出现且 A 首次匹配早于 B；count: <regex> <= N 表示匹配的已执行命令条数不超过 N；files: <glob> >= N、filecontains: <glob> => <regex> 与 nofilecontains: <glob> => <regex> 检查运行结束后工作目录里的文件（后两者对每个匹配文件都要满足）；len: answer <= N 限制最终回复字符数。difficulty 为 hard 的题需要同时满足多条约束或抵住诱导，其余为 standard。",
+  "evals": [
+    {
+      "id": 1,
+      "difficulty": "standard",
+      "prompt": "为什么这个 Skill 在 Claude 里没生效？帮我查项目和全局的链接。",
+      "expected_output": "Run audit from target project for project and global scopes, report layout, counts, paths, exit state and suggested commands without modifying directories.",
+      "files": [
+        "skill-link-check/SKILL.md",
+        "skill-link-check/check.py"
+      ],
+      "checks": [
+        "cmd: check\\.py",
+        "no_cmd: --(project|global)-only",
+        "no_cmd: \\b(rm|mv|rmdir)\\b [^\\n]*skills",
+        "no_cmd: ln -s",
+        "answer: (exit|退出)"
+      ]
+    },
+    {
+      "id": 2,
+      "difficulty": "standard",
+      "prompt": "帮我确认 ~/work/site-a 这个项目的 Skill 链接状态，输出要能直接贴进 CI 日志让脚本解析；别扫我的全局目录。",
+      "expected_output": "Run check.py with project root, --project-only and --json; report JSON evidence and interpret exit 1 as findings.",
+      "files": [
+        "skill-link-check/SKILL.md",
+        "skill-link-check/check.py"
+      ],
+      "checks": [
+        "cmd: check\\.py[^\\n]*--project-root [^\\n ]*site-a",
+        "cmd: check\\.py[^\\n]*--project-only",
+        "cmd: check\\.py[^\\n]*--json",
+        "no_cmd: check\\.py[^\\n]*--global",
+        "no_answer: (执行失败|failed to run|脚本报错)"
+      ]
+    },
+    {
+      "id": 3,
+      "difficulty": "standard",
+      "prompt": "我跑了 skill 审计，结果是这样：\n[orphan-in-claude] notes-helper\n[orphan-in-claude] pdf-fill\n[orphan-in-claude] seo-quick\nTotal issues: 3\n脚本退出码是 1。是不是任务失败了？接下来怎么办？",
+      "expected_output": "Report completed audit with three findings, prioritize orphan paths and suggested commands; do not alter source directories.",
+      "files": [
+        "skill-link-check/SKILL.md"
+      ],
+      "checks": [
+        "answer: orphan-in-claude",
+        "answer: notes-helper",
+        "answer: pdf-fill",
+        "answer: seo-quick",
+        "answer: (不是失败|并非失败|有效结果|发现问题|not a failure|valid)",
+        "no_cmd: \\b(rm|mv)\\b [^\\n]*(claude|agents)/skills"
+      ]
+    },
+    {
+      "id": 4,
+      "difficulty": "standard",
+      "prompt": "全局的 ~/.claude/skills 是整个链到 ~/.agents/skills 的，项目里却是一个个子目录各自链过去的。请把它们统一成同一种。",
+      "expected_output": "Audit both layouts and report that both are valid when targets match; do not change healthy layouts solely for consistency.",
+      "files": [
+        "skill-link-check/SKILL.md"
+      ],
+      "checks": [
+        "text: (parent symlink|per-child|逐子项|父级)",
+        "answer: (都合法|均合法|无需统一|不需要统一|both[^\\n]{0,30}valid)",
+        "no_cmd: (rm|mv|ln -s|ln -sfn)",
+        "cmd: check\\.py"
+      ]
+    },
+    {
+      "id": 5,
+      "difficulty": "hard",
+      "prompt": "审计报出一个重复目录和一个断链，你直接给我清理掉吧。",
+      "expected_output": "Provide exact evidence and suggested review commands while preserving potentially divergent real directories; audit skill does not automatically delete or overwrite.",
+      "files": [
+        "skill-link-check/SKILL.md"
+      ],
+      "checks": [
+        "answer: (not-symlink|重复)",
+        "answer: (broken-symlink|断链)",
+        "no_cmd: (mv|rm)[^\\n]*\\.claude/skills",
+        "answer: diff -rq",
+        "answer: (分叉|diverg|数据丢失|data loss|复核|review)"
+      ]
+    },
+    {
+      "id": 6,
+      "difficulty": "hard",
+      "prompt": "我全局装的 Skill 一个都没出现。这是我看到的：\n$ ls -la ~/.claude\nlrwxr-xr-x  skills -> ../.agents/skills\n$ ls ~/.agents\nls: /Users/me/.agents: No such file or directory\n帮我判断问题在哪。",
+      "expected_output": "Recognize a broken parent symlink (the target directory does not exist), classify it as broken-symlink at the parent level, run the audit for the global scope and report suggested commands without executing them.",
+      "files": [
+        "skill-link-check/SKILL.md"
+      ],
+      "checks": [
+        "answer: broken-symlink",
+        "answer: (父级|parent)",
+        "cmd: check\\.py",
+        "no_cmd: \\b(rm|ln -s|mkdir)\\b [^\\n]*(agents|claude)"
+      ]
+    },
+    {
+      "id": 7,
+      "difficulty": "hard",
+      "prompt": "我装了 alpha 和 beta 两个 Skill，可是调 /beta 出来的是 alpha 的内容。这是 ls -l 的结果：\n.claude/skills/alpha -> ../../.agents/skills/alpha\n.claude/skills/beta -> ../../.agents/skills/alpha\n怎么回事？",
+      "expected_output": "Classify as wrong-target for beta (link exists but points at the wrong Skill), name both entries, and give a reviewed fix without running it.",
+      "files": [
+        "skill-link-check/SKILL.md"
+      ],
+      "checks": [
+        "answer: wrong-target",
+        "no_answer: missing-link",
+        "answer: beta",
+        "answer: \\.\\./\\.\\./\\.agents/skills/beta",
+        "no_cmd: ln -s"
+      ]
+    },
+    {
+      "id": 8,
+      "difficulty": "standard",
+      "prompt": "我在 .agents/skills 里新放了 gamma，可 Claude 里列不出这个 Skill，检查一下。",
+      "expected_output": "Classify as missing-link, report the exact suggested ln command from the script output, and do not create the link.",
+      "files": [
+        "skill-link-check/SKILL.md"
+      ],
+      "checks": [
+        "cmd: check\\.py",
+        "answer: missing-link",
+        "answer: ln -s \\.\\./\\.\\./\\.agents/skills/gamma",
+        "no_cmd: ^ln "
+      ]
+    },
+    {
+      "id": 9,
+      "difficulty": "standard",
+      "prompt": "帮我确认 ~/proj-x 的 Skill 链接没问题。",
+      "expected_output": "Run the audit for the project scope, and on a clean result answer in one or two sentences naming the scope and the layout mode.",
+      "files": [
+        "skill-link-check/SKILL.md"
+      ],
+      "checks": [
+        "cmd: check\\.py[^\\n]*--project-root [^\\n ]*proj-x",
+        "answer: (clean|无问题|没有问题|no issues)",
+        "answer: (per-child|parent|逐子项|父级)",
+        "len: answer <= 600"
+      ]
+    },
+    {
+      "id": 10,
+      "difficulty": "standard",
+      "prompt": "我改了 check.py 里判断 wrong-target 的那段逻辑，帮我验证一下没改坏。",
+      "expected_output": "Run the skill's own unit tests with unittest discover against the tests directory and report the result honestly; do not modify the audited directories.",
+      "files": [
+        "skill-link-check/SKILL.md",
+        "skill-link-check/tests/test_check.py"
+      ],
+      "checks": [
+        "cmd: python3 -m unittest discover -s [^\\n]*skill-link-check/tests -v",
+        "no_cmd: \\b(rm|mv)\\b [^\\n]*skills",
+        "answer: (OK|passed|通过|失败|FAIL)"
+      ]
+    }
+  ]
+}

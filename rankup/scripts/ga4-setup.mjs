@@ -14,7 +14,7 @@
  *   --timezone <时区>         报告时区（界面文字，如 UTC、GMT+00:00、America/Sao_Paulo）。
  *                             时区列表没有 UTC 时用这个显式选；不传则只按 --country 选
  *   --timezone-country <国>   --country 的别名（兼容旧调用）
- *                             fotos3x4 一类巴西站传 --country 巴西 [--timezone America/Sao_Paulo]
+ *                             面向巴西的站点传 --country 巴西 [--timezone America/Sao_Paulo]
  *   --currency <币种>         界面文字或代码。默认匹配 /美元|USD/
  *   --industry <行业>         商家详情行业类别。默认「其他业务活动」
  *   --session <名>            opencli 会话名（默认 ga4-setup-<每对话唯一后缀>，不用 pid）
@@ -30,7 +30,7 @@
  *
  * ── 拿到 ID 之后做什么 ────────────────────────────────────
  *
- * 脚本输出 Measurement ID（形如 `G-XXXXXXXXXX`）。这是公开值，会出现在
+ * 脚本输出 Measurement ID（形如 `G-<Measurement-ID>`）。这是公开值，会出现在
  * 页面 HTML 里，不是秘密。写进站点延迟加载器（首次交互或 6s 兜底）以及
  * Workers Builds 的 GA4_MEASUREMENT_ID 环境变量。
  *
@@ -72,20 +72,21 @@ for (let i = 1; i < argv.length; i++) {
 
 function usage() {
   console.log(`用法:
-  node ga4-setup.mjs status
+  node ga4-setup.mjs status [--domain <域名>]
   node ga4-setup.mjs create --domain <域名> [--name <媒体资源名>] [--country 冰岛|巴西] [--timezone UTC] [--currency USD]
   --timezone-country 是 --country 的别名。时区列表没有 UTC 时用 --country/--timezone 显式指定。
-  已有同域名媒体资源则复用，输出 Measurement ID（形如 G-XXXXXXXXXX）。`)
+  已有同域名媒体资源则复用，输出 Measurement ID（形如 G-<Measurement-ID>）。`)
 }
 
 if (!["status", "create"].includes(action)) { usage(); process.exit(1) }
 if (action === "create" && !domain) { console.error("错误：create 需要 --domain"); process.exit(1) }
-if (action === "create" && !name) name = domain.split(".")[0]
+if (domain && !name) name = domain.split(".")[0]
 domain = domain ? domain.replace(/^https?:\/\//, "").replace(/\/.*$/, "") : domain
 
 function cli(args, { timeout = 30000 } = {}) {
   try {
-    return execFileSync("opencli", ["browser", session, "--window", "dedicated", "--window-slot", windowSlot, ...args],
+    const windowArgs = action === "status" ? ["--window", "background"] : ["--window", "dedicated", "--window-slot", windowSlot]
+    return execFileSync("opencli", ["browser", session, ...windowArgs, ...args],
       { encoding: "utf8", timeout, stdio: ["pipe", "pipe", "pipe"] }).trim()
   } catch (e) {
     const err = (e.stderr?.toString() || e.stdout?.toString() || e.message).trim()
@@ -149,6 +150,7 @@ function evidenceDir() {
 }
 let sceneN = 0
 function scene(tag, extra) {
+  if (action === "status") return
   sceneN++
   return captureScene({
     dir: evidenceDir(),
@@ -159,7 +161,7 @@ function scene(tag, extra) {
   })
 }
 function bail(stopReason, msg, extra) {
-  try {
+  if (action !== "status") try {
     scene(`fail-${stopReason}`, extra)
     writeManifest(evidenceDir(), { script: "ga4-setup", action, domain, name, stopReason, finishedAt: new Date().toISOString() })
     console.error(`现场已落盘：${evidenceDir()}`)
@@ -258,7 +260,39 @@ function pickerText() {
   `)
 }
 
-function doStatus() {
+async function doStatus() {
+  if (domain) {
+    goAdmin()
+    openPicker()
+    cli(["fill", "xap-open-search input", name.slice(0, 3)])
+    waitFor(`return !!document.querySelector('a[href*="/admin"]')`, 10)
+    const candidates = JSON.parse(evalJs(`return JSON.stringify([...document.querySelectorAll('a[href*="/admin"]')]
+      .filter(a => /a\\d+p\\d+/.test(a.getAttribute('href')||''))
+      .map(a => ({ href: a.getAttribute('href'), name: (a.getAttribute('aria-label')||a.innerText||'').trim() })))`))
+    for (const candidate of candidates) {
+      const ids = candidate.href.match(/a(\d+)p(\d+)/)
+      if (!ids) continue
+      open(`https://analytics.google.com/analytics/web/#/a${ids[1]}p${ids[2]}/admin/streams/table`)
+      waitFor(`return (document.body.innerText||'').includes(${JSON.stringify(domain)})`, 25)
+      const rowFound = evalJs(`return !![...document.querySelectorAll('mat-row,[role="row"]')]
+        .find(el => (el.innerText||'').includes(${JSON.stringify(domain)}))`)
+      if (rowFound !== "true") continue
+      stampAndClick(`[...document.querySelectorAll('mat-row,[role="row"]')]
+        .find(el => (el.innerText||'').includes(${JSON.stringify(domain)}))`, "网站数据流", "data-rankup-row")
+      waitFor(`return /G-[A-Z0-9]{6,}/.test(document.body.innerText||'')`, 15)
+      const measurementId = extractMeasurementIds()[0]
+      if (measurementId) {
+        const [accountName, propertyName] = candidate.name.replace(/^Navigate to /, "").split(",")
+        console.log(`${domain} 已找到网站数据流：账号 ${accountName} (${ids[1]})，资源 ${propertyName} (${ids[2]})，Measurement ID ${measurementId}`)
+        return
+      }
+    }
+    const html = await fetch(`https://${domain}/`).then(r => r.ok ? r.text() : "").catch(() => "")
+    console.log(/G-[A-Z0-9]{6,}/.test(html)
+      ? `${domain} 线上已部署 GA4 Measurement ID（所查资源未找到网站数据流）`
+      : `${domain} 未找到网站数据流`)
+    return
+  }
   goAdmin()
   openPicker()
   scene("picker", { text: pickerText() })
@@ -294,11 +328,9 @@ function reuseExisting() {
   )
   settle(2500)
   scene("data-streams")
-  const ids = extractMeasurementIds()
-  if (ids.length) return ids[0]
   try {
     stampAndClick(
-      `[...document.querySelectorAll('mat-row,[role="row"],a,button')].find(el => new RegExp(${JSON.stringify(domain.replace(".", "\\."))},'i').test(el.innerText||'') && (el.innerText||'').length < 400 && el.offsetParent)`,
+      `[...document.querySelectorAll('mat-row,[role="row"]')].find(el => (el.innerText||'').split('\\n').some(t => ['https://','http://'].some(prefix => t.trim() === prefix + ${JSON.stringify(domain)})) && el.offsetParent)`,
       "已有数据流",
       "data-rankup-row",
     )
@@ -331,7 +363,7 @@ function createProperty() {
   settle(400)
 
   stampAndClick(
-    `[...document.querySelectorAll('time-zone-selector button.menu-open-button, button.menu-open-button')].find(b => b.offsetParent && (b.innerText||'').trim().length > 0 && (b.innerText||'').trim().length < 20 && !/下一步|返回|Next|Back/.test(b.innerText||''))`,
+    `document.querySelector('searchable-select.country-selector button.menu-open-button')`,
     "时区国家",
   )
   settle(600)
@@ -484,7 +516,7 @@ function doCreate() {
 }
 
 try {
-  if (action === "status") doStatus()
+  if (action === "status") await doStatus()
   else doCreate()
 } catch (e) {
   bail("execution-error", e.message)

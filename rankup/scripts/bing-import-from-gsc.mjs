@@ -1,0 +1,182 @@
+#!/usr/bin/env node
+/**
+ * bing-import-from-gsc.mjs —— Bing Webmaster 默认从 Google Search Console 导入网站。
+ * 用法：node bing-import-from-gsc.mjs --sites example.com,example.org [--session sp-gpt] [--sitemap]
+ * 默认只检查指定站点是否已在 Bing；已有站点不重复导入。缺站时仅导入 --sites
+ * 中尚未添加的站点，绝不导入 GSC 预选的其他站。--sitemap 为缺失的 sitemap 提交。
+ * 登录态：OpenCLI 连接用户已登录 Bing 与 Google 的 Chrome；Bing 显示登录页时先点
+ * 「登录」，再点「使用 Google 登录」恢复会话。Google 账户选择器选第一项；出现
+ * 密码框、二次验证、验证码、首次授权同意页则停下，不代为填写或同意。
+ * 已知坑（2026-09-28）：Bing /webmasters/about 初始可能只是加载中的公开页，
+ * 需等可见登录按钮；左侧「选择网站」里才有「添加网站」。GSC 的 sc-domain
+ * 在导入预览中显示为 https://domain/；默认预选全部，提交前必须逐项核对勾选。
+ * 2026-09-28 五站通过 UI 导入，站点选择器及 sitemap 页面已回读；幂等检查在
+ * 五个真实站点上验证。登录掉线恢复、部分缺站及新站批量导入脚本路径未实测。
+ */
+import { execFileSync } from "node:child_process"
+
+const argv = process.argv.slice(2)
+if (!argv.length || argv.includes("--help") || argv.includes("-h")) {
+  console.log("用法: node bing-import-from-gsc.mjs --sites domain1,domain2 [--session sp-gpt] [--sitemap]")
+  process.exit(argv.length ? 0 : 1)
+}
+function opt(name) { const index = argv.indexOf(name); return index === -1 ? undefined : argv[index + 1] }
+const sites = (opt("--sites") || "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean)
+const session = opt("--session") || "bing-import-gsc"
+const submitSitemap = argv.includes("--sitemap")
+if (!sites.length || sites.some(s => !/^[a-z\d-]+(?:\.[a-z\d-]+)+$/i.test(s)) || new Set(sites).size !== sites.length) {
+  throw new Error("--sites 需要不重复、逗号分隔的合法域名")
+}
+let opened = false
+function browser(...parts) {
+  return execFileSync("opencli", ["browser", session, "--window", "background", ...parts],
+    { encoding: "utf8", timeout: 90000 }).trim()
+}
+function evalJs(source) { return browser("eval", `(()=>{${source}})()`) }
+function open(url) { browser("open", url); opened = true }
+function inspect() {
+  return JSON.parse(evalJs(`return {url:location.origin+location.pathname,
+    text:(document.body?.innerText||'').slice(0,3000),password:!!document.querySelector('input[type=password]'),
+    buttons:[...document.querySelectorAll('button,a,[role=button]')].filter(e=>e.offsetParent!==null)
+      .map(e=>({text:(e.innerText||e.getAttribute('aria-label')||'').trim().slice(0,90),
+        href:e.getAttribute('href')||''})).filter(e=>e.text).slice(0,90),
+    dialogs:[...document.querySelectorAll('[role=dialog]')].map(e=>e.innerText.slice(0,2400))}`))
+}
+function stopIfSensitive(page) {
+  if (page.password || /captcha|验证码|人机验证|recaptcha|二次验证|两步验证/i.test(page.text)) {
+    throw new Error("遇密码框、二次验证或验证码；停止自动操作")
+  }
+  if (/\/consent\b|\/oauth\d*\/.*consent/i.test(page.url) ||
+    /授权同意|请求访问您的 Google|权限请求|选择您允许.*访问|wants access to your Google Account/i.test(page.text)) {
+    throw new Error("遇首次授权同意页；需要用户亲自决定")
+  }
+}
+function click(selector) { browser("click", selector) }
+function waitFor(condition, label, seconds = 25) {
+  const deadline = Date.now() + seconds * 1000
+  while (Date.now() < deadline) {
+    const page = inspect()
+    stopIfSensitive(page)
+    if (condition(page)) return page
+    browser("wait", "time", "1")
+  }
+  throw new Error(`${label} 超过 ${seconds} 秒未出现`)
+}
+function clickVisible(js, label) {
+  const found = evalJs(`document.querySelectorAll('[data-bing-target]').forEach(e=>e.removeAttribute('data-bing-target'));
+    const el=${js};if(!el)return false;el.setAttribute('data-bing-target','1');return true`)
+  if (found !== "true") throw new Error(`找不到 ${label}；停止`)
+  click('[data-bing-target="1"]')
+}
+function isDashboard(page) {
+  return page.url.replace(/\/$/, "").endsWith("/webmasters") && /站点管理器|Site Explorer/i.test(page.text)
+}
+function recoverSession({ preview = false } = {}) {
+  const deadline = Date.now() + 90_000
+  while (Date.now() < deadline) {
+    const page = inspect()
+    stopIfSensitive(page)
+    if (preview && page.dialogs.some(d => /可导入的网站|Sites available for import/i.test(d))) return
+    if (!preview && isDashboard(page)) return
+    if (/accounts\.google\.com/.test(page.url)) {
+      if (!/选择帐号|选择账号|Choose an account|Select an account/i.test(page.text)) {
+        throw new Error("Google 页面既非账户选择器也非已登录后台；停止")
+      }
+      clickVisible(`[...document.querySelectorAll('[data-identifier],[data-email]')]
+        .find(e=>e.offsetParent!==null)`, "Google 账户选择器第一项")
+    } else if (page.buttons.some(b => /使用 Google 登录|Sign in with Google|Continue with Google/i.test(b.text))) {
+      clickVisible(`[...document.querySelectorAll('button,a,[role=button]')]
+        .find(e=>e.offsetParent!==null&&/使用 Google 登录|Sign in with Google|Continue with Google/i.test(e.innerText))`, "使用 Google 登录")
+    } else if (page.buttons.some(b => /^(登录|Sign in|Log in)$/i.test(b.text))) {
+      clickVisible(`[...document.querySelectorAll('button,a,[role=button]')]
+        .find(e=>e.offsetParent!==null&&/^(登录|Sign in|Log in)$/i.test(e.innerText.trim()))`, "Bing 登录")
+    } else {
+      browser("wait", "time", "1")
+    }
+  }
+  throw new Error("90 秒内未回到 Bing 已登录后台；停止")
+}
+function listedSites() {
+  const rows = JSON.parse(evalJs(`return [...document.querySelectorAll('a[role=option][aria-label]')]
+    .filter(e=>e.offsetParent!==null).map(e=>e.getAttribute('aria-label').toLowerCase())
+    .filter(t=>/^[a-z\\d-]+(?:\\.[a-z\\d-]+)+$/.test(t))`))
+  return new Set(rows)
+}
+function selectedSites() {
+  return JSON.parse(evalJs(`const d=[...document.querySelectorAll('[role=dialog]')]
+    .find(e=>e.innerText.includes('可导入的网站')||e.innerText.includes('Sites available for import'));
+    if(!d)return null;return [...d.querySelectorAll('[role=row]')]
+    .filter(e=>e.innerText.includes('https://')).map(e=>({text:e.innerText.slice(0,200),
+      domain:(e.innerText.match(/https:\\/\\/([^\\s/]+)\\//)||[])[1]?.toLowerCase()||'',
+      checked:e.querySelector('[role=checkbox]')?.getAttribute('aria-checked')}))`))
+}
+function selectOnly(missing) {
+  const wanted = new Set(missing)
+  let rows = selectedSites()
+  if (!rows || missing.some(site => !rows.some(row => row.domain === site))) {
+    throw new Error(`导入预览缺少目标站点；停止：${JSON.stringify(rows)}`)
+  }
+  for (const row of rows) {
+    if (!row.domain) throw new Error(`无法辨认预览站点；停止：${JSON.stringify(row)}`)
+    const shouldCheck = wanted.has(row.domain)
+    if ((row.checked === "true") === shouldCheck) continue
+    const marked = evalJs(`const d=[...document.querySelectorAll('[role=dialog]')]
+      .find(e=>e.innerText.includes('可导入的网站')||e.innerText.includes('Sites available for import'));
+      const row=[...d.querySelectorAll('[role=row]')].find(e=>e.innerText.includes(${JSON.stringify(`https://${row.domain}/`)}));
+      const box=row?.querySelector('[role=checkbox]');if(!box)return false;
+      document.querySelectorAll('[data-bing-checkbox]').forEach(e=>e.removeAttribute('data-bing-checkbox'));
+      box.setAttribute('data-bing-checkbox','1');return true`)
+    if (marked !== "true") throw new Error(`无法定位 ${row.domain} 的复选框；停止`)
+    browser(shouldCheck ? "check" : "uncheck", '[data-bing-checkbox="1"]')
+  }
+  rows = selectedSites()
+  if (!rows || rows.some(row => (row.checked === "true") !== wanted.has(row.domain)) ||
+    missing.some(site => !rows.some(row => row.domain === site && row.checked === "true"))) {
+    throw new Error(`导入预览勾选与目标站点不一致；停止：${JSON.stringify(rows)}`)
+  }
+  console.log(`Bing 预览已逐项核对，仅导入 ${missing.join(", ")}`)
+}
+function submitMissingSitemaps() {
+  for (const domain of sites) {
+    const site = `https://${domain}`
+    const script = new URL("./webmaster-sitemap.mjs", import.meta.url).pathname
+    const status = execFileSync(process.execPath,
+      [script, "bing", "status", "--site", site, "--session", session],
+      { encoding: "utf8", timeout: 120000 })
+    if (status.includes(`${site}/sitemap.xml`)) {
+      console.log(`${domain} Bing sitemap 已入列，跳过重复提交。`)
+      continue
+    }
+    console.log(execFileSync(process.execPath,
+      [script, "bing", "submit", "--site", site, "--sitemap", `${site}/sitemap.xml`, "--session", session],
+      { encoding: "utf8", timeout: 120000 }))
+  }
+}
+try {
+  open("https://www.bing.com/webmasters/")
+  recoverSession()
+  if (evalJs(`return !!document.querySelector('button[aria-label="选择网站"],button[aria-label="Select site"]')`) !== "true") {
+    throw new Error("Bing 左侧网站选择器未出现；停止")
+  }
+  click('button[aria-label="选择网站"],button[aria-label="Select site"]')
+  const existing = listedSites()
+  const missing = sites.filter(site => !existing.has(site))
+  if (!missing.length) {
+    console.log(`Bing 已有 ${sites.join(", ")}；跳过重复导入。`)
+  } else {
+    click('button[aria-label="添加网站"],button[aria-label="Add site"]')
+    waitFor(p => p.dialogs.some(d => /从 GSC 导入|Import from Google Search Console/i.test(d)), "Bing 添加网站弹窗")
+    click('button[data-tag="importFromGSC"]')
+    waitFor(p => p.dialogs.some(d => /我们将从你的 Google Search Console|what data.*Search Console/i.test(d)), "Bing 导入说明")
+    click('button[data-tag="addSiteButton"]')
+    recoverSession({ preview: true })
+    waitFor(p => p.dialogs.some(d => /可导入的网站|Sites available for import/i.test(d)), "GSC 站点预览", 35)
+    selectOnly(missing)
+    click('button[data-tag="importButton"]')
+    waitFor(p => p.dialogs.some(d => /正在添加网站信息|Adding site|成功添加/i.test(d)) || p.dialogs.length === 0, "导入提交响应")
+    console.log(`已点击导入 ${missing.length} 站；需逐站读回 Bing sitemap 页面确认。`)
+  }
+} finally {
+  if (opened) { try { browser("close") } catch { /* avoid masking original failure */ } }
+}
+if (submitSitemap) submitMissingSitemaps()

@@ -135,7 +135,7 @@ test("空的经验库不报格式异常", async () => {
 });
 
 // 接入看板逐行核对:回归 discipline.md 十 / checklists.md 段 5「批 B 清单逐行有状态」/
-// lifecycle.md 段 5「批 B 平台清单」三处判据曾经对不上执行链路的那次事故——
+// references/lifecycle/stage-5-launch.md 段 5「批 B 平台清单」三处判据曾经对不上执行链路的那次事故——
 // integrations.md 文件存在且体积够,但 Ahrefs Site Audit 从未单独成行、Yandex 整行缺失,
 // 旧版 review.mjs 只判"文件在不在"看不出这种缺口。
 

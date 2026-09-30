@@ -13,6 +13,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+// game-opportunity/ was removed from the repository on 2026-09-28 (commit 4d54082), so it is no longer scanned.
 const SEARCH_ROOTS = ['rankup/scripts', 'backlink/scripts'];
 
 // Excluded on purpose, with the reason, so an empty run is never mistaken for a pass.

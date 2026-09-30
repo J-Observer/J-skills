@@ -345,6 +345,12 @@ const SKILL_MAP_EXEMPT = new Map([
   // 目前没有豁免。加条目前先想清楚：读者要用这个脚本时，怎么知道它存在？
 ]);
 
+async function readSkillInventory() {
+  const entry = await readFile(path.join(skillRoot, "SKILL.md"), "utf8");
+  assert.ok(entry.includes('<ref file="references/skill-inventory.md"/>'), "script inventory must remain reachable from SKILL.md");
+  return entry + "\n" + await readFile(path.join(skillRoot, "references/skill-inventory.md"), "utf8");
+}
+
 async function skillMapCoverage(skillText) {
   const entries = await readdir(path.join(skillRoot, "scripts"), { withFileTypes: true });
   const names = entries
@@ -360,7 +366,7 @@ async function skillMapCoverage(skillText) {
 }
 
 test("每个 scripts/ 入口都被 SKILL.md 提到（扫目录，不是写死清单）", async () => {
-  const text = await readFile(path.join(skillRoot, "SKILL.md"), "utf8");
+  const text = await readSkillInventory();
   const { names, missing } = await skillMapCoverage(text);
   // 扫描本身坏掉时（改了后缀、挪了目录）会一个文件都扫不到，那样这条检查
   // 会「全绿地什么也没测」。先给扫描结果本身设一个下界。
@@ -375,7 +381,7 @@ test("每个 scripts/ 入口都被 SKILL.md 提到（扫目录，不是写死清
 // 变异测试：把某个脚本的提及从 SKILL.md 文本里删掉，上面那条检查必须变红。
 // 没有这一条，覆盖检查可能因为某个恒真的写法而永远通过。
 test("SKILL.md 覆盖检查会因为漏掉一个脚本而变红", async () => {
-  const text = await readFile(path.join(skillRoot, "SKILL.md"), "utf8");
+  const text = await readSkillInventory();
   const { missing: baseline } = await skillMapCoverage(text);
   assert.deepEqual(baseline, [], "变异测试的基线必须是干净的");
 

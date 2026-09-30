@@ -8,7 +8,7 @@
  *
  * CPC 在本仓库里被四个解析器抓下来（semrush-report 的关键词魔法工具、semrush-keyword
  * 的关键词概览、lib-similarweb 的两张关键词表），但 2026-08-28 全库检索确认：
- * **没有任何一个决策脚本读过它。** 只有 aitdk-lookup 把它当字段透传。
+ * **没有任何一个决策脚本读过它。** 只有 domain-profile.mjs 把它当字段透传。
  *
  * 而判断规则其实早就写在文档里了，散在两个文件三个地方，从没落成可执行的东西：
  *
@@ -25,7 +25,7 @@
  *
  * **不给档位命名。** 2026-08-30 重构第二波把 low/normal/high 分档删掉了：
  * 「远低/正常/远高」是判断，判断在文档里（seo-growth.md 负向清单、
- * demand-discovery.md「CPC 怎么读」）。脚本只输出三个数——CPC、同批中位数、
+ * references/experiences/demand-judgment.md「CPC 怎么读」）。脚本只输出三个数——CPC、同批中位数、
  * 二者之比——怎么读交给 AI。
  *
  * **不给绝对的 CPC 阈值。** CPC 的量级跟垂类强相关——实测 image converter 这个
@@ -262,7 +262,7 @@ if (args.help || !args.in) {
 JSONL、以及任何 [{keyword, volume, kd, cpc}] 数组。
 
 输出只有数值：CPC、同批中位数、二者之比——不给 low/normal/high 档位命名，
-判读见 seo-growth.md 负向清单与 demand-discovery.md「CPC 怎么读」。
+判读见 seo-growth.md 负向清单与 references/experiences/demand-judgment.md「CPC 怎么读」。
 收入只给区间并附带假设；唯一的校准锚点样本量是 1，见文件头注释。`);
   process.exit(args.in ? 0 : 1);
 }
@@ -295,5 +295,5 @@ if (args.json) {
   console.log('  ↑ 这是选赛道该看的数字。单个词的区间小到没有决策意义，'
     + '而「一百多个低难度词」加起来往往仍是零头——假设见 --json 输出里的 assumptions。');
   console.log('  CPC/中位数怎么读（比值偏离意味着什么、何时先查 SERP）见'
-    + ' references/seo-growth.md 负向清单与 demand-discovery.md「CPC 怎么读」——脚本只给数，不给档。');
+    + ' references/seo-growth.md 负向清单与 references/experiences/demand-judgment.md「CPC 怎么读」——脚本只给数，不给档。');
 }

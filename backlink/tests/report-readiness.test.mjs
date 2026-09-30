@@ -566,12 +566,14 @@ test('端到端：闸门跑在分类之前，不 admissible 时 verdict 就是 i
 });
 
 // ---------------------------------------------------------------------------
-// SKILL.md 的 <correct> 块是实盘 agent 直接抄进页面执行的那一份。它和这个模块
+// SKILL.md 引用的 browser-runtime-detail.md 的 <correct> 块是实盘 agent 直接抄进页面执行的那一份。它和这个模块
 // 只要有一处漂回旧形状，下面就红。
 // ---------------------------------------------------------------------------
 test('SKILL.md 的判据片段不许漂回旧形状', async () => {
   const { readFile } = await import('node:fs/promises');
-  const skill = await readFile(new URL('../SKILL.md', import.meta.url), 'utf8');
+  const entry = await readFile(new URL('../SKILL.md', import.meta.url), 'utf8');
+  assert.ok(entry.includes('<ref file="references/browser-runtime-detail.md"/>'), 'readiness detail must remain reachable from SKILL.md');
+  const skill = await readFile(new URL('../references/browser-runtime-detail.md', import.meta.url), 'utf8');
 
   // 3：spinnerGone 这个否定式、猜类名的门必须已经不在判定式里。
   assert.doesNotMatch(skill, /spinnerGone:/, 'spinnerGone 已降级，不该再作为字段被算出来');

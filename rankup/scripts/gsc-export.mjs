@@ -4,7 +4,7 @@
  * 用法：node scripts/gsc-export.mjs --property sc-domain:example.com --out ./gsc [--sections performance,countries,compare,slices,indexing,sitemaps,inspect] [--range 90d] [--langs es,zh-hant] [--countries esp,mex] [--top 10] [--inspect-urls url1,url2] [--session name] [--dry-run]
  * 未指定 langs 时从 pages URL 首段识别 xx 或 xx-yyyy；未指定 countries 时按 countries 表点击、展示排序取前 top 个。单跑 slices 也会先读取所需表。
  * GSC 只公开页面级 UI 的部分行；脚本按页面报告总行数核对，不把截断写成完整。
- * 验证日期：2026-09-27。
+ * 支持中英文界面。验证日期：2026-09-28。
  */
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
@@ -98,7 +98,7 @@ function extract(url, marker, allowEmpty = false) {
     const data = JSON.parse(cli('extract'))
     if (data.url?.includes('accounts.google.com')) throw new Error('GSC 登录态不可用')
     if (data.url && !data.url.includes('search.google.com/search-console')) throw new Error(`页面跳转到非 GSC：${data.url}`)
-    if (data.content?.includes(marker) || (allowEmpty && /(?:无数据|No data)/i.test(data.content || '') && data.url === url)) return data
+    if ((marker instanceof RegExp ? marker.test(data.content || '') : data.content?.includes(marker)) || (allowEmpty && /(?:无数据|No data)/i.test(data.content || '') && data.url === url)) return data
   }
   throw new Error(`等待页面内容超时：${marker}`)
 }
@@ -111,29 +111,28 @@ function save(name, value, lines) {
 function heading(title, source, status) { return [`# ${title}`, '', `- 数据来源：${source}`, `- 抓取时间：${time()}`, `- 完整性：${status}`, ''] }
 function table(cols, rows) { return [`| ${cols.join(' | ')} |`, `|${cols.map(() => '---').join('|')}|`, ...rows.map(r => `| ${r.map(esc).join(' | ')} |`), ''] }
 function pagination(content) {
-  const m = [...content.matchAll(/第\s*([\d,]+)\s*[-–]\s*([\d,]+)\s*行[，,]\s*共\s*([\d,]+)\s*行/g)].at(-1)
+  const m = [...content.matchAll(/(?:第\s*)?([\d,]+)\s*[-–]\s*([\d,]+)(?:\s*行)?\s*(?:[，,]\s*共|of)\s*([\d,]+)/gi)].at(-1)
   return m ? { first: Number(m[1].replaceAll(',', '')), last: Number(m[2].replaceAll(',', '')), total: Number(m[3].replaceAll(',', '')) } : null
 }
-function parsePerf(data, count, compare = false) {
-  const c = data.content
-  const end = c.lastIndexOf('每页行数：')
-  const marker = compare ? /排名\s*差值\s*\n+/g : /排名\s*\n+/g
-  const starts = [...c.slice(0, end).matchAll(marker)]
-  if (end < 0 || !starts.length) throw new Error('未找到效果表表头或分页，可能读到旧维度/加载中')
-  const raw = c.slice(starts.at(-1).index + starts.at(-1)[0].length, end).split(/\n+/).map(x => x.trim()).filter(Boolean)
-  if (raw.length % count) throw new Error(`效果表列数不符：${raw.length} 个单元格，预期每行 ${count} 列`)
-  const rows = Array.from({ length: raw.length / count }, (_, i) => raw.slice(i * count, (i + 1) * count))
-  const page = pagination(c.slice(end))
+function readTable(index = 0) {
+  return JSON.parse(cli('eval', `(()=>{const t=Array.from(document.querySelectorAll('table')).at(${index});if(!t)return null;let box=t;while(box&&!box.querySelector('[data-paginate]'))box=box.parentElement;return {headers:Array.from(t.querySelectorAll('th')).map(c=>c.getAttribute('data-label')||c.innerText.trim()),rows:Array.from(t.querySelectorAll('tbody tr')).map(r=>Array.from(r.cells).map(c=>c.querySelector('[title^="http"]')?.getAttribute('title')||c.innerText.trim())),footer:box?.innerText.slice(-150)||''}})()`))
+}
+function parsePerf(data, dimension, count) {
+  const t = readTable()
+  if (!t || t.headers[0] !== { query: 'QUERIES', page: 'PAGES', country: 'COUNTRIES' }[dimension]) throw new Error(`未确认 ${dimension} 维度表头`)
+  const rows = t.rows
+  if (rows.some(r => r.length !== count)) throw new Error(`效果表列数不符，预期每行 ${count} 列`)
+  const page = pagination(t.footer)
   if (!page) throw new Error('GSC 未报告总行数，不能核对完整性')
   if (rows.length > page.total) throw new Error('解析行数大于 GSC 总行数，疑似读到错误表格')
   return { source: data.url, rows, reportedTotal: page.total, complete: rows.length === page.total, truncated: rows.length < page.total }
 }
 function fetchPerf(url, dimension, compare = false) {
-  const d = extract(url, '每页行数：', true)
-  if (!d.content.includes('每页行数：') && /(?:无数据|No data)/i.test(d.content)) return { source: d.url, rows: [], reportedTotal: 0, complete: true, truncated: false }
-  const key = { query: /(?:查询|Queries)/i, page: /(?:网页|Pages)/i, country: /(?:国家|Countries)/i }[dimension]
-  if (!key.test(d.content)) throw new Error(`未确认 ${dimension} 维度表头`)
-  return parsePerf(d, compare ? 13 : 5, compare)
+  const d = extract(url, /(?:上次更新日期|Last update|无数据|No data)/i, true)
+  if (/(?:无数据|No data)/i.test(d.content) && !readTable()?.rows.length) return { source: d.url, rows: [], reportedTotal: 0, complete: true, truncated: false }
+  for (let n = 0; n < 8; n++) {
+    try { return parsePerf(d, dimension, compare ? 13 : 5) } catch (e) { if (n === 7) throw e; pause(700) }
+  }
 }
 const sectionData = {}
 function perfSection(name, specs, note = '') {
@@ -170,7 +169,8 @@ function slices() {
   return perfSection('slices', specs, note)
 }
 function indexing() {
-  const d = extract(urls.indexing[0], '未编入索引')
+  const d = extract(urls.indexing[0], /(?:未编入索引|Not indexed)/i)
+  const counts = JSON.parse(cli('eval', `(()=>{const n={};for(const e of document.querySelectorAll('[title]'))if(['已编入索引','Indexed','未编入索引','Not indexed'].includes(e.title))n[e.title]=Number(e.nextElementSibling?.getAttribute('title')?.replaceAll(',',''));return n})()`))
   const rows = JSON.parse(cli('eval', `(()=>Array.from(document.querySelectorAll('table tr')).map(r=>r.innerText.trim()))()`))
   const reasons = []
   for (const row of rows) {
@@ -180,28 +180,28 @@ function indexing() {
     const reason = { reason: cells[0], count, source: null, examples: [], reportedTotal: null, complete: false }
     {
       // GSC 的原因行可点击，但通常没有 <a href>；点该行只做页面导航。
-      extract(urls.indexing[0], '未编入索引')
+      extract(urls.indexing[0], /(?:未编入索引|Not indexed)/i)
       const click = `(()=>{const r=Array.from(document.querySelectorAll('table tr')).find(r=>r.innerText.trim().startsWith(${JSON.stringify(cells[0])}));if(!r)return false;r.click();return true})()`
       if (cli('eval', click) !== 'true') throw new Error(`无法打开索引原因：${cells[0]}`)
       let detail = null
       for (let n = 0; n < 8; n++) {
         pause(900)
         const next = JSON.parse(cli('extract'))
-        if (next.url?.includes('/index/drilldown') && next.content?.includes('每页行数：')) { detail = next; break }
+        const table = readTable(-1)
+        if (next.url?.includes('/index/drilldown') && table?.rows[0]?.[0]?.startsWith('http') && pagination(table.footer)) { detail = next; break }
       }
       if (!detail) throw new Error(`索引原因明细未加载：${cells[0]}`)
       reason.source = detail.url
-      const pairs = [...detail.content.matchAll(/(https?:\/\/[^\s]+)[\s\uE000-\uF8FF]+?(\d{4}年\d{1,2}月\d{1,2}日|\d{4}-\d{2}-\d{2}|不适用|N\/A)/g)].map(m => ({ url: m[1], lastCrawled: m[2] }))
+      const table = readTable(-1)
+      const pairs = table.rows.map(r => ({ url: r[0], lastCrawled: r[1] }))
       reason.examples = [...new Map(pairs.map(x => [x.url, x])).values()]
-      reason.reportedTotal = pagination(detail.content)?.total ?? null
+      reason.reportedTotal = pagination(table.footer)?.total ?? null
       reason.complete = reason.reportedTotal !== null && reason.examples.length === reason.reportedTotal
     }
     reasons.push(reason)
   }
   if (!reasons.length) throw new Error('未解析到索引原因表')
-  const summary = d.content.match(/(?:已编入索引|Indexed)\s*\n+([\d,]+)/i)
-  const notIndexed = d.content.match(/(?:未编入索引|Not indexed)\s*\n+([\d,]+)/i)
-  const result = { property: opt.property, source: d.url, capturedAt: time(), lastUpdated: d.content.match(/(?:上次更新日期|Last updated)[:：]\s*([^\n]+)/i)?.[1] || null, indexed: summary ? Number(summary[1].replaceAll(',', '')) : null, notIndexed: notIndexed ? Number(notIndexed[1].replaceAll(',', '')) : null, reasons, complete: reasons.every(x => x.complete) }
+  const result = { property: opt.property, source: d.url, capturedAt: time(), lastUpdated: d.content.match(/(?:上次更新日期|Last update)[:：]\s*([^\n]+)/i)?.[1] || null, indexed: counts['已编入索引'] ?? counts.Indexed ?? null, notIndexed: counts['未编入索引'] ?? counts['Not indexed'] ?? null, reasons, complete: reasons.every(x => x.complete) }
   const md = heading('GSC 网页索引编制', d.url, result.complete ? '示例完整' : '有未取全的示例或未知总数')
   md.push(`- 报告最后更新：${result.lastUpdated ?? '未取到'}`, `- 已编入：${result.indexed ?? '未取到'}`, `- 未编入：${result.notIndexed ?? '未取到'}`, '', ...table(['原因','数量','示例行数','完整'], reasons.map(x => [x.reason,x.count,`${x.examples.length}/${x.reportedTotal ?? '?'}`,x.complete ? '是' : '否'])))
   for (const r of reasons) md.push(`## ${r.reason}`, '', ...table(['URL','上次抓取'], r.examples.map(x => [x.url,x.lastCrawled])))
@@ -210,7 +210,7 @@ function indexing() {
   return reasons.reduce((n, x) => n + x.examples.length, 0)
 }
 function sitemaps() {
-  const d = extract(urls.sitemaps[0], '已提交的站点地图')
+  const d = extract(urls.sitemaps[0], /(?:已提交的站点地图|Submitted sitemaps)/i)
   const grid = JSON.parse(cli('eval', `(()=>Array.from(document.querySelectorAll('table tr')).map(r=>Array.from(r.querySelectorAll('td,th')).map(c=>c.innerText.trim())))()`))
   const headers = grid[0]?.filter(Boolean) || []
   const rows = grid.slice(1).map(r => r.slice(0, headers.length))
@@ -227,7 +227,7 @@ function inspect() {
   }
   const result = { property: opt.property, capturedAt: time(), rows: [] }
   for (const url of inspectUrls) {
-    extract(urls.inspect[0], '主菜单')
+    extract(urls.inspect[0], /(?:主菜单|Main menu)/i)
     const box = 'form[role=search] input[role=combobox]'
     cli('click', box)
     cli('keys', process.platform === 'darwin' ? 'cmd+a' : 'ctrl+a')

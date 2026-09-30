@@ -1,5 +1,14 @@
 # 搜索平台接入：站长工具与 IndexNow
 
+## 目录
+
+- [先看这张顺序表](#先看这张顺序表)
+- [1–2. IndexNow](#12-indexnow)
+- [3–6. 站长工具的所有权验证](#36-站长工具的所有权验证)
+- [6. 提交 sitemap](#6-提交-sitemap)
+- [验收：写进 .rankup/integrations.md 的东西](#验收写进-rankupintegrationsmd-的东西)
+- [7. Bing Webmaster 的「关键词研究」是一个被长期忽略的免费实测源](#7-bing-webmaster-的关键词研究是一个被长期忽略的免费实测源)
+
 段 5 · 上线与接入的一个子环节，独立成文是因为它**每建一个站都要原样做一遍**，
 而每次重新摸索的成本远高于抄一份。这份文档要回答三件事：
 
@@ -9,6 +18,8 @@
 
 ## 先看这张顺序表
 
+新站先只读检查：`node scripts/site-onboard.mjs --domain <域名> --repo <仓库> --check`；确认缺项后去掉 `--check` 执行。它依次处理统计、IndexNow、GSC、Bing、Yandex、Ahrefs；统计验收见[数据分析平台接入](analytics-platforms.md#先看这张顺序表)。
+
 **按「依赖什么」排序，不按「哪个重要」排序。** 前两项不依赖任何第三方账号，
 所以它们不会被「用户的账号暂时不可用」阻塞——先把它们做完，站就已经在往外推内容了。
 
@@ -16,10 +27,11 @@
 |---|---|---|---|
 | 1 | **IndexNow 密钥文件上线** | 无 | 全自动（`indexnow-submit.mjs --generate-key` + 站点路由） |
 | 2 | **IndexNow 首次全量推送** | 无 | 全自动（`indexnow-submit.mjs`） |
-| 3 | **Bing Webmaster 所有权验证** | 微软账号 | 半自动：meta 标签由你写进代码，**验证按钮由用户点** |
-| 4 | **GSC 资源创建 + 所有权验证** | Google 账号 | 半自动：TXT 记录可由你写 DNS，**验证按钮由用户点** |
+| 3 | **GSC 网域资源创建 + 所有权验证** | Google 账号、DNS | `gsc-domain-verify.mjs add-site --domain <域名>`；先查已有验证，再按需写 DNS TXT |
+| 3a | **GA4 与 GSC 关联** | 已建 GSC 网域资源和 GA4 媒体资源 | `ga4-gsc-link.mjs list [--json]` 查资源，再用 `link --domain <域名>` 或 `link --all [--exclude a.com,b.com]` 关联，`status --domain <域名>` 回读 |
+| 4 | **Bing Webmaster 导入** | 已验证的 GSC 资源 | `bing-import-from-gsc.mjs --sites <域名> --sitemap` |
 | 5 | **Naver Search Advisor 所有权验证**（仅韩国市场） | Naver 账号 | 半自动：meta 标签由你写进代码，**验证按钮由用户点** |
-| 6 | **Yandex Webmaster 所有权验证**（俄语市场或全球覆盖） | Yandex 账号 | 半自动：meta 标签由你写进代码，**验证按钮由用户点** |
+| 6 | **Yandex Webmaster 所有权验证**（俄语市场或全球覆盖） | Yandex 账号 | `yandex-setup.mjs add-site --site https://<域名> --submit-sitemap` |
 | 7 | **各平台提交 sitemap** | 已验证的资源 | 全自动（`webmaster-sitemap.mjs`） |
 | 8 | **每次内容变更后推 IndexNow** | 无 | 全自动，应当挂进发布流程 |
 
@@ -137,16 +149,14 @@ if (path === `/${INDEXNOW_KEY}.txt`) {
 | DNS TXT | 要能写 DNS | **首选**，唯一能建「网域」资源的方式 |
 | HTML meta 标签 | 一行代码 + 一次部署 | 没有 DNS 权限、或只需要「网址前缀」资源时 |
 | 上传 HTML 文件 | 与 meta 同级，但多一个静态文件要维护 | 没理由优先它 |
-| 「从其它平台导入」 | **给对方一个对你另一个平台账号的长期 OAuth 授权** | 见下，默认不用 |
+| 「从其它平台导入」 | 需要处理账户关联与授权页面 | Bing 默认从 GSC 导入 |
 
-### 两条不允许代替用户做的
+### 账户与授权页面
 
 - **「授权访问你的 DNS 服务商账号」那个按钮，不得代替用户点。** 它给出的是对用户 DNS 账号的
   长期访问权，属于必须由用户本人决定的动作。等价替代：把验证方式切到「任何 DNS 提供商」，
   取回 TXT 值，由**你**通过 DNS API 写入记录，再让用户点验证——一样自动化，且不产生任何长期授权。
-- **Bing 的「从 Google Search Console 导入」同理。** 它省下的是几分钟，换来的是
-  Bing 对用户 Google 账号的长期 OAuth。HTML meta 验证达到完全相同的效果，
-  代价是一行代码。默认走 meta，除非用户明确要求导入。
+- **Bing 一律从 GSC 导入。** 登录页多为会话掉线，先点「登录」→「使用 Google 登录」恢复；Google 账户选择器无特别说明选第一项。遇到密码、二次验证、验证码或首次授权同意页，停下交用户处理。
 
 meta 标签的形状（token 是公开值，本来就印在每一页的 HTML 里）：
 
@@ -157,21 +167,9 @@ meta 标签的形状（token 是公开值，本来就印在每一页的 HTML 里
 { name: "yandex-verification", content: YANDEX_VERIFICATION }  // Yandex
 ```
 
-### 尚无脚本的缺口（2026-09-13 登记）
+### GSC 与 Bing 脚本
 
-Naver（`naver-setup.mjs`）与 Yandex（`yandex-setup.mjs`）都已经把「添加站点 →
-取验证值 → 点验证」固化成脚本，**GSC 与 Bing 这两步目前还没有对应脚本**：
-
-- **GSC 资源创建 + 所有权验证**：目前只能手动在 Search Console 后台「添加资源」
-  选「网域」、切到「任何 DNS 提供商」拿 TXT 值，由 API 写 DNS，再让用户点验证。
-- **Bing Webmaster 添加站点 + 所有权验证**：同理，手动在后台加站点、切到 HTML
-  meta 验证拿 token，写代码部署后由用户点验证。
-
-`webmaster-sitemap.mjs` 已经覆盖了这两家**验证通过之后**的 sitemap 状态查询与
-提交，缺口只在「加站点 + 拿验证值 + 点验证」这一段。下次实际接入 GSC/Bing 时，
-按本 Skill「可复用操作必须落成脚本」的规则，参照 `yandex-setup.mjs` 的结构
-（`status`/`add-site`/`verify` 三个子命令、DOM 取值不截图、点击竞态用
-「点击→网络请求判据→重试」模式）跑通后固化，不要每次重新手工摸索。
+`gsc-domain-verify.mjs status|add-site --domain <域名>` 查验或添加网域资源；已有验证时不重复写 TXT。`bing-import-from-gsc.mjs --sites <域名> [--sitemap]` 只导入指定的缺失站点，提交前核对勾选。两者的 sitemap 状态与提交仍用 `webmaster-sitemap.mjs`。
 
 ### 步骤 5：Naver Search Advisor（仅韩国市场）
 
@@ -462,6 +460,8 @@ Bing 只有地址在行首，其余字段各占一行。** 按列下标解析的
 - 两边 sitemap 的提交日期、上次读取日期、状态、已发现条数——**并注明这是快照日期**。
 - 已知的、尚未对齐的差异（例如线上 sitemap 已经 N 条而平台仍显示 M 条），
   以及它预计怎么自行收敛。写下来，下次才不会有人把它当成故障重查一遍。
+
+AITDK GEO 复核用 `scripts/aitdk-opencli.sh <url> [session-name] [output-file] --geo-only`：打开面板后直接点 GEO，结果可能需数分钟（最长等 180 秒）。OpenCLI 首次建页偶发 `Navigation rejected`，同会话确认已到目标页后继续。
 
 ## 7. Bing Webmaster 的「关键词研究」是一个被长期忽略的免费实测源
 

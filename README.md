@@ -24,10 +24,11 @@ npx skills add yan-labs/yan-skills -g --all
 
 | | 管什么 | 一句话 |
 |---|---|---|
-| [`rankup`](rankup/) | 网站的**全生命周期** | 从「这个词能不能做」到「上线三个月后该改哪一页」 |
+| [`rankup`](rankup/) | 网站的**全生命周期** | 从选词建站到接支付（Stripe / Anyway / PayPal）与上线后增长；含 Anyway 脚本和 Worker 验签参考 |
 | [`backlink`](backlink/) | 外链与**登录态数据** | 去哪发、能不能发、发完有没有真的生效 |
 | [`opencli`](opencli/) | 浏览器与**取数的底层** | 怎么把用户那个已登录的 Chrome 开对，怎么不让两个任务抢同一个标签页 |
 | [`imagegen`](imagegen/) | 网站的**视觉素材** | logo、吉祥物、og 图、内页配图、用户场景图、手绘插画——真实生成，页面上不许留占位图 |
+| [`cf-cli`](cf-cli/) | Cloudflare **新版 CLI** | 查账号资源、zone、DNS、域名与 API 命令；现有 Worker 项目仍遵守自己的 Wrangler 构建和部署流程 |
 
 小游戏每日自动化由 [`game-opportunity`](game-opportunity/) 的 `collect-checklist` 和
 `decision-checklist` 两种模式分别执行 10 项采集与决策验收；
@@ -45,7 +46,7 @@ npx skills add yan-labs/yan-skills -g --all
 |---|---|
 | 「我想做个新站」「这个词能不能做」「帮我选词」「挖点需求」 | [`rankup`](rankup/) |
 | 「网站没流量」「排名掉了」「GSC 里这条什么意思」「现在该做什么/到哪一步了」 | [`rankup`](rankup/) |
-| 「部署到 Cloudflare」「接个支付」「上线前检查」 | [`rankup`](rankup/) |
+| 「部署到 Cloudflare」「接支付/选支付商（Stripe / Anyway / PayPal）」「上线前检查」 | [`rankup`](rankup/)：含 Anyway 脚本与 Worker 验签参考 |
 | 「AI 搜索怎么优化」「怎么被 ChatGPT 引用」「llms.txt」 | [`rankup`](rankup/) |
 | 「帮我搞点外链」「去哪发」「提交目录」「评论外链」 | [`backlink`](backlink/) |
 | 「这些外链有没有毒」「要不要 disavow」「竞品的外链哪来的」 | [`backlink`](backlink/) |
@@ -54,6 +55,7 @@ npx skills add yan-labs/yan-skills -g --all
 | 「今天有什么新游戏词」「小游戏机会日报」 | [`game-opportunity`](game-opportunity/) |
 | 「有没有现成的 skill 能做 X」「我想写个 skill，别人写过没」 | [`skillsmp`](skillsmp/) |
 | 「用我的浏览器打开」「登录后台查一下」「标签页被抢了」「doctor 报错」 | [`opencli`](opencli/) |
+| 「用 cf CLI」「创建 Cloudflare zone」「管理 DNS / 绑定域名」 | [`cf-cli`](cf-cli/)；网站上线流程仍由 [`rankup`](rankup/) 总控 |
 | 「一句话，你自己拆解自己跑完」 | [`autopilot`](autopilot/) |
 | 「生成 logo / 吉祥物 / og 图 / 内页配图 / 用户场景图 / 手绘插画」 | [`imagegen`](imagegen/) |
 | 「让 Codex 在后台跑一轮」 | [`codex`](codex/) |
@@ -69,9 +71,9 @@ npx skills add yan-labs/yan-skills -g --all
 
 ---
 
-## `rankup` — 网站全生命周期总控
+## `rankup` — 独立开发者项目全生命周期管理
 
-版本 `3.24.0`。Rankup 负责调研、建设、上线与增长决策；查关键词、竞品、域名、页面和哥飞经验时，按[哥飞工具箱指南](rankup/references/seo-webcafe.md)安装并加载官方 Skill 包，直接调用其工具。五个探索动作（词→词、词→问题、词→站、站→词、站→站）与市场证据闸门仍由 Rankup 执行。
+版本 `3.33.0`。Rankup 管项目从需求验证到变现迭代的全生命周期，以及跨会话接力与项目记录维护；SEO / GEO 是主要手段，不是适用边界。它负责调研、建设、上线与增长决策；查关键词、竞品、域名、页面和哥飞经验时，按[哥飞工具箱指南](rankup/references/seo-webcafe.md)安装并加载官方 Skill 包，直接调用其工具。五个探索动作（词→词、词→问题、词→站、站→词、站→站）与市场证据闸门仍由 Rankup 执行。
 
 登录态数据平台可以直接走薄 CLI，把一次探路沉淀成可续跑清单：
 
@@ -80,6 +82,14 @@ npx @yan-labs/rankup catalog semrush --json
 npx @yan-labs/rankup capture semrush keyword-overview --keyword "photo signature resizer" --db us --out-dir .rankup/provider-audit/keyword-us
 npx @yan-labs/rankup audit similarweb --manifest .rankup/provider-audit/similarweb.json --out-dir .rankup/provider-audit/live/similarweb --resume
 ```
+
+### 3.31 改了什么
+
+- `SKILL.md` 重写 description 与开头定义（项目计划、继续、维护、`.rankup/` 目录都会加载），第一屏新增「强制流程」表：开工、继续、里程碑、各类任务前必读、收尾维护、维护 Skill、整理 `.rankup/`。
+- 新增入口环节 [`references/playbooks/entry.md`](rankup/references/playbooks/entry.md)：Trends 同框 `gpts` 基线 → 有人做（辅助）→ AI 探针 → GEO / SEO 路线；`gpts` 判读表是 [`trends.md`](rankup/references/trends.md)「〇·六」的唯一判据（阈值为起步值）。
+- 新增「维护」章节 [`references/maintenance.md`](rankup/references/maintenance.md) 与 `/rankup doctor`；新脚本 `scripts/maintain/`：`doc-lint.mjs`（断链与超标）、`ref-scan.mjs`（全量扫描）、`split-doc.mjs`（拆分并修链接）、`rankup-doctor.mjs`（`.rankup/` 只读诊断）。
+- 超标文档拆分（主文件留入口与判据，旧文件名都保留为入口）：`lifecycle.md` → `lifecycle/stage-1…7`，另有 `provider-capabilities/`、`demand-sources/`、`playbooks/research/`、`playbooks/selection/`、`integrations/`、`cloudflare/` 子目录。项目记录里写的「`lifecycle.md` 段 N」按新索引一跳可达，无需迁移。
+- 口径统一：KD 只排复核顺序、支付按分发方式选主通道与备份、`rejected.md` 复活后移出表格、`journal/` 可压缩流水；移除已删除的 `game-opportunity` 与 `skillsmp` 引用。
 
 ### 3.0 改了什么
 
@@ -458,6 +468,9 @@ npx skills add yan-labs/yan-skills --skill rankup -g -y
 # 只要 backlink
 npx skills add yan-labs/yan-skills --skill backlink -g -y
 
+# Cloudflare 新版 CLI 的使用规范
+npx skills add yan-labs/yan-skills --skill cf-cli -g -y
+
 # 更新
 npx skills update rankup -g -y
 ```
@@ -483,7 +496,8 @@ rankup review
 | Node.js 18+ | 两个 Skill 都要 | 全部脚本的运行时 |
 | Python 3.10+ | `rankup` 的 `gt.py`、`skill-link-check` | 首次运行 `gt.py` 自动建 venv |
 | [OpenCLI](https://github.com/yan-labs/OpenCLI) CLI + 浏览器扩展 | `opencli` / `backlink` / `rankup` 的全部浏览器动作 | 复用你自己已登录的 Chrome。**必须装我们的构建，不是 Chrome 应用商店那个**，见下 |
-| Wrangler / Stripe CLI | 按任务 | 只在真正走到那个阶段时才需要 |
+| [cf CLI](https://blog.cloudflare.com/cloudflare-cf-cli-launch/) | `rankup` 的 Web / Cloudflare 路径 | `npm i -g cf`；账号级资源和 API 命令按 [`cf-cli`](cf-cli/) 核对。安装 Skill 不会安装 CLI |
+| Wrangler / Stripe CLI | 按任务 | 现有 Worker 项目用锁定的 Wrangler 版本；Stripe 只在支付阶段需要 |
 
 ### 装 OpenCLI（CLI + 浏览器扩展）
 

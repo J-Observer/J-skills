@@ -1,10 +1,23 @@
 # 数据分析平台接入：GA4 · Clarity · Firebase · Ahrefs
 
+## 目录
+
+- [先看这张顺序表](#先看这张顺序表)
+- [0. GA4（域名无关，可在预览域先接）](#0-ga4域名无关可在预览域先接)
+- [CF WA（Cloudflare Web Analytics，域名无关，可在预览域先接）](#cf-wacloudflare-web-analytics域名无关可在预览域先接)
+- [1. Microsoft Clarity](#1-microsoft-clarity)
+- [2. Firebase](#2-firebase)
+- [3. Ahrefs](#3-ahrefs)
+- [各站的实际取值放哪里（不要写回本文档）](#各站的实际取值放哪里不要写回本文档)
+- [新站接入清单](#新站接入清单)
+
 段 4 末到段 5 的子环节。与 [`search-platforms.md`](search-platforms.md) 平行：
 搜索平台管「搜索引擎怎么看你」，分析平台管「用户怎么用你、外链怎么指向你」。
 同样是**每建一个站都要原样做一遍**，本文档记录操作步骤和自动化脚本。
 
 ## 先看这张顺序表
+
+统计接入先回读线上 HTML 中对应 ID / beacon；后台资源已创建不能代替线上接入证据。
 
 | 顺序 | 做什么 | 依赖 | 自动化程度 |
 |---|---|---|---|
@@ -36,7 +49,7 @@ GA4 在批 A：媒体资源的数据流 URL 只是展示用途，换域名不用
 
 1. **建媒体资源**：GA 控制台 → 管理 → 创建媒体资源（选 GA4，不是旧版 UA），时区与币种按目标市场填，
    不按你所在地填——报表的「昨天」按这个时区切。
-2. **建网站数据流**：填当前可访问的 URL（预览域也可以），拿到 **Measurement ID**（形如 `G-XXXXXXXXXX`）。
+2. **建网站数据流**：填当前可访问的 URL（预览域也可以），拿到 **Measurement ID**（形如 `G-<Measurement-ID>`）。
    这是公开值，会出现在页面 HTML 里，不是秘密；但**逐站不同，记到 `<project>/.rankup/integrations.md`**。
 3. **注入**（gtag 或 Zaraz 二选一）：
    - **gtag 一律延迟到首次交互或 6s 兜底再加载，禁止同步注入**：监听一次性的
@@ -63,7 +76,7 @@ GA4 在批 A：媒体资源的数据流 URL 只是展示用途，换域名不用
 Firebase 项目可以关联这个 GA4 媒体资源（下一节），但纯 Web 站不需要为了 GA4 先建 Firebase；
 先接 GA4，Firebase 只在要用它的 SDK 功能时再建。
 
-### 脚本（2026-09-27）
+### 脚本
 
 `scripts/ga4-setup.mjs`：`status` / `create --domain --name [--country 冰岛|巴西] [--timezone UTC]`。
 `--timezone-country` 仍可用，是 `--country` 的别名。时区列表没有 UTC 时用 `--country` /
@@ -71,7 +84,8 @@ Firebase 项目可以关联这个 GA4 媒体资源（下一节），但纯 Web �
 专用 OpenCLI 窗口（`--window-slot ga4-setup`）。hash URL `open` 常报 Navigation rejected，
 脚本改开 `/analytics/web/` 再点「管理」。`waitPageReady` 等目标元素出现或网络空闲，
 不以「正在加载...」为就绪；过滤框同样带超时重试，避免卡在 GA 后台加载页。
-已有同域名媒体资源则复用。create 不宣布成功——以截图 + 页面 Measurement ID 为准。
+`status` 按 Measurement ID 定位资源，不能只按资源名查找。已有同域名媒体资源则复用。create 不宣布成功——以截图 + 页面 Measurement ID 为准。
+正式域名先建 GSC 网域资源，再建 GA4 媒体资源；用 `scripts/ga4-gsc-link.mjs list [--json]` 查看资源，`link --domain <域名>` 或 `link --all [--exclude a.com,b.com]` 关联，并用 `status --domain <域名>` 回读。
 
 ## CF WA（Cloudflare Web Analytics，域名无关，可在预览域先接）
 
@@ -254,18 +268,11 @@ SEO 工具，核心能力是反向链接分析。在 Rankup 里用它：
 与 `backlink` Skill 的关系：`backlink` Skill 驱动 Ahrefs 做盘点和执行，
 Rankup 负责项目初始化和维持监控覆盖。
 
-### 两条路：GSC 导入（优先）与手动创建
+### 创建与验证
 
-**路径 A（优先）：从 GSC 导入。** 如果 GSC 已验证该站点，用 Ahrefs Dashboard 的
-「Import from GSC」一步完成创建 + 验证 + Site Audit 启用。这是最快路径：
-不需要单独创建项目、不需要单独验证所有权、不需要手动开 Site Audit。
-操作：Ahrefs Dashboard → 右上角「+Add」或空状态的 Import → 选择 Google 账号授权 →
-在站点列表中**只勾选目标站点**（默认全选，务必取消其余的）→ 确认导入。
-导入完成后项目立刻 active，Site Audit 默认启用。
-**注意**：导入授予 Ahrefs 对 GSC 数据的长期 OAuth 读取权限——与 Bing 导入 GSC 同理，
-用户须知晓这一点。不想授权就走路径 B。【实测 2026-09-03】
+先用 `status` 查域名和工作区冻结项目。工作区存在冻结项目时，禁止新建任何项目；废弃的预览域名项目应及时删除。创建前后都按域名回查，向导「完成」可能重复建项，只留一个目标域名项目。
 
-**路径 B：手动创建 + 验证。** 脚本走这条路：
+优先在所有权设置用「谷歌搜索控制台」关联验证：按[搜索平台的账户选择规则](search-platforms.md#账户与授权页面)选择 Google 账户，点「重新检查状态」并回读验证结果。数分钟未通过再用 DNS TXT。
 
 ```bash
 # 查看 Dashboard 上的项目列表
@@ -274,7 +281,7 @@ node <rankup-skill-dir>/scripts/ahrefs-setup.mjs status
 # 创建新项目（所有权验证可稍后补）
 node <rankup-skill-dir>/scripts/ahrefs-setup.mjs create --site example.com --name mysite
 
-# 通过 GSC 验证所有权（需浏览器已登录 Google 且 GSC 拥有该站点）
+# 通过已关联的 GSC 账户验证所有权
 node <rankup-skill-dir>/scripts/ahrefs-setup.mjs verify --site example.com
 
 # 启用 Web Analytics（Dashboard「总访问量」监控）并获取追踪脚本
@@ -284,13 +291,13 @@ node <rankup-skill-dir>/scripts/ahrefs-setup.mjs enable-wa --site example.com
 node <rankup-skill-dir>/scripts/ahrefs-setup.mjs enable-wa --site example.com --project-id 12345678
 ```
 
-### 所有权验证（路径 B）
+### 所有权验证
 
-项目创建后处于「冻结」状态。验证方式（任选一种）：
+项目创建后可能处于「冻结」状态。验证方式：
 
 | 方式 | 操作 | 推荐场景 |
 |---|---|---|
-| DNS TXT 记录 | 在 Cloudflare DNS 添加 Ahrefs 指定的 TXT 记录 | 站点由 Cloudflare 管理（可 API 自动化） |
+| DNS TXT 记录 | 在 Cloudflare DNS 添加 Ahrefs 指定的 TXT 记录 | GSC 关联验证数分钟未通过时 |
 | HTML 标签 | 在 `<head>` 添加 `<meta name="ahrefs-site-verification" content="...">` | 代码能快速部署时 |
 | HTML 文件 | 在根目录放置验证文件 | Workers 站点不方便（需要额外路由） |
 | Google Search Console | 连接 Google 账号自动验证 | GSC 已接入且愿意授权 Ahrefs 读 GSC 数据 |
@@ -357,10 +364,10 @@ Project ID、measurementId、appId、`data-key`、埋码位置——这些**逐�
 □ 0. GA4：控制台建媒体资源 → 拿 Measurement ID → gtag / Zaraz 注入 → 线上 grep 到 G- ID + 实时报告有会话（预览域即可）
 □ 1. Clarity：clarity-setup.mjs create → 拿到 ID → 写进 <head>
 □ 2. Firebase：firebase projects:create → firebase apps:create web → 记录 config
-□ 3. Ahrefs：GSC 已接入 → Dashboard「Import from GSC」一步完成创建+验证+Site Audit（优先）；否则 ahrefs-setup.mjs create → verify
+□ 3. Ahrefs：先查冻结项目和目标域名 → ahrefs-setup.mjs create → verify 优先关联 GSC，数分钟未通过再用 DNS TXT → 按域名回查唯一项目
 □ 4. Ahrefs WA：ahrefs-setup.mjs enable-wa → 拿到 data-key → 写进 <head>（requestIdleCallback 延迟加载，同 GA4）
 □ 5. 部署站点（确认追踪代码上线）
 □ 6. 去各平台确认数据开始采集（Ahrefs WA 用设置页「Recheck installation」验证）
 ```
 
-完成任一步骤后，**立刻回写到 `.rankup/integrations.md`** 打 ✅ 并附证据和日期。`rankup review` 会逐项线上实测验证这张清单——不记就等于没做。详见 [`lifecycle.md`](lifecycle.md) 段 5 接入清单。
+完成任一步骤后，**立刻回写到 `.rankup/integrations.md`** 打 ✅ 并附证据和日期。`rankup review` 会逐项线上实测验证这张清单——不记就等于没做。详见 [`lifecycle/stage-5-launch.md`](lifecycle/stage-5-launch.md) 段 5 接入清单。

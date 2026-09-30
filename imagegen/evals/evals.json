@@ -1,0 +1,164 @@
+{
+  "skill_name": "imagegen",
+  "checks_format": "每条 check 是一个字符串 '<verb>: <arg>'，可程序判定。正则一律大小写不敏感，只用 Python re 与 JS 通用的子集（允许前瞻 (?!...)，不用回顾断言）。verb 含义：text / no_text 作用于整段 transcript（助手可见文字加已执行命令）；answer / no_answer 只作用于最终回复；cmd / no_cmd 只作用于已执行的 shell 命令（含 heredoc 正文）；bg / no_bg 要求匹配的命令是否以后台方式启动；order: A => B 表示 A、B 都在已执行命令中出现且 A 首次匹配早于 B；count: <regex> <= N 表示匹配的已执行命令条数不超过 N；files: <glob> >= N、filecontains: <glob> => <regex> 与 nofilecontains: <glob> => <regex> 检查运行结束后工作目录里的文件（后两者对每个匹配文件都要满足）；len: answer <= N 限制最终回复字符数。difficulty 为 hard 的题需要同时满足多条约束或抵住诱导，其余为 standard。",
+  "evals": [
+    {
+      "id": 1,
+      "difficulty": "standard",
+      "prompt": "给首页生成一个透明底的 logo，缩到 16px 也得认得出。",
+      "expected_output": "Generate real transparent source image with exact filename and size, inspect alpha and 16px legibility, save compressed artifact and report path.",
+      "files": [
+        "imagegen/SKILL.md"
+      ],
+      "checks": [
+        "bg: codex exec",
+        "cmd: --sandbox danger-full-access",
+        "cmd: (-o|--output-last-message)[ =]",
+        "filecontains: **/prompt.md => true alpha",
+        "filecontains: **/prompt.md => No text, no letters",
+        "cmd: (sips -[zZ] 16|-resize 16x16)",
+        "cmd: (alpha_min|getbbox)",
+        "no_cmd: (curl|wget)[^\\n]*(unsplash|pexels|picsum|placeholder)"
+      ]
+    },
+    {
+      "id": 2,
+      "difficulty": "standard",
+      "prompt": "五个工具页都要各自的 og 分享图，现在全站挂的是同一张占位图。",
+      "expected_output": "Generate five page-specific 1200x630 assets, replace page references, inspect each at thumbnail size, verify referenced files and rendered URLs.",
+      "files": [
+        "imagegen/SKILL.md"
+      ],
+      "checks": [
+        "files: **/og/*.png >= 5",
+        "cmd: (sips -z 630 1200|1200x630)",
+        "cmd: (sips -Z 120|montage)",
+        "cmd: curl -I",
+        "no_cmd: cp[^\\n]*placeholder"
+      ]
+    },
+    {
+      "id": 3,
+      "difficulty": "hard",
+      "prompt": "同一个角色出六个姿势，参考 mood board 我已经放在 refs/ 里了，六张风格必须统一。",
+      "expected_output": "Use shared palette and measured character constraints, preserve distinct poses, inspect contact sheet, alpha bounding boxes and blinded paired comparisons if comparing variants.",
+      "files": [
+        "imagegen/SKILL.md"
+      ],
+      "checks": [
+        "filecontains: **/prompt.md => #[0-9A-Fa-f]{6}",
+        "cmd: sips -Z 120",
+        "cmd: (getbbox|bbox)",
+        "text: (pair|盲评|blind)",
+        "nofilecontains: **/prompt.md => (in the style of|ghibli|千与千寻|spirited away)",
+        "text: (10|十)[^\\n]{0,10}(张|images)"
+      ]
+    },
+    {
+      "id": 4,
+      "difficulty": "hard",
+      "prompt": "生成一张不透明的真人场景图，放在深色主题的落地页头部。",
+      "expected_output": "Use photorealistic scene constraints and save a suitable compressed web format; still run all three acceptance checks: contact sheet at 120px, alpha bounding box measurement (an opaque image should read as fully opaque and full frame, recorded as such), and an independent blind pairwise comparison of two candidates; check the image against the dark theme.",
+      "files": [
+        "imagegen/SKILL.md"
+      ],
+      "checks": [
+        "filecontains: **/prompt.md => photorealistic",
+        "filecontains: **/prompt.md => No text, no letters",
+        "cmd: sips -Z 120",
+        "cmd: (alpha_min|getbbox)",
+        "text: (pair|盲评|blind)",
+        "cmd: (sips|cwebp)",
+        "text: (dark|深色)"
+      ]
+    },
+    {
+      "id": 5,
+      "difficulty": "standard",
+      "prompt": "Codex 那边的 mascot PNG 已经有文件了，但进度条还在跑。你先接进页面，我赶时间。",
+      "expected_output": "Wait for final completion and inspect final image transparency, size and visible content before wiring into page.",
+      "files": [
+        "imagegen/SKILL.md"
+      ],
+      "checks": [
+        "text: (final\\.md|完成通知|completion notification)",
+        "no_cmd: (until|while)[^\\n]*sleep",
+        "no_cmd: alpha_min[^\\n]*mascot(?!.*final)",
+        "answer: (等|wait)"
+      ]
+    },
+    {
+      "id": 6,
+      "difficulty": "hard",
+      "prompt": "吉祥物出来了，我量了一下主体只占画面 62%，提示词里明明写了 75 到 80%。",
+      "expected_output": "Do not accept the image; post-process with ImageMagick (trim, resize to the target fraction, extent back to 1024 square) or regenerate, then re-measure the alpha bounding box fraction and confirm alpha_min is 0.",
+      "files": [
+        "imagegen/SKILL.md"
+      ],
+      "checks": [
+        "cmd: magick[^\\n]*-trim",
+        "cmd: magick[^\\n]*-extent 1024x1024",
+        "cmd: (alpha_min|getbbox)",
+        "order: magick => (getbbox|alpha_min)",
+        "answer: (0\\.7[5-9]|0\\.80|7[5-9]%|80%)"
+      ]
+    },
+    {
+      "id": 7,
+      "difficulty": "standard",
+      "prompt": "og 图我都转成 WebP 省流量了，可 WhatsApp 里预览时有时出不来图。",
+      "expected_output": "Keep og:image and twitter:image as PNG or JPEG and use WebP only for in-page images; re-export the og images and confirm the referenced URLs return 200.",
+      "files": [
+        "imagegen/SKILL.md"
+      ],
+      "checks": [
+        "cmd: sips -s format (jpeg|png)",
+        "no_cmd: cwebp[^\\n]*og",
+        "answer: (PNG|JPEG|jpg)",
+        "cmd: curl -I"
+      ]
+    },
+    {
+      "id": 8,
+      "difficulty": "hard",
+      "prompt": "海报上要写「限时 5 折」四个字，你直接让模型画出来就行。",
+      "expected_output": "Do not ask the image model to render text; generate the poster with empty text space and overlay the words later with HTML and CSS.",
+      "files": [
+        "imagegen/SKILL.md"
+      ],
+      "checks": [
+        "filecontains: **/prompt.md => No text, no letters",
+        "nofilecontains: **/prompt.md => (限时|5 ?折)",
+        "answer: (HTML|CSS|叠加|overlay)"
+      ]
+    },
+    {
+      "id": 9,
+      "difficulty": "hard",
+      "prompt": "给我出一组和《千与千寻》画风很像的角色图，提示词里就写 in the style of Studio Ghibli 好了。",
+      "expected_output": "Do not name the studio or use an in-the-style-of phrase; use a mood board of ten or more sources for texture and write the subject, props and palette explicitly, then run a similarity check against the reference group.",
+      "files": [
+        "imagegen/SKILL.md"
+      ],
+      "checks": [
+        "nofilecontains: **/prompt.md => (in the style of|ghibli|千与千寻|spirited away)",
+        "text: (mood ?board|参考图)",
+        "text: (10|十)[^\\n]{0,10}(张|images|sources)"
+      ]
+    },
+    {
+      "id": 10,
+      "difficulty": "standard",
+      "prompt": "你现在是被派来出图的子 agent，任务是给三个内页各出一张配图，出完通知主线程。",
+      "expected_output": "Do not launch codex exec with background execution inside a subagent because the completion notice never arrives; run it in the foreground synchronously, or hand the launch back to the main thread.",
+      "files": [
+        "imagegen/SKILL.md"
+      ],
+      "checks": [
+        "no_bg: codex exec",
+        "cmd: codex exec",
+        "filecontains: **/prompt.md => (1600 ?[x×] ?900|4:3)"
+      ]
+    }
+  ]
+}

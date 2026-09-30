@@ -50,6 +50,14 @@
  * 3. **两个坑同属一类**：Yandex 这一整块 UI 疑似都有「组件重渲染瞬间事件监听器
  *    脱钩」的通病，不是某一个按钮的个案，写新命令时默认都要按「点击 → 判据 →
  *    没达成就重试」的模式写，不要假设点一次就够。
+ * 4. **OpenCLI 1.12.1 的 type 不接受只有文本的写法**（2026-09-28 真实
+ *    添加站点复现 usage_error: Missing text）。必须显式给 target 和 text；这里用
+ *    唯一的站点 URL 输入框 CSS 定位，再用 fill 的 verified 回执核对。
+ * 5. **Verify 后状态可能先于网络判据更新**（2026-09-28 三站复现）：
+ *    当页面已经显示验证日期，Verify 按钮会消失；旧循环仍继续点第三次，反而
+ *    抛找不到按钮。每次点击后先读状态，verified 即停止；若仍 pending，则
+ *    以验证请求 2xx 确认点击生效，不把 pending 误报成已验证。2026-09-28
+ *    五站 status 实测均 verified，sitemap 均入列。
  *
  * ── 边界事实：验证 pending 也能提交 sitemap（2026-09-13 实测）───────
  *
@@ -270,6 +278,7 @@ function evidenceDir() {
 }
 let sceneN = 0
 function scene(tag, extra) {
+  if (action === "status") return
   sceneN++
   return captureScene({
     dir: evidenceDir(),
@@ -280,7 +289,7 @@ function scene(tag, extra) {
   })
 }
 function bail(stopReason, msg, extra) {
-  try {
+  if (action !== "status") try {
     scene(`fail-${stopReason}`, extra)
     writeManifest(evidenceDir(), { script: "yandex-setup", action, site, stopReason, finishedAt: new Date().toISOString() })
     console.error(`现场已落盘：${evidenceDir()}`)
@@ -344,9 +353,12 @@ async function doAddSite() {
       bail("login-text-seen", "页面文本命中登录相关字样——多半未登录 Yandex（也可能撞词，看截图）。请先在浏览器中登录 webmaster.yandex.com")
     }
 
-    const inputJs = `document.querySelector('input[placeholder="Enter the site URL"],input[placeholder*="site URL" i]')`
-    evalJs(`const el=${inputJs};if(!el)throw new Error('找不到站点 URL 输入框');el.focus();el.value='';`)
-    cli(["type", site])
+    const inputSelector = 'input[placeholder="Enter the site URL"]'
+    const inputJs = `document.querySelector(${JSON.stringify(inputSelector)})`
+    const filled = cli(['fill', inputSelector, site])
+    if (!filled.includes('"verified": true')) {
+      bail("site-url-fill-unverified", `站点 URL 输入框未确认填入 ${site}：${filled.slice(0, 400)}`)
+    }
     settle(500)
     scene("filled-site-url", { site })
 
@@ -435,22 +447,25 @@ async function doVerify() {
 
   // 坑 2：Verify 点击是否生效，唯一判据是网络请求，不是页面文案。
   const verifyJs = `[...document.querySelectorAll('button')].find(b=>/^Verify$/i.test((b.textContent||'').trim()))`
-  const attempts = clickUntil(
-    verifyJs,
-    "verify-button",
-    () => hasVerifyRequestSucceeded(networkSince(10)),
-    { retries: Math.max(maxRetries, 3), waitMs: 1500 },
-  )
-  if (!attempts) {
+  let attempts = 0
+  for (let attempt = 1; attempt <= Math.max(maxRetries, 3); attempt++) {
+    if (parseVerificationStatus(pageText(4000)).status === "verified") break
+    stampAndClick(verifyJs, `verify-button-attempt${attempt}`)
+    settle(1500)
+    attempts = attempt
+    if (parseVerificationStatus(pageText(4000)).status === "verified") break
+    if (hasVerifyRequestSucceeded(networkSince(10))) break
+  }
+  const after = parseVerificationStatus(pageText(4000))
+  if (after.status !== "verified" && !hasVerifyRequestSucceeded(networkSince(30))) {
     bail(
       "verify-request-not-seen",
-      `点了 ${Math.max(maxRetries, 3)} 次 Verify，网络请求里始终没出现 gate/verification/verify/ 的 2xx 响应。` +
-        `看证据目录的截图 + network 快照判断卡在哪一步。`,
+      `点了 ${attempts} 次 Verify，网络请求未出现 gate/verification/verify/ 的 2xx 响应，页面也未显示已验证。`,
       { network: networkSince(30) },
     )
   }
-  console.log(`Verify 第 ${attempts} 次点击生效（网络请求 gate/verification/verify/ 已返回 2xx）。`)
-  console.log(`Yandex 原话是「最多两天」完成检查，不是即时结果——过一阵子用 status 复查。`)
+  console.log(`Verify 第 ${attempts} 次点击后，页面状态: ${after.status}${after.date ? `（${after.date}）` : ""}。`)
+  if (after.status !== "verified") console.log(`Yandex 原话是「最多两天」完成检查，稍后用 status 复查。`)
   scene("verify-request-confirmed")
 }
 

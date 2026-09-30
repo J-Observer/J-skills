@@ -12,7 +12,7 @@
 // 在第三方后台开账号/拿到验证凭据的平台)。同一张表里 favicon/manifest、
 // SEO 元素(title/description/OG)、JSON-LD、is-agentic、hreflang 这些代码级
 // 行,不需要账号、靠代码/页面本身满足,不在 REQUIRED_INTEGRATION_PLATFORMS
-// 之列——它们由段 4 上线前闸门(lifecycle.md 段 4 C 节「上线前闸门」0–6 + 4b)
+// 之列——它们由段 4 上线前闸门(references/lifecycle/stage-4-prelaunch.md 段 4 C 节「上线前闸门」0–6 + 4b)
 // 覆盖检查,不是本脚本的漏检,是职责分工。
 
 import { readdir, readFile, stat } from "node:fs/promises";
@@ -35,8 +35,8 @@ const LIFECYCLE_CHECKS = [
     group: "基础",
     evidence: "keywords.md",
     minBytes: 50,
-    fix: "node <rankup>/scripts/seo-webcafe.mjs kd <keyword>",
-    tool: "seo-webcafe.mjs",
+    fix: "加载官方 gefei-keywords Skill，用 keyword_difficulty 查询目标市场",
+    tool: "官方 gefei-keywords",
     why: "SEO 的基底——目标词定了，密度/排名/进度才有锚点",
   },
   {
@@ -66,8 +66,8 @@ const LIFECYCLE_CHECKS = [
     group: "上线后",
     evidence: "audit.md",
     minBytes: 500,
-    fix: "执行 lifecycle.md 段 4 C 节「上线前闸门」0–6 + 4b 逐行留证据",
-    tool: "is-agentic.mjs + seo-webcafe.mjs audit/chat",
+    fix: "执行 references/lifecycle/stage-4-prelaunch.md 段 4 C 节「上线前闸门」0–6 + 4b 逐行留证据",
+    tool: "is-agentic.mjs + 官方 gefei-page onpage_audit/page_coach",
     why: "站点身份/SEO/TDK/密度/GEO/哥飞审阅/性能——逐项要证据",
   },
   {
@@ -147,7 +147,7 @@ const LIFECYCLE_CHECKS = [
 ];
 
 // 批 A / 批 B 必需平台的逐行检查：判据来自 discipline.md 十「完整清单」、
-// checklists.md 段 5「批 B 清单逐行有状态」、lifecycle.md 段 5「批 B 平台清单」——
+// checklists.md 段 5「批 B 清单逐行有状态」、references/lifecycle/stage-5-launch.md 段 5「批 B 平台清单」——
 // 三处口径一致，这里只是把它断言成脚本，不是又开一份新判据。
 // 上面 LIFECYCLE_CHECKS 里的 "integrations" 只判"文件在不在、够不够大"；
 // 曾经出现过文件存在、体积也够，但整整两个必需平台（Ahrefs Site Audit、Yandex）

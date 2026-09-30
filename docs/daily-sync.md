@@ -44,3 +44,9 @@ The gate covers Skill metadata, Windows launcher arguments, update isolation, sh
 ## Initial integration (2026-09-28)
 
 Upstream removed `game-opportunity` and `skillsmp`, and moved the agent-fleet Skill to `agent-fleet/skill`. The old installed directories are archived, not silently kept as current upstream features. Existing Windows launcher adaptations were retained. The upstream Clarity change needed an argument-array fix; the offline tests were adjusted for Git Bash and the removal of game-opportunity. The GEO write-panel test explicitly skips when its `jq` dependency is absent.
+
+## Upstream integration repair (2026-09-30)
+
+The scheduled job stopped safely when upstream `100a68e` conflicted with the Windows adaptations in eleven files. The repair adopts the official gefei CLI migration and split reference documents, retains argument-array subprocess calls and portable tests, and updates the agent-fleet mock to the upstream model. The document checks now follow the linked inventory and runtime detail while still checking their reachability and detecting missing entries. The new doc-lint entrypoint resolves real paths correctly. Official gefei CLI calls resolve an existing Claude, shared agents, or Codex installation (including CODEX_HOME).
+
+A merge conflict remains a reason to stop and review; the workflow does not choose a conflict side automatically. Local `current` means aligned with the Fork, and `cloudWorkflow: active` describes the schedule state; neither proves the latest cloud run succeeded. Inspect Actions or the open attention issue when upstream appears stale.

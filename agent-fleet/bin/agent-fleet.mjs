@@ -3,8 +3,7 @@
 //
 // 定位:通用多模型子任务执行工具。给一个任务描述 + 一个模型友好名字,用 Claude Agent SDK
 // 驱动一个 bypassPermissions 的自主 Agent(读写文件、跑 bash、多轮工具调用直到任务完成)
-// 去跑,跑完把结果打印出来。纯本地工具,不经过任何 Kollab 基础设施,模型接的是用户自己的
-// 第三方 API key。
+// 去跑,跑完把结果打印出来。多模态命令转调 Kollab CLI。
 //
 // 子命令:
 //   run       跑单个任务,可以同时开多个进程/多个终端各自 run 不同模型实现并发
@@ -12,6 +11,7 @@
 //   judge     JEV(typesafe-systemone 协议)模型专用的结构化判断
 //   tail      查看 ~/.agent-fleet/runs 下最近一次运行的进度日志
 //   list-models  列出 models.config.json 里配置了哪些模型,以及各自的密钥是否已配置
+//   media        通过 Kollab CLI 查目录和调用托管多模态工具
 //
 // 本文件只负责:解析参数、装配 config/env、调用 src/ 下的核心逻辑、格式化输出。
 // 不在这里写任何 SDK 调用细节——那些都在 src/run-task.mjs 里。
@@ -32,6 +32,7 @@ import { collectStatus, deliverSay, formatStatusHuman, requestStop } from '../sr
 import { readPidRecord, resolveRunId } from '../src/pid.mjs';
 import { shortRunOptions, splitShortArgs, resolveBrief } from '../src/shortcuts.mjs';
 import { runCode } from '../src/code-runner.mjs';
+import { runMedia } from '../src/media.mjs';
 
 const PKG_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const PKG_VERSION = JSON.parse(readFileSync(join(PKG_ROOT, 'package.json'), 'utf8')).version;
@@ -41,12 +42,14 @@ const HELP_TEXT = `fleet ${PKG_VERSION} — 简短任务入口
   fleet copy|grok|bulk|gpt <brief文件或文本> [--cwd dir] [--verbose]
   fleet code <brief文件或文本> [--low] [--review] [--cwd dir]
   fleet judge <state文件> <questions文件> [--json]
-  fleet run --model name --prompt "任务" [--cwd dir] [--max-turns 500]
+  fleet run --model name --prompt "任务" [--cwd dir] [--max-turns N]
   fleet run-many --config batch.json | status | tail [--follow]
   fleet say <id|latest> "消息" | stop <id|latest> | resume <id|latest>
+  fleet media list | run <tool> --model <id> --prompt "..." [--input-json '{}'] [--out dir]
+  fleet media models [--source openrouter] [--search text]
   fleet list-models | help | --version
 
-run 默认 500 轮、安静、当前目录；--verbose 显示进度。--quiet、--max-turns、--cwd、
+run 默认不限轮数、安静、当前目录；--verbose 显示进度。--quiet、--max-turns、--cwd、
 --system-prompt、--json、--full、--brief-lines、--expect-changes、--judge 可选。
 code 的 --review 使用只读沙箱与内置审查提示词；旧 agent-fleet 长命令继续可用。
 `;
@@ -114,7 +117,7 @@ async function cmdRun(argv) {
     prompt: flags.prompt,
     cwd: flags.cwd ? resolvePath(flags.cwd) : process.cwd(),
     config,
-    maxTurns: flags['max-turns'] === undefined ? 500 : Number(flags['max-turns']),
+    maxTurns: flags['max-turns'] === undefined ? undefined : Number(flags['max-turns']),
     systemPrompt: flags['system-prompt'],
     progress,
   });
@@ -153,7 +156,7 @@ async function cmdRunMany(argv) {
 
   let results;
   try {
-    const maxTurns = flags['max-turns'] === undefined ? 500 : Number(flags['max-turns']);
+    const maxTurns = flags['max-turns'] === undefined ? undefined : Number(flags['max-turns']);
     results = await runMany(tasks.map((task) => ({ ...task, maxTurns: task.maxTurns ?? maxTurns })), {
       config, defaultCwd, quiet: !flags.verbose || Boolean(flags.quiet),
     });
@@ -324,7 +327,7 @@ async function cmdResume(argv) {
     prompt,
     cwd,
     config,
-    maxTurns: flags['max-turns'] === undefined ? 500 : Number(flags['max-turns']),
+    maxTurns: flags['max-turns'] === undefined ? undefined : Number(flags['max-turns']),
     systemPrompt: flags['system-prompt'],
     progress,
     resume: rec.sessionId,
@@ -404,9 +407,8 @@ async function cmdShortJudge(argv) {
 }
 
 async function main() {
-  loadEnvFile(join(PKG_ROOT, '.env'));
-
   const [command, ...rest] = process.argv.slice(2);
+  if (command !== 'media') loadEnvFile(join(PKG_ROOT, '.env'));
 
   if (!command || command === 'help' || command === '--help' || command === '-h') {
     console.log(HELP_TEXT);
@@ -427,6 +429,9 @@ async function main() {
         break;
       case 'code':
         await cmdCode(rest);
+        break;
+      case 'media':
+        process.exitCode = runMedia(rest);
         break;
       case 'judge':
         if (rest.some((arg) => arg === '--model' || arg === '--state-file' || arg === '--questions-file')) await cmdJudge(rest);

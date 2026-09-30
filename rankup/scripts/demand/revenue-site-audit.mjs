@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /**
- * 薄编排：复用现有 AITDK / Similarweb / Semrush / sitemap / KD 脚本，
+ * 薄编排：复用现有域名画像 / Similarweb / Semrush / sitemap / 官方 KD CLI，
+ * 2026-09-30 KD 改走官方 gefei keyword_difficulty，gl=--db、hl=en，凭据由官方自管。
  * 把「收入站案例」整理成同口径的**原始对照数据**。这里不采集、不解析面板，
  * 也不下判决——「证实/部分证实/反证」这类 verdict 由 AI 对着输出里的
- * 各源数值、scope 记录和倍差事实来下（判据见 references/demand-sources.md 第十节）。
+ * 各源数值、scope 记录和倍差事实来下（判据见 references/demand-sources/validation-chain.md「十、候选验证链路」）。
  *
  * 2026-08-30 起：不再删除工作目录。各采集器的原始输出文件全部保留在
  * 输出 rawFilesDir 指向的目录里（默认 .rankup/evidence/demand/revenue-site-audit-<ts>/），
@@ -15,6 +16,7 @@
  *   node revenue-site-audit.mjs --self-test
  */
 import { execFile } from 'node:child_process';
+import { gefeiEnv, gefeiScript } from '../lib-gefei-env.mjs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,9 +27,9 @@ const execFileP = promisify(execFile);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../../..');
 const scripts = {
-  aitdk: path.join(here, 'aitdk-lookup.mjs'),
+  aitdk: path.join(here, 'domain-profile.mjs'),
   sitemap: path.join(here, 'sitemap-diff.mjs'),
-  kd: path.join(here, '../seo-webcafe.mjs'),
+  kd: gefeiScript(),
   similarweb: path.join(repo, 'backlink/scripts/similarweb-query.mjs'),
   semrush: path.join(repo, 'backlink/scripts/semrush-overview.mjs'),
 };
@@ -96,7 +98,8 @@ async function fetchTrustMrr(sourceUrl) {
 
 async function run(outputFile, commandArgs, cwd) {
   try {
-    const { stdout } = await execFileP(process.execPath, commandArgs, { cwd, timeout: 300_000, maxBuffer: 32 * 1024 * 1024 });
+    const { stdout, stderr } = await execFileP(process.execPath, commandArgs, { cwd, env: commandArgs[0] === scripts.kd ? gefeiEnv() : process.env, timeout: 300_000, maxBuffer: 32 * 1024 * 1024 });
+    if (stderr) process.stderr.write(stderr);
     return outputFile ? await json(outputFile) : JSON.parse(stdout);
   } catch (error) {
     const saved = outputFile ? await json(outputFile) : null;
@@ -126,7 +129,7 @@ async function collect(domain, keywords, db, work, sourceUrl) {
   const kd = [];
   for (let i = 0; i < keywords.length; i++) {
     const file = path.join(work, `kd-${i}.json`);
-    kd.push(noteSource(`kd:${keywords[i]}`, await run(file, [scripts.kd, 'kd', '--keyword', keywords[i], '--out', file, '--json'], work)));
+    kd.push(noteSource(`kd:${keywords[i]}`, await run(file, [scripts.kd, 'keyword_difficulty', '--keyword', keywords[i], '--gl', db, '--hl', 'en', '--out', file, '--json'], work)));
   }
   const trustmrr = sourceUrl ? noteSource('trustmrr', await fetchTrustMrr(sourceUrl)) : null;
   return { aitdk, similarweb: { performance: swPerformance, channels: swChannels }, semrush, sitemap, kd, trustmrr };
@@ -218,10 +221,10 @@ function buildAudit(domain, sourceUrl, raw, claimed = {}) {
   ];
   return {
     schemaVersion: 2, domain, sourceUrl: sourceUrl || null, retrievedAt: new Date().toISOString(),
-    methodology: 'Existing collectors are invoked unchanged; unavailable is never converted to zero. Semrush country organic traffic is not compared arithmetically with Similarweb worldwide total visits. This script records raw values, scope and ratio facts only — verdicts are for the reader (AI) to make; see references/demand-sources.md section 10.',
+    methodology: 'Existing collectors are invoked unchanged; unavailable is never converted to zero. Semrush country organic traffic is not compared arithmetically with Similarweb worldwide total visits. This script records raw values, scope and ratio facts only — verdicts are for the reader (AI) to make; see references/demand-sources/validation-chain.md section 十、候选验证链路.',
     scope,
     crossChecks: {
-      // 事实，不是判决：倍差多大算冲突、冲突了信哪边，由 AI 按 demand-sources.md 的判据定。
+      // 事实，不是判决：倍差多大算冲突、冲突了信哪边，由 AI 按 references/demand-sources/validation-chain.md 的判据定。
       comparableEstimates: estimates,
       estimateRatio: ratio,
       similarwebPerformanceVsChannelsRatio: swReportRatio,

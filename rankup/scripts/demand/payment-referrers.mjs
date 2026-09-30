@@ -6,7 +6,7 @@
  *       本脚本回答同一个问题——**谁在往这些收银台送人**——用两条互补的路径：
  *
  *   serp        用「结账域名 / powered-by 徽标 / SDK 脚本域名」当指纹去搜索引擎反查。
- *               免费或极低配额，覆盖广，但**噪音大**：搜到的多是文档、SDK、教程，
+ *               按引擎消耗积分或公开搜索，覆盖广，但**噪音大**：搜到的多是文档、SDK、教程，
  *               真正的商户站要靠 --exclude 和人工过一遍。适合发现生态与集成方。
  *   similarweb  查网关域名自己的「引荐流量 · 流入」报表，直接列出**给它送流量的域名**
  *               及各自占比。这才是干净的商户清单，但要共享面板的登录态与配额。
@@ -20,9 +20,9 @@
  *   node payment-referrers.mjs similarweb polar --direction outgoing
  *
  * 依赖：
- *   - serp --engine webcafe（默认）：seo.web.cafe /translate/api/search，Google 结果，
- *     **每条查询 1 次配额**（游客 10/日、登录 100/日、VIP 500/日）。支持 Google 检索算符。
- *     `--via browser` 把请求发进已登录的 Chrome，用那边的档位。
+ *   - serp --engine webcafe（默认）：官方 gefei CLI 的 serp，2 积分/查询。
+ *     2026-09-30 目录核对；使用 Google 原始自然结果，不再走旧需求翻译端点。
+ *     官方 CLI 自管凭据，本脚本不读取令牌或配置。
  *   - serp --engine brave：`opencli brave search`，**不花配额**，但实测覆盖差、
  *     对 `-site:` 之类算符基本无效，常直接 EMPTY_RESULT。当兜底用，别当主力。
  *   - similarweb：复用 backlink Skill 的共享面板启动器
@@ -57,13 +57,14 @@
  *      SERP 天然看不到它们；这种时候只有 similarweb 那条路。
  */
 
-import { execFile } from '../../../backlink/scripts/lib-opencli-process.mjs';
+import { execFile } from 'node:child_process';
+import { gefeiEnv, gefeiScript } from '../lib-gefei-env.mjs';
 import { promisify } from 'node:util';
 import {
-  parseArgs, emit, die, sleep, printTable, requireBrowserBridge, sessionName,
+  parseArgs, emit, die, sleep, printTable,
   initEvidence, saveEvidence, recordSource, writeManifest, captureBrowserScene, evidenceDir,
 } from './_lib.mjs';
-import { BASE, UA, toolAuth } from '../seo-webcafe.mjs';
+import path from 'node:path';
 
 const execFileP = promisify(execFile);
 
@@ -141,9 +142,7 @@ const HELP = `长尾支付网关反查 —— 谁在往这些收银台送人
   similarweb <网关>           查网关自己的引荐流量报表（干净，但要面板配额）
 
 serp 选项:
-  --engine webcafe|brave      默认 webcafe（Google 结果，1 次配额/查询）
-  --via browser               webcafe 引擎走已登录的 Chrome，用那边的配额档位
-  --session <name>            浏览器会话名，默认 demand-payment-referrers
+  --engine webcafe|brave      默认 webcafe（官方 Google serp，2 积分/查询）
   --query <检索式>            用自定义检索式，覆盖内置指纹（可重复）
   --max-queries <n>           最多跑几条内置指纹，默认 2（省配额）
   --exclude <域名>            额外排除的域名（可重复）；网关自身域名总是排除
@@ -169,47 +168,17 @@ const isUnder = (host, roots) => roots.some((r) => host === r || host.endsWith(`
 
 // ── serp ────────────────────────────────────────────────────────────────────
 
-let browserReady = false;
-async function opencliEval(session, expr) {
-  if (!browserReady) {
-    // --via browser 是可选档位，桥没连上时原来要等满 120s 的 execFile timeout
-    // 才报错，还是个和「桥」八竿子打不着的超时消息。先短探测，明确没连就直说。
-    requireBrowserBridge();
-    await execFileP('opencli', ['browser', session, '--window', 'background', 'open', `${BASE}/translate/`], { timeout: 120000 });
-    browserReady = true;
-    await sleep(2500);
+async function searchWebcafe(query) {
+  try {
+    const { stdout, stderr } = await execFileP(process.execPath, [
+      gefeiScript(),
+      'serp', '--q', query, '--gl', 'us', '--hl', 'en', '--json',
+    ], { env: gefeiEnv(), timeout: 120000, maxBuffer: 32 * 1024 * 1024 });
+    if (stderr) process.stderr.write(stderr);
+    return JSON.parse(stdout);
+  } catch (error) {
+    return { error: String(error.stderr || error.message).trim() };
   }
-  const { stdout } = await execFileP('opencli', ['browser', session, '--window', 'background', 'eval', expr], { timeout: 150000, maxBuffer: 32 * 1024 * 1024 });
-  const i = stdout.indexOf('{');
-  if (i === -1) die(`opencli eval 没有返回 JSON：${stdout.slice(0, 200)}`);
-  return JSON.parse(stdout.slice(i));
-}
-
-const SEARCH_EXPR = (query) => `(async()=>{
-  const html = await (await fetch("/translate/", {credentials:"include"})).text();
-  const tok = (html.match(/[0-9]{13}\\.[0-9a-f]{64}/)||[])[0];
-  const hdr = (html.match(/X-[A-Z]{2,8}-Token/)||[])[0];
-  const r = await fetch("/translate/api/search", {method:"POST", credentials:"include",
-    headers:{[hdr]:tok, "content-type":"application/json"},
-    body: JSON.stringify({query: ${JSON.stringify(query)}})});
-  return { status: r.status, data: await r.json().catch(()=>null) };
-})()`;
-
-async function searchWebcafe(query, { via, session }) {
-  if (via === 'browser') {
-    const res = await opencliEval(session, SEARCH_EXPR(query));
-    if (res.status !== 200) return { error: `HTTP ${res.status}` };
-    return res.data;
-  }
-  const auth = await toolAuth('translate');
-  const r = await fetch(`${BASE}/translate/api/search`, {
-    method: 'POST',
-    headers: { ...auth, 'user-agent': UA, 'content-type': 'application/json' },
-    body: JSON.stringify({ query }),
-  });
-  const t = await r.text();
-  if (!r.ok) return { error: `HTTP ${r.status} ${t.slice(0, 140)}` };
-  try { return JSON.parse(t); } catch { return { error: '非 JSON 响应' }; }
 }
 
 async function searchBrave(query) {
@@ -232,15 +201,12 @@ async function cmdSerp(args) {
   const queries = custom.length ? custom : gw.queries.slice(0, Number(args['max-queries'] || 2));
   const own = [...(gw?.own || []), ...(args.exclude ? [].concat(args.exclude) : [])];
   const engine = args.engine === 'brave' ? 'brave' : 'webcafe';
-  const via = args.via === 'browser' ? 'browser' : 'http';
-  // 会话名不许是字面常量（纪律见 _lib.sessionName）：两个并行任务撞名就共用标签页。
-  const session = args.session || sessionName('demand-payment-referrers');
   initEvidence('payment-referrers', { dir: args['evidence-dir'] ?? null });
-  if (engine === 'webcafe') console.error(`· 将消耗 ${queries.length} 次 seo.web.cafe 配额（通道 ${via}）`);
+  if (engine === 'webcafe') console.error(`· 将消耗 ${queries.length} 次官方 serp 调用（2 积分/次，gl=us hl=en）`);
 
   const byHost = new Map();
   for (const q of queries) {
-    const res = engine === 'brave' ? await searchBrave(q) : await searchWebcafe(q, { via, session });
+    const res = engine === 'brave' ? await searchBrave(q) : await searchWebcafe(q);
     if (res.error) {
       // 逐 query 记状态：查询失败/无结果和「没人引用这个网关」在 manifest 里分得开。
       recordSource({ source: `serp:${engine}:${q}`, status: 'query_failed', rawCount: 0, error: res.error });
@@ -262,9 +228,7 @@ async function cmdSerp(args) {
     }
     await sleep(600);
   }
-  if (via === 'browser' && browserReady) {
-    try { await execFileP('opencli', ['browser', session, 'close'], { timeout: 60000 }); } catch { /* 关不掉不该让命令失败 */ }
-  }
+
 
   const rows = [...byHost.values()]
     .map((r) => ({ ...r, 命中指纹: [...r.命中指纹].join(' | '), 网关: gw?.label ?? '(自定义)' }))
@@ -311,7 +275,7 @@ async function cmdSimilarweb(args) {
     openedSession = l.session ?? session ?? null;
     const ev = l.evalPage;
     console.error(`· 面板订阅到期 ${l.state.expiry ?? '—'}（剩 ${l.state.daysLeft ?? '—'} 天）· 配额 ${JSON.stringify(l.state.quotas ?? '—')}`);
-    const base = 'https://sim.3ue.co/#/digitalsuite/websiteanalysis';
+    const base = 'https://similarweb.example.com/#/digitalsuite/websiteanalysis';
     // 先落到已知稳定的路由再切过去；直接深链到 referrals 有概率白屏。
     //
     // **请求的窗口是 28d，但面板会自己改写它。** 2026-08-28 实测 creem.io：

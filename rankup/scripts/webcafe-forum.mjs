@@ -2,8 +2,12 @@
 /**
  * webcafe-forum.mjs —— new.web.cafe（哥飞社区论坛）全站取数。
  *
- * 和 `seo-webcafe.mjs` 的关系：那个管 **seo.web.cafe**（工具箱：KD/SERP/体检/估值…），
- * 这个管 **new.web.cafe**（论坛：悬赏问答/经验/话题/教程）。两个站、两套 API，不要混。
+ * 官方 Skill 暂无论坛全集、悬赏投票榜与完整群聊原文的等价能力。
+ * 依据：2026-09-30 官方目录与 knowledge_search(kind=chat) 实试，仅返回哥飞发言节选，
+ * knowledge_read 只给相关段落、群聊去昵称；不能替代 message_list 原始字段。
+ * 本日旧 bounties HTTP、chat-search 登录浏览器均成功，后者50条上限。
+ * 旧论坛请求未显示工具箱每日配额扣费；正文仍受会员/解锁权限限制，不等于全部免费。
+ * 本脚本与工具箱使用不同站点和数据接口。
  *
  * ──────────────────────────────────────────────────────────────────────────
  * 【一句话】给一个 URL 就能把那个页面的内容取回来，新发的也一样：
@@ -1026,14 +1030,13 @@ async function cmdQuestion(rootUid, args, ctx) {
 
 /**
  * **和 `seo.web.cafe/chat/` 不是同一个东西。** 站内导航「AI 工具」下并列三条：
- *   `/chat`（哥飞.ai，本节）· `seo.web.cafe/chat/`（哥飞 SEO Agent，见 gefei-ask.mjs）
- *   · `seo.web.cafe/`（工具箱，见 seo-webcafe.mjs）。三者各有各的后端，别互相替代。
+ *   `/chat`（哥飞.ai，本节）与工具箱数据是不同用途；调研与 review 改用官方 gefei Skill。
  *
  * 【它的知识库就是群聊归档——这条决定了你该用哪条路】
  * 助手回答里带 `<chat_cite msg_id="...">` 引用，点开跳到 `/messages` 的**微信群原始消息**。
  * 也就是说它的语料 = `chat-search` 能直接搜的那批归档。
  * **要素材就用 `chat-search`**：拿到的是原文、不经模型转述、不消耗任何额度。
- * 只有需要「让它替你综合归纳」时才值得走这里。
+ * 调研综合使用官方 knowledge_ask；这里保留显式站内对话与历史读取用途。
  *
  * 【计费：读侧看不出来，所以本脚本默认不发消息】
  * 把 `/chat` 加载的全部 29 个 chunk 扫过 `今日|剩余|次数|额度|咖啡豆|上限|quota` 等，

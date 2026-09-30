@@ -1,5 +1,28 @@
 # 纪律、红线与事故复盘
 
+**章节导航**
+
+- [一、执行纪律：全权委托](#一执行纪律全权委托)
+- [二、红线：先查脚本清单，禁止重造轮子](#二红线先查脚本清单禁止重造轮子)
+- [三、配额前置检查：花配额之前的第一个动作](#三配额前置检查花配额之前的第一个动作)
+- [四、脚本没有登录态而用户浏览器有：把请求发进浏览器，不要抠 cookie](#四脚本没有登录态而用户浏览器有把请求发进浏览器不要抠-cookie)
+- [五、浏览器与取数：规则在 opencli Skill，这里只留判据](#五浏览器与取数规则在-opencli-skill这里只留判据)
+- [六、数据面板（Semrush / Similarweb）：先查能力表，再决定开不开浏览器](#六数据面板semrush--similarweb先查能力表再决定开不开浏览器)
+- [七、兄弟 Skill：本机装着几十个，能用的只有一小半](#七兄弟-skill本机装着几十个能用的只有一小半)
+- [八、已证实的高频错误（禁止再犯）](#八已证实的高频错误禁止再犯)
+- [九、静默收尾动作：焊进命令，不要交给人记](#九静默收尾动作焊进命令不要交给人记)
+- [十、接入看板与线上实测口径](#十接入看板与线上实测口径)
+- [十一、令牌统一放 Skill 根目录的 .env](#十一令牌统一放-skill-根目录的-env)
+- [十二、完成标准](#十二完成标准)
+- [十三、rankup check 与 rankup review 的边界](#十三rankup-check-与-rankup-review-的边界)
+- [十四、占位红线（段 3 / 段 4 / 段 5）](#十四占位红线段-3--段-4--段-5)
+- [十五、面板与网页操作「对不上」时的回流：先分诊，确认是漂移才改原文档](#十五面板与网页操作对不上时的回流先分诊确认是漂移才改原文档)
+- [十六、组件库红线（段 3 / 段 4）：UI 只准来自组件库，不许自己造控件](#十六组件库红线段-3--段-4ui-只准来自组件库不许自己造控件)
+- [十七、IndexNow 推送默认 diff，不全量](#十七indexnow-推送默认-diff不全量)
+- [十八、ID / token / 密钥等标识符禁止从截图或记忆中抄录](#十八id--token--密钥等标识符禁止从截图或记忆中抄录)
+- [十九、驱动浏览器等待第三方页面渲染：一条判断链，不是一条规则](#十九驱动浏览器等待第三方页面渲染一条判断链不是一条规则)
+- [二十、省 token 工作流](#二十省-token-工作流)
+
 这份文件是 `SKILL.md` 3.0 从主文件里搬出来的「怎么干活」那一层：执行纪律、红线判定顺序、
 配额、浏览器与取数、落盘、令牌、完成标准，以及每条规则背后的事故。主文件只留路由与七段硬规则，
 **遇到「这么做对不对」的问题来这里查，遇到「该做什么」回主文件查。**
@@ -12,6 +35,10 @@
 
 **在用户当前任务范围内全权执行，沿用已有授权；调用技能不扩大任务范围。用户明确的先审批、只规划、不提交等限制始终有效。**
 
+### 任务验收与探索终点
+
+多阶段调研、狭窄修复或“优化”任务开工时，从 brief 提取问题、允许动作、交付与足够的完成证据；可推断的直接采用默认值。每轮探索对应未解决问题，复用已有有效证据；新机会只记候选。达到本次验收后收口；新反证或同根因验收失败继续调查。交付覆盖问题，无关旧待办不加入完成条件，未验证项明确标出。
+
 ### 主 Agent 与子 Agent 分工
 
 | 情况 | 谁执行 | 交付方式 |
@@ -20,23 +47,24 @@
 | 步骤前后依赖，必须串行 | 主 Agent 可以全程做 | 上一步结果作为下一步输入，不为每一步另派 Agent |
 | 多个独立问题适合同时调研 | 主 Agent 按可用并发派子 Agent | 每个子 Agent 负责一个边界清楚的任务；主 Agent 收齐证据、处理冲突、统一结论并回写 `.rankup/` |
 
-派发调研任务时，写清对象、目标市场、要加载的 Skill、取数动作、证据口径、结果落点和交付格式；使用哥飞工具时还要让子 Agent 读取官方 `gefei/SKILL.md` 与对应专用 `SKILL.md`。多个 Agent 不要同时重复调用同一个付费接口或占用同一浏览器会话。用户要求只规划、限制并行或当前环境没有子 Agent 能力时，按该约束由主 Agent 推进可执行部分。
+委派前先判断预计节省的工作是否大于派单和收回成本；小查询优先现成脚本或同一 Agent 批量取数，遵守用户及平台的委派限制。
+
+### 独立取数编排
+
+需要多个读数时，先复用有效结果，再区分结果依赖、共享状态与独立只读。独立只读调用可批量并行；依赖结果、写入、共享浏览器或配额冲突的调用顺序执行。逐项判读成功与失败；完成时必要读数齐全，缺口明确，避免重复占用付费源或会话。
+
+### 子任务交付与收回
+
+派单带必要目标与背景、约束、可用工具及要加载的 Skill、责任文件、证据口径、交付位置与格式；调研补目标市场和取数动作。哥飞任务读取官方总入口与专用 Skill。复用现有代理线程，遵守单写入者约定，不重复调用同一付费接口或占用同一浏览器会话。收回时主 Agent 消化来源、产物与未验证项，核对关键依据，整合冲突后给统一结论；仅“已启动”不算交付。当前约束不允许委派时，由主 Agent 推进可执行部分。
 
 ### 模型档位与外部模型：往哪派
 
 这一节管「派给哪个模型或工具」，和上一节「主 Agent 要不要拆子 Agent」是两个独立的判断轴，两个都要过。
 
-- **Haiku 档位与 `executor-haiku` 已停用（2026-09-26）**：原来派 Haiku 的机械任务（翻译、跑固定命令、调 API、格式转换、照单改文件）改派 `/agent-fleet` 的 GLM（`kollab-gateway-code`），派单方自己核一眼产物，不再另派 checker；GLM 连续报错，等几分钟重试，仍不行才临时改派 Claude 的 `executor-sonnet` 并在报告里写明原因。
+- **Haiku 档位与 `executor-haiku` 已停用（2026-09-26）**：原来派 Haiku 的机械任务（翻译、跑固定命令、调 API、格式转换、照单改文件）按全局 `CLAUDE.md` §2 与 `/agent-fleet` 的路由派给第三方模型（编码与数据整理 `fleet code`，文案与翻译 `fleet copy`），派单方自己核一眼产物，不再另派 checker。
+- **第三方模型失败时**（402、登录失效、模型被拒，或产物为空、含裸 tool-call 控制 token、verdict 为 `suspect`/`fail`）：先诊断，**最多重试一次**；仍失败就**停下并如实告知用户**，由用户决定充值或改派。**不许静默改派 Claude subagent**；Claude subagent 也不得再派 Claude subagent；不设轮数、上下文、时长或预算上限。
 - **自动化流程里的判断节点**（分类、路由、是非判断、打分、结果成败判定、浏览器下一步点哪个）优先用 `agent-fleet judge --model jev`（Typesafe JEV，key 在环境变量 `TYPESAFE_API_KEY`）：它只吃 state 加类型化问题，不生成文本、不能写代码或做总结，按字面判断、不推断意图，置信度低时转回 Claude 或人工。
-- **编程类任务**（写脚本、加功能、修 bug、补测试）先按下表归类再派单；具体模型名、命令参数、验证方式以 `/agent-fleet` 当前文档为准，这里不重复：
-
-  | 归类 | 例子 | 派给谁 |
-  |---|---|---|
-  | 常规开发——判断下来比较好实现、没那么复杂 | 写脚本；开发非核心/常规功能；接一整条 API 调用链路（请求、解析、落盘、错误处理）；给 CLI 加子命令或参数；修 bug；补测试 | `/agent-fleet` 的 GLM（`kollab-gateway-code`） |
-  | 明显偏重——需要设计判断或后果不可逆 | 3D 模型相关开发、游戏动画与玩法；建站的设计与视觉交互；复杂脚手架或多模块架构；深度架构重构；不可逆或安全敏感的改动 | Claude 高档 subagent（`executor-sonnet` 起步，风险明显更高再上 `executor-opus`/`executor-fable`） |
-  | 拿不准 | — | 按常规开发处理，派 GLM |
-
-  GLM 连续两次不合格才升级给 Claude subagent 接手，不是第一次结果不满意就换档。
+- **编程类任务**（写脚本、加功能、修 bug、补测试）默认派 `fleet code`（本机 Codex `gpt-6-sol`），拿不准按常规开发处理；具体模型名、命令参数、回退顺序与验证方式以 `/agent-fleet` 当前文档为准，这里不重复。只有建站的设计与视觉交互、3D 与游戏、复杂脚手架或多模块架构、深度架构重构、不可逆或安全敏感的改动，才归 Claude（`executor-sonnet` 起步，风险明显更高再上 `executor-opus`/`executor-fable`），并遵守全局 §3 的执行纪律。
 
 ### 全量执行，不问不等
 
@@ -71,6 +99,8 @@
 确实无法自动完成的事项（写清为什么不能自动做，**以及你已经自动化到了哪一步**）。
 「还有 X 没做，要不要做？」这种结尾**禁止出现**。
 
+简报样例：**结果**：本次文档修订已落盘。**证据**：结构与断链检查通过，详情见报告。**阻塞**：无。行为效果未验证，后续评测另按任务范围执行。报告长度按任务复杂度与用户上限校准，必要来源保留。
+
 ---
 
 ## 二、红线：先查脚本清单，禁止重造轮子
@@ -91,21 +121,21 @@
 1. **现有脚本**（`node scripts/xxx.mjs`）；
 2. **HTTP/REST API**（`fetch` / `curl`）→ 用完固化成脚本；
 3. **用户浏览器 + 现有自动化脚本**（底层走 OpenCLI）→ 没有 API 且需要登录态时；
-4. **用户浏览器 + 手动 OpenCLI 或 Claude in Chrome** → 一次性探路或脚本不覆盖时。
+4. **用户浏览器 + 手动 OpenCLI** → 一次性探路或脚本不覆盖时。
 
 每一级向下的**唯一理由**是「上一级确实不存在」，不是「我对下一级更熟」。
-沙箱浏览器不在这个阶梯上——它没有登录态，用它查需要登录的面板必然拿到错误数据。
+沙箱浏览器不作为本机选项——它没有登录态，用它查需要登录的面板必然拿到错误数据。
 
 **Cloudflare 特别提示**：Wrangler CLI 认 `CLOUDFLARE_EMAIL` + `CLOUDFLARE_API_KEY`（Global Key）
 或 `CLOUDFLARE_API_TOKEN`（scoped token）环境变量，**配好后不需要 `wrangler login`**。
-段 5 密集操作 CF（DNS、Email Routing、zone 设置），先把环境变量配进 `~/.zshenv`，
+段 5 密集操作 CF（DNS、Email Routing、zone 设置），先把环境变量配好（Skill `.env` 或 shell 环境变量，见本文十一），
 后面 wrangler 命令和 `curl` API 调用都直接用。Dashboard 上某些开关偶尔点击无响应
 （实测 Email Routing 启用开关），此时 API 能立刻生效——遇到 Dashboard 不动别反复点，
 直接走 API。【实测 2026-09-03】
 
 **这个阶梯管「取数」，不替代「亲眼看」。** 任何调研在动用任何一级之前，先去 Google、Bing 与目标市场的
 本地引擎把词搜一遍，记第一页的页面类型——数据平台给的是模型外推，首页是搜索引擎此刻真正端给用户的东西。
-公开搜索结果不需要登录态，**这是少数可以用沙箱浏览器的场景**，但地区与语言必须显式指定。
+公开 SERP 也用 `opencli browser <描述性会话名>` 驱动用户的 Chrome（dedicated 窗口），并显式指定地区与语言。
 
 ### 抓后台数据的顺序（曾经写反过）
 
@@ -131,7 +161,7 @@
 
 | 数据源 | 档位怎么看 | 为什么这么定 |
 |---|---|---|
-| seo.web.cafe | `node seo-webcafe.mjs <任意命令>` **第一行自动打印档位**（已用/上限/剩余），匿名档还会打印整段提示 | 档位**以脚本打印为准**，任何文档都不许写死「匿名 10 次/日」这类默认值——写死的默认值就是上面那起事故的根因 |
+| 哥飞工具箱 | 按[官方 Skill 入口](seo-webcafe.md)读取实时工具目录、价格、余额与用量 | 开放接口积分与网站赠送配额分开，以当前实际读数规划，不把旧默认档位当事实 |
 | Similarweb / Semrush | 档位与到期日在面板启动时打印一次；**会话复用会跳过启动，读数不再刷新** | 两站已收敛到固定会话名（`semrush-nav` / `similarweb-nav`），复用是常态，所以开工那一次读数往往是全程唯一的一次，整场调研的规模要在开工时定死 |
 
 ---
@@ -142,30 +172,25 @@ httpOnly 会话**故意**不让 JS 读到，OpenCLI 也没有导出 cookie 的�
 而是**把调用挪到已登录的页面里执行**——浏览器自动带会话，凭据全程不离开浏览器，不写 `.env`、不进日志、不进 git。
 
 ```bash
-S="webcafe-serp"          # Bash tool 里用描述性常量，不要用 $$（每次调用 PID 都变）
-opencli browser "$S" open "https://seo.web.cafe/serp/"
+S="data-read"          # Bash tool 里用描述性常量，不要用 $$（每次调用 PID 都变）
+opencli browser "$S" open "<需登录的数据页>"
 opencli browser "$S" eval '(async()=>{ /* fetch(..., {credentials:"include"}) */ })()'
 ```
 
-写法见 [`seo-webcafe.md`](seo-webcafe.md)（官方 Skill 入口）。**eval 体一律包 IIFE**——本环境 eval 上下文跨调用持续，
+浏览器调用写法按 `opencli` Skill；哥飞调用入口见 [`seo-webcafe.md`](seo-webcafe.md)。**eval 体一律包 IIFE**——本环境 eval 上下文跨调用持续，
 重复声明会抛错且那次调用根本没执行。
 
-**Web.Cafe 的具体口径（2026-09-11 修）**：`seo-webcafe.mjs` 已经把这条规则焊进脚本默认行为——
-`serp`/`audit`/`money` 等 session 类命令不用再手动敲上面几行，脚本自己经 OpenCLI 驱动固定会话名
-`webcafe-nav` 跑登录/VIP 档；游客 10/日只在 OpenCLI 不可用或显式 `--guest` 时出现，出现了要在
-stdout 看到醒目警告，不会悄悄发生。`kd` 例外：它走 Bearer 令牌鉴权，与浏览器 Cookie 是两条不
-通用的路径（`/kd/api/v1/kd` 带 Cookie 不带 Bearer 直接 401），登录态体现在生成令牌时的账号上，
-浏览器只用来读真实档位（`/kd/api/me` 带 Cookie）。
+**哥飞工具取数**：加载[官方 `gefei` Skill](seo-webcafe.md)及对应专用 Skill，鉴权、工具与配额口径依官方当前说明执行；官方已覆盖的用途不要回退旧网络端点；官方无等价能力且仍保留的独有用途与社区原文入口见 `seo-webcafe.md` / `webcafe-forum.md`。本地 `money` / `kgr` / `string` / `email` 计算仍可复用，不代表旧网络路径恢复。
 
 ---
 
 ## 五、浏览器与取数：规则在 `opencli` Skill，这里只留判据
 
-**凡是需要登录态的页面操作，必须驱动用户本机那个真实的、已登录的浏览器，不得用运行环境自带的沙箱浏览器。**
+**一切浏览器动作（含测试、验收、E2E、截图和公开 SERP）一律用 OpenCLI 驱动用户本机的 Chrome（dedicated 窗口）；沙箱浏览器不作为本机选项。**
 沙箱没有用户的 cookie：要登录的目标要么跳登录页，要么以匿名身份返回**看起来正常但内容不同**的结果
 （配额更低、字段更少、国家库不同）。这种失败会伪装成「这个工具没有这项数据」，真相是「你没登录」。
 
-**判据：这个页面用无痕窗口打开，还是不是同一个东西？** 不是，就必须走用户的浏览器。
+公开搜索须显式指定地区与语言；登录态页面直接使用用户的浏览器。
 
 **这个「用户的浏览器」必须由 `opencli` 驱动，不是随便一个能操作到用户已登录浏览器的工具都算数。**
 即便是 Claude 自带的浏览器自动化工具（如 Claude in Chrome / `claude-in-chrome`），技术上同样能
@@ -252,7 +277,7 @@ npx @yan-labs/rankup audit similarweb --manifest .rankup/provider-audit/similarw
 对齐三样东西——**地理范围 / 面板页面 / 口径定义**——方法在 [`experiences/webcafe-experiences.md`](experiences/webcafe-experiences.md)
 「对齐口径要对齐三样东西」与「两个数分别是什么」两节（含 `byCountry` 只有 Top-N 不能求和）。
 本 Skill 自己的实测判据：**Semrush 的自然流量在单个大头词以第 5–10 位撑起过半模型流量时会高估 4–13 倍**，
-拿到域名自然流量后先拉排名词分布再决定信不信总数（[`demand-sources.md`](demand-sources.md) ②·六·四）。
+拿到域名自然流量后先拉排名词分布再决定信不信总数（[`demand-sources/validation-chain.md`](demand-sources/validation-chain.md#②六四-semrush-的自然流量什么时候不能信先看它的词库分布再决定信不信总数) [②·六·四](demand-sources/validation-chain.md#②六四-semrush-的自然流量什么时候不能信先看它的词库分布再决定信不信总数)）。
 三样都对齐了还差几倍才是真矛盾；对不上先怀疑口径，不要先怀疑数据源坏了。
 
 ---
@@ -260,7 +285,7 @@ npx @yan-labs/rankup audit similarweb --manifest .rankup/provider-audit/similarw
 ## 七、兄弟 Skill：本机装着几十个，能用的只有一小半
 
 取舍写在 [`skill-ecosystem.md`](skill-ecosystem.md)。**加载 Skill 有上下文成本，不是越多越好**，接入的唯一理由是
-「rankup 现在做不到或做得差」。找不到能力的顺序：[`capability-map.md`](capability-map.md) → `skill-ecosystem.md` → `/skillsmp` 搜 → 最后才按 [`integrations.md`](integrations.md) 用 find-skills。
+「rankup 现在做不到或做得差」。找不到能力的顺序：[`capability-map.md`](capability-map.md) → `skill-ecosystem.md` → 最后才按 [`integrations.md`](integrations.md) 用 find-skills。
 
 **已点名的兄弟 Skill 本机没装 → 用 `find-skills` 装上再继续，不跳过、不现写替代。** 每台机器装的
 Skill 集合不一样，文档只保证「该用什么」；遇缺就跳过会让流水线静默少一条腿（社区验证、去 AI 味、生图），
@@ -282,15 +307,15 @@ Skill 集合不一样，文档只保证「该用什么」；遇缺就跳过会�
 
 | 错误做法 | 正确做法 | 为什么是错的 |
 |---|---|---|
-| 为拿哥飞论坛内容去问 `ask`（哥飞.ai） | 先 `webcafe-forum.mjs chat-search` / `search` 拿原文 | 哥飞.ai 的语料就是群聊归档 + 站内教程，直接搜拿到原文、不消耗额度 |
-| 以为 seo.web.cafe 只有 kd/audit/serp | 跑 `seo-webcafe.mjs --help` 或 `tools` | 21 个工具全部有归属 |
+| 为拿哥飞论坛内容去问 `ask`（哥飞.ai） | 先 `webcafe-forum.mjs chat-search` / `search` 拿原文，保留本地入口 | 2026-09-30 实时目录与试用确认：官方 chat 检索只有哥飞发言节选，knowledge_read 非全文且群聊去昵称；原文、论坛全集与悬赏投票榜无等价工具。本地悬赏榜和群聊搜索本轮实跑成功，官方知识库另扣积分 |
+| 以为哥飞工具箱只有少量接口 | 加载[官方 `gefei` Skill](seo-webcafe.md)，读取实时工具目录 | 工具能力与价格以供应商当前说明为准 |
 | 为算 KGR/TDK 去开网页或消耗配额 | 本地命令 `kgr` / `string` / `money` / `email` | 纯本地、零配额、支持 `--batch` |
 | 拿 `new.web.cafe` 的 HTTP 200 当「取到了」 | 看 `access` 字段 / 正文空不空 | 该站匿名不返回 401，只把正文抹成空串 |
 | 对 `kind:collect` 的悬赏只读 `answers[]` | 读 `collect.board[]` | 征集型内容不在 answers 里，会对着几百条榜单报「0 条」且不报错 |
 | 用站内哥飞 AI 代做调研或审站 | 直接用 官方 `gefei` Skill 调开放接口，Rankup 自己判读；`tools` / `me` 先查价格和余额 | 实时工具目录覆盖选词、流量、SERP、页面等数据；旧聊天路径不再是默认流程 |
 | 用 Claude in Chrome / 手动 OpenCLI 操作 Similarweb、Semrush 面板 | `similarweb-query.mjs` / `semrush-overview.mjs` 等 | 脚本已存在，手操浪费上下文且不可复现 |
 | OpenCLI 会话名用通用常量如 `work` | JS 用 `defaultSession('base')`；shell 用描述性常量 | 多任务撞名 → 拿到别人的页面，零报错 |
-| 用沙箱浏览器访问需要登录的面板 | 用户的浏览器 | 沙箱没有 cookie，返回匿名态数据 |
+| 用沙箱浏览器访问页面 | `opencli browser <描述性会话名>` 驱动用户的 Chrome | 沙箱没有 cookie，登录面板会返回匿名态数据 |
 | 手工去 GSC / Bing 后台点「提交站点地图」 | `webmaster-sitemap.mjs <gsc\|bing\|yandex> submit` | 两个后台各有坑，手操每次重踩 |
 | 项目里维护「要推给 IndexNow 的 URL 数组」 | `indexnow-submit.mjs` 默认从线上 sitemap 取 | 硬编码数组必然漂移，方向永远是「新页面没推」 |
 | 把 IndexNow 推送写成「文档里的一条命令」交给人记 | 焊进项目自己的 `ship` 命令（第九节） | 漏推不会让任何东西变红 |
@@ -331,7 +356,7 @@ Skill 集合不一样，文档只保证「该用什么」；遇缺就跳过会�
 | `rankup init` 用完整清单初始化全部 ⬜ | 一开始就知道要做多少事，不靠记忆 | 忘了接 IndexNow，上线两个月没被 Bing 收录 |
 | 「不接」标 ❌ 并写裁决依据 | 区分「还没做」和「决定不做」 | AdSense 标 ⬜，每次 review 都催，其实早决定不挂广告 |
 
-已上线站点至少覆盖以下平台（`rankup review` 逐项验证；接入步骤见 [`search-platforms.md`](search-platforms.md) 与 [`analytics-platforms.md`](analytics-platforms.md)）。前三行是批 A（域名无关，预览域即可接）；其余搜索/索引/外链/邮箱/受众忠诚度行是批 B（域名定稿后一次接完，顺序与粒度对齐 [`lifecycle.md`](lifecycle.md) 段 5「批 B 平台清单」与 [`checklists.md`](checklists.md) 段 5「批 B 清单逐行有状态」）：
+已上线站点至少覆盖以下平台（`rankup review` 逐项验证；接入步骤见 [`search-platforms.md`](search-platforms.md) 与 [`analytics-platforms.md`](analytics-platforms.md)）。前三行是批 A（域名无关，预览域即可接）；其余搜索/索引/外链/邮箱/受众忠诚度行是批 B（域名定稿后一次接完，顺序与粒度对齐 [`lifecycle/stage-5-launch.md`](lifecycle/stage-5-launch.md) 段 5「批 B 平台清单」与 [`checklists.md`](checklists.md) 段 5「批 B 清单逐行有状态」）：
 
 | 类别 | 平台 | 验证方式 |
 |---|---|---|
@@ -356,19 +381,19 @@ Skill 集合不一样，文档只保证「该用什么」；遇缺就跳过会�
 
 **批 A/批 B 每个平台一行独立勾选，抄录时不得合并或省略；状态只能是 ✅（附证据）/❌（写裁决依据）/⏸（写卡点）/⬜，表头不得用『⬜=未在本文件核实』这类弱化口径，看板必须与 `checks.md` 同步。**
 
-**`rankup review`/`scripts/review.mjs` 的逐行核对范围（2026-09-13 独立验收澄清）**：`review.mjs` 的 `checkIntegrationRows()` 只逐行核对上表里的**账号/平台接入行**（Cloudflare Web Analytics、GA4、Clarity、IndexNow、GSC、Bing、Yandex、Naver、Ahrefs WA、Ahrefs Site Audit、Email Routing、Preferred Sources、兜底这十三行）——这些都要在第三方后台开账号或拿验证凭据。同一张表里**品牌资产、SEO 元素、结构化数据、AI 就绪度、多语言**这五行是代码级行，靠代码/页面本身满足，不需要账号，`review.mjs` 不逐行核对它们；它们由段 4 上线前闸门（`lifecycle.md` 段 4 C 节「上线前闸门」0–6 + 4b）覆盖检查。看到 `review.mjs` 没报这五行的缺口，不代表它们免检，去段 4 闸门找判据。
+**`rankup review`/`scripts/review.mjs` 的逐行核对范围（2026-09-13 独立验收澄清）**：`review.mjs` 的 `checkIntegrationRows()` 只逐行核对上表里的**账号/平台接入行**（Cloudflare Web Analytics、GA4、Clarity、IndexNow、GSC、Bing、Yandex、Naver、Ahrefs WA、Ahrefs Site Audit、Email Routing、Preferred Sources、兜底这十三行）——这些都要在第三方后台开账号或拿验证凭据。同一张表里**品牌资产、SEO 元素、结构化数据、AI 就绪度、多语言**这五行是代码级行，靠代码/页面本身满足，不需要账号，`review.mjs` 不逐行核对它们；它们由段 4 上线前闸门（`references/lifecycle/stage-4-prelaunch.md` 段 4 C 节「上线前闸门」0–6 + 4b）覆盖检查。看到 `review.mjs` 没报这五行的缺口，不代表它们免检，去段 4 闸门找判据。
 
 ---
 
 ## 十一、令牌统一放 Skill 根目录的 `.env`
 
-**本 Skill 依赖的第三方令牌只有一份，放在 Skill 根目录的 `.env`，所有项目共用。**
+**由 Rankup 脚本直接读取的第三方令牌只有一份，放在 Skill 根目录的 `.env`，所有项目共用；官方哥飞凭据由其 CLI 自管，不由 Rankup 读取。**
 这些令牌属于**工具账号**（关键词难度、SERP、体检这类第三方服务），不属于任何一个站点。放进项目就会出现同一个令牌在 N 个项目里各存一份，
 过期时要改 N 处，漏掉的那几处会以「配额用尽」「未授权」的面貌出现，排查方向完全错。
 
 | | 放什么 | 例子 |
 |---|---|---|
-| Skill 的 `.env` | 跨项目的工具账号令牌**真实值** | `KD_TOKEN`、`CLOUDFLARE_API_TOKEN`（若是 Global API Key 还要 `CLOUDFLARE_EMAIL`） |
+| Skill 的 `.env` | 跨项目的工具账号令牌**真实值** | `SERPER_API_KEY`、`CLOUDFLARE_API_TOKEN`（若是 Global API Key 还要 `CLOUDFLARE_EMAIL`） |
 | 项目的 `secrets.md` | 本项目专属凭据的**名称、用途、保管位置**，绝不写真实值 | 部署密钥、支付密钥 |
 
 1. **必须被 `.gitignore` 排除，且要断言。** `git add -f` 就能绕过 `.gitignore`，所以 `scripts/validate-rankup.mjs` 断言它不被 git 追踪，违反即构建失败。与 `registry.md` 用同一条防线。
@@ -404,6 +429,7 @@ Skill 集合不一样，文档只保证「该用什么」；遇缺就跳过会�
 4. **本段 [`checklists.md`](checklists.md) 的 check 全部过闸**，每一项都在 `.rankup/checks.md` 记了证据；做不了的标 ⏸ 并写明原因。
 5. 相关 `.rankup/` 文件已更新，过时的交叉引用已一并修正。
 6. 说明完成内容、验证证据、仍存在的风险和需要用户处理的外部事项。
+7. 本次必需子任务已交付并消化；一般阻塞只挡依赖部分，其他获授权工作继续推进；外部模型失败仍按上文停止规则执行。
 
 ---
 
@@ -414,6 +440,8 @@ Skill 集合不一样，文档只保证「该用什么」；遇缺就跳过会�
 `.rankup/` 整个不存在、距上次体检超过一轮且中间动过线上 URL、或用户问的其实是「站有什么问题」）。
 **命中任一条时，先明确说一句「这已经不是 check，是 review」，再转全站体检流水线**，不要回来问用户要不要跑，
 也不要在 check 的名义下偷偷派七组 agent——旧版主文件一句说「零配额不派 agent」、下一句说「直接转体检」，边界就是这一句话。
+
+`rankup doctor` 是第三个命令：只整理 `.rankup/` 与根层登记，不碰站点代码与线上；三者分工表见 [`maintenance.md`「六」](maintenance.md#六rankup-doctor整理-rankup-的显式入口)。
 
 ---
 
@@ -493,7 +521,7 @@ Semrush / Similarweb / seo.web.cafe（含哥飞 AI）/ 哥飞论坛 / GSC、Bing
 |---|---|---|---|
 | 1 同命令重跑 | 瞬时抖动 | 原样再跑一次，间隔 ≥ 1 分钟 | 第二次正常 → `environment-issue: transient`，不回流 |
 | 2 浏览器与会话 | 扩展旧、标签页后台、会话被抢、登录掉了 | `opencli doctor` 全绿；换会话名重跑；确认标签页可见（`visibilityState`）；面板启动行打印的档位与到期日正常 | 任一不正常 → `environment-issue: browser/session`，修环境不修文档 |
-| 3 额度与配额 | 节点额度满、当日配额用完、账号降档 | `tools-share-node.mjs list` 看节点余量；seo.web.cafe 看脚本第一行档位；Semrush/Similarweb 看启动时打印的额度 | 额度问题 → `environment-issue: quota`，记进 `journal/`，明天再验 |
+| 3 额度与配额 | 节点额度满、当日配额用完、账号降档 | `tools-share-node.mjs list` 看节点余量；哥飞按[官方 Skill](seo-webcafe.md)查实时余额与用量；Semrush/Similarweb 看启动时打印的额度 | 额度问题 → `environment-issue: quota`，记进 `journal/`，明天再验 |
 | 4 人眼对照 | 脚本 selector 坏了 vs 页面真的变了 | 在用户浏览器里**手动打开同一页面**，截图；对照文档描述的位置、字段、按钮。截图落 `.rankup/evidence/drift-<平台>-<date>/` | 页面和文档一致、只是脚本抓不到 → 是**脚本坏了**，按「脚本坏了修脚本」处理，文档不动 |
 | 5 跨时段或跨对象复现 | 单日故障、单个输入的特例 | 换一天（或至少隔 6 小时）再跑一次；再换一个域名/词跑一次 | 只在一个时段或一个对象上复现 → 仍记 `environment-issue: unconfirmed`，附证据等下次 |
 
@@ -508,7 +536,6 @@ Semrush / Similarweb / seo.web.cafe（含哥飞 AI）/ 哥飞论坛 / GSC、Bing
 4. **走晋升门**：`evolution.md` 第 7 节的条件对这类修订同样适用，尤其第 4 条——能写出一条「改之前跑会错、改之后跑对」的核验（哪怕只是一次实跑记录）。
 5. 没过五层的，一律留在项目 `journal/` 的「面板对不上」小节，写清排除到了第几层、缺什么证据；`rankup review` 时再看要不要补验。
 
-
 ## 十六、组件库红线（段 3 / 段 4）：UI 只准来自组件库，不许自己造控件
 
 用户最常见的开口方式是「做个功能吧」「做个内页吧」，然后直接进开发。这时第一条约束不是 SEO，是 UI 从哪来：
@@ -519,7 +546,7 @@ Semrush / Similarweb / seo.web.cafe（含哥飞 AI）/ 哥飞论坛 / GSC、Bing
 | 先 `ls components/ui/` 看有没有；有就用，没有就 `pnpm dlx shadcn@latest add <组件>`；shadcn 没有的装同一生态（Radix / React 生态里带可访问性的现成包），装完再用 | 组件库带着键盘导航、焦点管理、暗色模式、ARIA 和统一视觉，手写一个下拉框这些全丢，且每个站各写一遍没人维护 | 用 `<div onClick>` 拼一个下拉菜单；用绝对定位 `<div>` 当弹窗；自己写日期选择器 |
 | **禁止手写**：下拉框、弹窗 / Dialog / Sheet、日期选择、表格分页、Toast、Tabs、Tooltip、Command 面板这类基础控件 | 这些正是最容易「看着能用、键盘和读屏全坏」的一类，也是 Lighthouse 可访问性分和 GEO 就绪度掉分的常见来源 | 「组件库那个不好改样式，我自己写一个」——改样式走 className 与 variants，不走重写 |
 | 判据：在业务目录 `grep -rn 'role="dialog"\|role="listbox"\|role="combobox"\|<select' apps/`，命中的每一处都要能指出来自 `components/ui/` 哪个文件或哪个已安装的包；指不出来的就是手写，打回 | 让「有没有手写」变成可 grep 的事实，不靠自觉 | 代码评审时说「应该都是组件库的」 |
-| 这条与「不重复造轮子」（段 3）是同一条纪律在 UI 层的落地，闸门在 `checklists.md` 段 3「UI 只来自组件库」，步骤 check 在 `lifecycle.md` 3.3 | 一处判据两处指路，不各存一份 | — |
+| 这条与「不重复造轮子」（段 3）是同一条纪律在 UI 层的落地，闸门在 `checklists.md` 段 3「UI 只来自组件库」，步骤 check 在 `references/lifecycle/stage-3-build.md` 3.3 | 一处判据两处指路，不各存一份 | — |
 
 ---
 
@@ -551,50 +578,12 @@ CNAME 值、TXT 记录值等）时，**必须从页面元素直接获取文本�
 
 ## 十九、驱动浏览器等待第三方页面渲染：一条判断链，不是一条规则
 
-有些第三方页面的“结果”不是请求返回时就有，而是页面自己用 `requestAnimationFrame` /
-长轮询在浏览器里异步渲染出来的（例如 pagespeed.web.dev 的报告页）。**只有这类场景**才会撞上
-“标签页被节流导致渲染卡住”的问题。遇到之前先按下面三层判断走一遍，不要一上来就上保活机制。
-
-### 第一层：能不能绕开“等待渲染”
-
-大多数“抓数据 / 填表 / 读后台”场景根本不依赖页面内部 JS 跑完——直接读静态 DOM/HTML，
-或者转向站点自己的 REST 接口就够了。这类场景没有节流风险，不需要任何前台保活。
-**能绕开就优先绕开，只有确认必须依赖页面自己异步渲染出结果时才进入下一层。**
-【实测 2026-09-12】本 Skill 里另一处查询脚本（趋势类）也撞过同一个坑，后来改成直接读
-REST/静态 DOM、不再等待页面渲染解决，比“想办法保住前台”更彻底、更没有副作用。
-
-### 第二层：如果绕不开，节流的真实触发条件是“遮挡”，不是“焦点”
-
-【实测 2026-09-12】用 OpenCLI 直接测过：Chromium 判定要不要节流一个标签页的渲染，看的是
-这个窗口有没有被**物理遮挡 / 退到后台**，跟“这个 tab 是不是它所在窗口内的 active tab”、
-“哪个 App 拿到系统前台焦点”不是一回事。只把 tab 设为 active、不去抢系统焦点，几乎没用——
-实测几乎全程仍被判定为不可见；必须真的把窗口拉到系统前台（会有抢焦点的副作用）才能换来
-一段可见时间。**“只要不抢系统焦点就不会被节流”这个直觉不成立，遮挡判定比焦点判定更严格。**
-
-### 第三层：如果不得不抢前台，把副作用降到最低
-
-不要用无脑的周期性抢前台循环，改成“轮询探测目标是否卡住，只有连续卡住超过一个阈值才触发
-一次抢前台恢复”，把抢前台从常规操作降级成兜底手段。为此起独立辅助进程时，不要用
-`detached:true` + 后台常驻循环——父进程被强杀会导致清理来不及跑，子进程被系统收养成孤儿
-（见第八节「已证实的高频错误」中 `spawn(...,{detached:true})` 那一条）。**优先复用父进程
-本来就在跑的同步轮询循环，在里面顺手做这次抢前台恢复，从根上不产生独立于父进程生命周期的
-子进程，天然不需要额外的信号兜底。**
-
-### 排查方法论：“代码改了行为没变”先怀疑“跑的是不是这份代码”
-
-遇到自动化脚本改了但行为没变，优先检查“运行的是不是真的是刚改的那份代码”，而不是深挖逻辑。
-两个高发成因：**全局安装的 CLI 拷贝跟仓库源码脱钩**（全局安装装的是发布快照，不是软链接，
-改仓库源码不会反映到全局命令上）；**浏览器扩展代码打包后仍停在旧版本**，需要用户手动在
-扩展管理页点重新加载才会生效——源码变了不代表运行时变了。这两点是排查“改了为什么没用”
-时该第一时间检查的。
-
----
+第三方页面渲染的绕行、遮挡与前台判断、进程生命周期及运行副本排查，见[浏览器渲染等待](discipline/browser-rendering.md)。
 
 ## 二十、省 token 工作流
 
 1. **上线/改版验收优先命令化**：优先 `node scripts/verify-live.mjs <url...>`，只读 PASS/FAIL 简表，不让主线程自己 curl/grep。
 2. **阶段收尾及时换乘**：阶段收尾时建议主线程开新会话，靠项目 `.rankup/` 接续。
-3. **排查与重活派便宜模型**：不让主线程亲自翻日志排查，派便宜模型（agent-fleet：写代码 Grok `kollab-gateway-research`，写作/翻译/校对 Gemini `kollab-gateway-copy`，判断 JEV judge），只读它的简报。
+3. **排查与重活按收益委派**：独立且能完整描述的重活适合委派，以降低主线程上下文成本；串行定位可由主执行者完成。模型路由见本章「模型档位」，派单与收回按「主 Agent 与子 Agent 分工」，主 Agent 核对依据后再采用简报。
 4. **后台任务善用自动通知**：后台任务完成会自动通知，不要轮询进度；子 agent 用 Monitor 等待时写明退出条件和超时。
 5. **循环与精确取数防 rtk 篡改**：rtk 会把 `for … done` / `while read` 循环改坏（报 parse error near done），循环或精确取数命令前加 `RTK_DISABLED=1`。
-

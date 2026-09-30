@@ -1,5 +1,20 @@
 # new.web.cafe（哥飞社区论坛）接口地图与取数 SOP
 
+## 目录
+
+- [一、最重要的一节：匿名不会 401，它会静默给你半份数据](#一最重要的一节匿名不会-401它会静默给你半份数据)
+- [二、正文为空有四个原因，只有一个是登录能解决的](#二正文为空有四个原因只有一个是登录能解决的)
+- [三、两套问答产品，别混：round ≠ bounty](#三两套问答产品别混round--bounty)
+- [四、bounty 还分两种 kind，内容放在不同数组里](#四bounty-还分两种-kind内容放在不同数组里)
+- [五、接口表（/ask/，有 JSON API）](#五接口表ask有-json-api)
+- [六、经验 / 帖子 / 教程：没有 API，解析服务端渲染](#六经验--帖子--教程没有-api解析服务端渲染)
+- [七、站内搜索：必须登录，而且没有 JSON 端点](#七站内搜索必须登录而且没有-json-端点)
+- [八、群聊归档：可直接搜索的知识库](#八群聊归档哥飞ai-的知识库可以直接搜)
+- [九、站内聊天：两套服务的区别](#九哥飞aichat-和-seowebcafechat-是两个东西)
+- [四、SOP：给一个 URL 就把内容取回来](#四sop给一个-url-就把内容取回来)
+- [五、给这个站写脚本时会踩的坑](#五给这个站写脚本时会踩的坑)
+- [六、只读红线](#六只读红线)
+
 哥飞的社区论坛，域名 `new.web.cafe`。**和 `seo.web.cafe` 是两个站、两套 API，不要混**：
 那边是工具箱（KD / SERP / 体检 / 估值，见 [`seo-webcafe.md`](seo-webcafe.md)），
 这边是内容社区（悬赏问答 / 经验 / 话题 / 教程）。
@@ -260,6 +275,8 @@ round 的付费墙只挡**一个字段** `answer_content`；其余元数据（�
 - 顶栏搜索框是 React 受控 input，`type` + 回车**打不动它**（值写进去了但 URL 不变）。
   直接拼 `/search?q=` 导航。
 
+官方能力核对与只读试用（2026-09-30）：`knowledge_search --kind chat` 返回 `docId/title/date/speaker/snippet`，实测 `url=null`，只覆盖哥飞发言节选；目录明确 `knowledge_read` 提供相关段落、群聊去昵称，不是全文，本轮读取试用遇到 TLS 失败，不能视为成功覆盖。官方无论坛全集、悬赏投票榜或完整群聊消息字段的等价工具，因此保留 `webcafe-forum.mjs`：旧 HTTP 悬赏榜实测 20 条，浏览器群聊搜索实测 50 条上限；仍需会员访问权限，未出现工具箱每日配额扣费显示。原文取数与官方知识库积分调用分别记账。
+
 ## 八、群聊归档：哥飞.ai 的知识库，可以直接搜
 
 `/messages` 是「哥飞的朋友们」**14 个微信群的完整聊天记录归档**。
@@ -289,12 +306,12 @@ POST /api/community/message/search-message
 | 入口 | 是什么 | 我们的脚本 |
 |---|---|---|
 | `new.web.cafe/chat` | 哥飞.ai，语料 = 群聊归档 + 站内教程 | `webcafe-forum.mjs ask` |
-| `seo.web.cafe/chat/` | 哥飞 SEO Agent，会调用工具箱查真实数据 | `gefei-ask.mjs` |
-| `seo.web.cafe/` | SEO 工具箱 | `seo-webcafe.mjs` |
+| 站内聊天入口 | 旧站内 SEO Agent；Rankup 改用官方 `gefei` Skill 的 `knowledge_ask` / `knowledge_search` / `knowledge_read` | [`seo-webcafe.md`](seo-webcafe.md) |
+| 工具箱首页 | SEO 工具箱 | [`seo-webcafe.md`](seo-webcafe.md) 指向官方 Skill |
 
 | 端点 | 方法 | 说明 |
 |---|---|---|
-| `/api/ai/sessions` | GET | 历史会话列表（**读历史免费**） |
+| `/api/ai/sessions` | GET | 历史会话列表（读历史；本轮未验证计费） |
 | `/api/ai/sessions/<id>/messages` | GET | 一整条对话 |
 | `/api/ai/chat` | POST | `{session_id, message}` → **裸 `data: {json}` 行协议**（不是标准 SSE 头） |
 
@@ -306,8 +323,7 @@ POST /api/community/message/search-message
 > 2026-08-24 实测发过一条（复用已有会话，未新建）：正常返回带引用标记的长答案，
 > **未出现任何配额提示或报错**。但这不等于免费，只等于「没有可见的计费反馈」。
 
-**多数场景应该用 `chat-search` 而不是 `ask`**：同一批语料，拿原文、零额度风险。
-只有需要「让它替你跨来源综合归纳」时才值得走 `ask`。
+原文证据使用 `chat-search` / `search`；需要综合归纳时按官方 `gefei` Skill 使用 `knowledge_ask`。`webcafe-forum.mjs ask` 仅保留历史或用户显式指定的专用用途，不用于 review 或代做调研；未验证免费。
 
 ## 四、SOP：给一个 URL 就把内容取回来
 
