@@ -386,7 +386,7 @@ Cardmarket 生态的 Flipzi／TCGGraph、Vinted 生态的 VintPulse 等独立开
 
 ### 脚本
 
-主要靠人工判断；辅助用 `demand/aitdk-lookup.mjs`（默认 webcafe provider 免费）查同类产品的域名画像，
+主要靠人工判断；辅助用 `demand/aitdk-lookup.mjs`（默认 webcafe 经官方 gefei CLI，按积分余额计费）查同类产品的域名画像，
 看现有竞品是不是清一色的"套壳生成器"。
 
 ### 淘汰话术

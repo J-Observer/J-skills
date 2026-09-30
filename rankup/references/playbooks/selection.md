@@ -186,9 +186,10 @@ Wave5 起用 CPC 顶替，但 CPC 衡量的是**广告主买量意愿**，不是
 
 | 档位 | 谁 |
 |---|---|
-| 零配额，放开跑 | 候选生成器全部（producthunt/igdb/github 分支除外）、闸门 0/1（人工）、闸门 2（`agent-reach` 路由的 CLI 命令 + 全部脚本）、闸门 3 除 `serp-query.mjs` 外全部、闸门 4 的 webcafe 分支 |
+| 零配额，放开跑 | 候选生成器全部（producthunt/igdb/github 分支除外）、闸门 0/1（人工）、闸门 2（`agent-reach` 路由的 CLI 命令 + 全部脚本）、闸门 3 除 `serp-query.mjs` 外全部、闸门 4 的人工判断 |
 | 需要真实 Chrome 但不计配额 | `boards.mjs` 的 toolify/taaft 分支、`agent-reach` 路由到 OpenCLI 的 Reddit/小红书 登录态分支（含 `reddit-wishes.mjs` 的 opencli 分支） |
-| 吃共享配额（单次确认） | 闸门 3 的官方 SERP 工具、闸门 4/5 视需要打开的 `aitdk-lookup.mjs`/面板查询 |
+| 吃共享配额（单次确认） | 闸门 4/5 视需要打开的旧面板查询 |
+| 官方 API 积分 | 闸门 3 的官方 SERP 工具、闸门 4/5 的 `aitdk-lookup.mjs`（默认 domain_overview 当前 2 积分/域名，以官方目录为准） |
 | 面板配额（真正的大头） | 只在闸门 6，规模按 `research.md` P2 阶段 0 定死 |
 
 ### 收尾

@@ -189,7 +189,7 @@ node scripts/demand/boards.mjs traffic-cv --json \
 | `SERPER_API_KEY` | `serp-query` | 报错并指路；改用官方 `gefei-keywords` Skill 的 SERP 工具 |
 | `PRODUCTHUNT_TOKEN` | `boards.mjs producthunt` | 自动降级到浏览器路径（浏览器路径本来就更全） |
 | `IGDB_CLIENT_ID` / `IGDB_CLIENT_SECRET` | `game-newtitles --source igdb` | 清晰报错；其余 game 源不受影响 |
-| `TABAPI_KEY` | `aitdk-lookup --provider tabapi` | 默认 provider 是免费的 webcafe，不配也能跑 |
+| `TABAPI_KEY` | `aitdk-lookup --provider tabapi` | 默认 webcafe 经官方 gefei CLI，需其已有授权，按积分余额计费；不需要 TABAPI_KEY |
 
 **需要登录态**（不是需要令牌）的只有两处：闲鱼、以及 `payment-referrers.mjs similarweb`
 所依赖的数据面板。其余「必须真实浏览器」的源

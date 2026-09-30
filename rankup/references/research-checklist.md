@@ -174,7 +174,7 @@
 | 步骤 | 工具 | 命令 | 输出 |
 |---|---|---|---|
 | 6.1 竞品真实流量 → 收入区间 | `seo-webcafe.mjs` | `money --income <目标>` | 需要多少 UV、多少词、多少外链 |
-| 6.2 域名画像 | `aitdk-lookup.mjs` | `<域名>` 或 `--file <文件>` | 注册日期 / 站龄 / 月访问 / DR / 环比 |
+| 6.2 域名画像 | `aitdk-lookup.mjs` | `<域名>` 或 `--file <文件>` | 注册日期 / 站龄 / 月访问 / DR / 环比；默认官方 gefei CLI，当前 2 积分/域名（以目录为准），缺值未知 |
 | 6.3 竞品 sitemap 结构 | `sitemap-diff.mjs` | `--domain <d>` | 页数、slug 词频（一页吃多少词） |
 | 6.4 收入站案例复核 | `revenue-site-audit.mjs` | `--domain <d> --keyword <词> --db us` | 跨源交叉验证声称的流量/收入 |
 

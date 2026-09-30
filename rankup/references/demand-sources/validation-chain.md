@@ -55,7 +55,7 @@
 
 | 步 | 失败长什么样 | 正确读法 |
 |---|---|---|
-| ① aitdk-lookup | 表格里带 `✗ HTTP 429/403` 的行；manifest 里该域 `http_*` | 配额耗尽/被挡，**不是「该站没数据」**。换 `--via browser` 档位或次日重试。脚本已不做阈值筛选——出错行永远显示在默认输出里 |
+| ① aitdk-lookup | 表格里的 `✗ 错误` 行（TabAPI 可带 HTTP 状态）；manifest 里该域 `error` / `http_*` | 取数失败，**不是「该站没数据」**。默认官方 CLI 的积分余额/每日上限或上游失败应按错误提示处理；不再用 `--via browser` 换档。脚本已不做阈值筛选——出错行永远显示在默认输出里 |
 | ② kd | 非 200 或配额用尽 | 词的难度「未测得」，不是 KD=0 |
 | ③ serp-query | serper 报错/超时 | 盘面「没看到」，不是「盘面是空的」 |
 | ④ similarweb/semrush | 面板没渲染稳、登录态失效 | 流量「未取得」，不是流量小；查 backlink 侧证据目录 |
@@ -328,10 +328,10 @@ CDX 直查是 **41 条 200 快照，跨 2002–2010**，且能取回当年正文
 
 | provider | 拿什么 | 代价 |
 |---|---|---|
-| `--provider webcafe`（默认） | 注册日期 / 站龄 / 月访问 / DR / 环比 / 核心搜索词 / 月度曲线 | 免费，但吃站点共享每日配额（游客 10 / 登录 100 / VIP 500，`seo-webcafe.mjs` 默认经登录态浏览器跑登录/VIP 档，游客是显式降级）。**流量结构字段常为 null** |
+| `--provider webcafe`（默认） | 注册日期 / 站龄 / 月访问 / DR / 环比 / 核心搜索词 / 月度曲线 | 经官方 gefei CLI 的 `domain_overview`，当前 2 积分/域名（以官方目录为准），扣余额，不用网站每日赠送额度。**缺失字段为未知，JSON 保留 null** |
 | `--provider tabapi` | 月访问 / 流量来源 / 地区 / 核心词 / WHOIS / RDAP / 反链 | 需付费令牌 `TABAPI_KEY`，按 credit 计费 |
 
-**底层仍是旧配额口径，脚本未迁移**：`aitdk-lookup.mjs --provider webcafe` 仍调用 `/mine/api/domain`。官方 `gefei/SKILL.md` 的 `domain_overview` / `domain_traffic` 可查画像，但没有证明 WHOIS、环比、核心词、月度曲线逐字段同源等价；官方 CLI 动态取接口合同，开放 API 扣积分。保留本地 provider，不把官方入口接入说明当成脚本迁移完成；是否迁移脚本需另行决定。
+**已迁移官方积分 API（2026-09-30）**：`aitdk-lookup.mjs --provider webcafe` 默认 spawn 官方 `~/.claude/skills/gefei/scripts/webcafe.mjs domain_overview`，旧 `/mine/api/domain` 与浏览器配额通道已移除。大站和中小站实测覆盖注册日期、站龄、访问、DR、环比、渠道、核心词（含品牌/导航标记）与月度曲线，保留原输出结构；不声明其他域名都有数据，也不声明与旧端点数据逐值同源。凭据只由官方 CLI 管理；缺失数值保留 null、表格显示未知。
 
 **流量结构（搜索占比 / 直接访问占比）拿不到时，退到 Similarweb 的渠道构成补这两格**——
 它们正是下面那张阈值表里最关键的两行。

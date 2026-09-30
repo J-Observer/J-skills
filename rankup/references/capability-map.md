@@ -94,7 +94,7 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 | 游戏平台监控 | 批量跑 sitemap-diff，多语种平台新内页汇成候选报告 | `scripts/demand/game-platform-monitor.mjs` | 「每天盯一遍游戏平台」 |
 | 竞品 sitemap 增量 | 竞品新布的 URL = 它自己花钱调研出来的结论 | `scripts/demand/sitemap-diff.mjs` | 「竞品最近在押哪些词」 |
 | 站群反查 | 给一个域名，找出同一主体运营的其它站 | `scripts/demand/site-network.mjs` | 「他还做了哪些站」 |
-| 域名画像 | 注册日期 / 月访问 / 流量结构 / 核心搜索词（只采不判） | `scripts/demand/aitdk-lookup.mjs` | 「这站是新站吗、量哪来的」 |
+| 域名画像 | 注册日期 / 月访问 / 流量结构 / 核心搜索词（只采不判；默认官方 gefei CLI，按积分余额计费，缺值未知） | `scripts/demand/aitdk-lookup.mjs` | 「这站是新站吗、量哪来的」 |
 | 收入站案例复核 | 薄编排：串起 AITDK/Similarweb/Semrush/sitemap/KD，产出各源对照与倍差事实 | `scripts/demand/revenue-site-audit.mjs` | 「帖子说这站月入 X，真的假的」 |
 | SERP 取数 | serper.dev 拿 Google 第一页 organic + relatedSearches + PAA | `scripts/demand/serp-query.mjs` | 「这个词首页排的是什么」 |
 | 词根扩展 | 给词根并扩成可投喂数据平台的候选串（挖词的起手式） | `scripts/demand/word-roots.mjs` | 「我只有一个词根」 |
