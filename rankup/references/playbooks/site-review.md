@@ -199,7 +199,7 @@ E 组依赖 A/B/D 的事实，先完成这些取数再综合判读。开放 API 
 | F1 同类站整站流量 | 串行 | 官方 Skill 调用 `domain_overview <竞品域名>`，多站比较用 `domain_traffic` | 总访问、渠道、地区与近月走势 | 与 `site_keywords` 的估算自然搜索流量分开，不混口径 |
 | F2 自然流量口径 | 串行 | 官方 Skill 调用 `site_keywords <竞品域名> --gl <国>`；要解释起量时间再加 `site_history` | 排名词、估算自然流量与落地页 | 快照估算不等于实测整站流量；必要时用 Semrush 独立核对 |
 | F3 折成钱 | 串行 | `node <rankup>/scripts/seo-webcafe.mjs money --income <目标月收入> --kws <词数> --rankpos 3 --rpm <行业 RPM>` | 需要多少 UV、多少日搜索量、多少外链投入、ROI | 纯本地计算，零网络零配额，可放开跑多组参数做区间 |
-| F4 钱的信号 | 并行 | `node <rankup>/scripts/demand/stripe-referring.mjs`、`demand/payment-referrers.mjs`、`demand/site-network.mjs`、`demand/domain-profile.mjs` | 谁在这个赛道真收到钱、同一批人还做了哪些站、域名画像（aitdk 默认官方 CLI，按积分计费） | 空结果**先核 manifest 的 sources 状态**：429 / CAPTCHA / 超时都会产出 0 条，采集失败 ≠ 没市场 |
+| F4 钱的信号 | 并行 | `node <rankup>/scripts/demand/stripe-referring.mjs`、`demand/payment-referrers.mjs`、`demand/site-network.mjs`、`demand/domain-profile.mjs` | 谁在这个赛道真收到钱、同一批人还做了哪些站、域名画像（domain-profile 默认官方 CLI，每域名 2 积分）；Stripe 官方分支每业务调用 1 积分，全榜保留旧入口（本轮未重验）；付款指纹 SERP 每查询 2 积分 | 空结果**先核 manifest 的 sources 状态**：429 / CAPTCHA / 超时都会产出 0 条，采集失败 ≠ 没市场 |
 | F5 邻接市场 | 串行 | `gt.py region "<核心词>" --top 20`；同一需求的搜索说法通过官方 Skill 调用 `translate_demand "<英文需求描述>"` | 哪些国家在搜、相邻搜索表达 | Trends 是相对值；翻译结果仍需目标语言三关核验 |
 | F6 估值对照 | 串行 | 官方 Skill 调用 `website_worth <竞品域名> --json --out <证据文件>` | 第三方估值，作为 F3 折算的旁证 | 计积分，以 `tools` 的实时价格为准；模型估值不是真实成交价 |
 

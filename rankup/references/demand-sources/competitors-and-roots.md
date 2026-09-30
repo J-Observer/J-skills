@@ -105,7 +105,7 @@ node scripts/demand/site-network.mjs --domain <种子域名> --confirm --max 10
 脚本：[`../scripts/webcafe-forum.mjs`](../../scripts/webcafe-forum.mjs)，
 完整接口地图与坑见 [`webcafe-forum.md`](../webcafe-forum.md)。
 
-官方 Skill 暂无可证明的等价能力（依据：官方 `gefei/SKILL.md`「哥飞说过什么：知识库」只说明 `knowledge_ask` 返回相关段落与出处、`knowledge_search` 返回标题/日期/链接/短节选、`knowledge_read` 按文档读取；`gefei/scripts/webcafe.mjs` 动态取接口合同，未给原始群聊或论坛全集字段）；保留本地 `webcafe-forum.mjs`。已知差异：本地读取论坛原文、悬赏 `collect.board[]` 投票榜及群聊 `message_list[]`（消息 ID、发送者、时间、群名），官方说明未承诺相同语料覆盖、原始字段或分页范围，且知识库接口扣积分。
+官方能力核对与只读试用（2026-09-30）：`knowledge_search --kind chat` 返回 `docId/title/date/speaker/snippet`，实测 `url=null`，只覆盖哥飞发言节选；目录明确 `knowledge_read` 提供相关段落、群聊去昵称，不是全文，本轮读取试用遇到 TLS 失败，不能视为成功覆盖。官方无论坛全集、悬赏投票榜或完整群聊消息字段的等价工具，因此保留 `webcafe-forum.mjs`：旧 HTTP 悬赏榜实测 20 条，浏览器群聊搜索实测 50 条上限；仍需会员访问权限，未出现工具箱每日配额扣费显示。原文取数与官方知识库积分调用分别记账。
 
 | 你要什么 | 命令 |
 |---|---|
@@ -144,8 +144,8 @@ node scripts/demand/site-network.mjs --domain <种子域名> --confirm --max 10
 ### 想要素材就搜群聊，别去问 AI
 
 站内哥飞.ai（`/chat`）的知识库**就是**「哥飞的朋友们」14 个微信群的归档 + 站内教程。
-`chat-search` 直接搜那份归档，拿到的是**原话**——不经模型转述、不消耗任何额度。
-只有需要「让它替你跨来源综合归纳」时才值得走 `ask`（而且它默认 dry-run，要 `--send`）。
+`chat-search` 直接搜那份归档，拿到的是**原话**，不经模型转述；本轮未出现工具箱每日配额扣费显示，会员访问限制仍存在。
+需要综合归纳时使用官方 `knowledge_ask`。本地 `ask` 仅保留历史或用户显式指定的专用用途（默认 dry-run，要 `--send`），不用于 review 或代做研究，也未验证免费。
 
 ---
 

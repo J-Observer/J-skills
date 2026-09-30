@@ -39,7 +39,7 @@
    第六节（折成钱）必须在宣布结论之前。其余节之间没有顺序含义。
 3. **每个工具的输出都要落盘。** 跑完没存证据 = 没跑。落盘路径统一写进 `.rankup/keywords.md`
    或 `.rankup/decisions.md`，带日期。
-4. **配额前置检查。** 开工第一个动作：确认 seo.web.cafe 档位（脚本自动打印）、
+4. **配额前置检查。** 开工第一个动作：用官方 gefei CLI 的 `tools` / `me` 确认实时价格与积分余额、
    Semrush/Similarweb 节点可用性（`<backlink>/scripts/tools-share-node.mjs list --tool semrush`
    与 `--tool similarweb`，`--tool` 是必填的；`list` 本身不点「打开」，不消耗任何节点配额）。
    同时确认钥匙（`cut -d= -f1 <rankup>/.env`）：缺 `SERPER_API_KEY` 时 `demand/serp-query.mjs`
@@ -151,17 +151,17 @@
 
 | 步骤 | 工具 | 命令 | 输出 |
 |---|---|---|---|
-| 5.1 Stripe 引荐流量榜 | `seo-webcafe.mjs` | `referringMonth --m YYYYMM` | 域名、月引荐量、名次、份额、环比（**不计配额**） |
-| 5.1b **本月新进榜的域名** | `demand/stripe-referring.mjs` | `top --new-only --limit 40` | 只留 `isNew` 的域名——**最强的「新机会」信号**，5.1 的原始端点给不了这个筛选 |
-| 5.2 单域名 Stripe 在榜历史 | `seo-webcafe.mjs` | `referringSite --domain <d>` | 在榜轨迹（**不计配额**） |
-| 5.2b 同上（带派生指标） | `demand/stripe-referring.mjs` | `site --domain <d>` | 在榜轨迹 + 到达付费页比例；`top --enrich` **吃配额**，改用 `--visits <本地JSON>` |
+| 5.1 Stripe 引荐流量榜 | `demand/stripe-referring.mjs` | `top --m YYYYMM --limit 20` | 官方前 20 名：域名、月引荐量、名次、份额、环比；1 积分/业务调用 |
+| 5.1b **本月新进榜的域名** | `demand/stripe-referring.mjs` | `top --m YYYYMM --new-only --limit 40` | 只留 `isNew` 的域名——**最强的「新机会」信号**，在旧全榜中筛选（官方无全榜等价，旧入口本轮未重验） |
+| 5.2 单域名 Stripe 在榜历史 | `demand/stripe-referring.mjs` | `site --domain <d>` | 官方 monthly/stats 在榜轨迹；1 积分/业务调用 |
+| 5.2b 月榜派生指标 | `demand/stripe-referring.mjs` | `top --m YYYYMM --limit 20 --visits <本地JSON>` | 到达付费页比例；无本地访问量时 `--enrich` 每域名额外 2 积分，不能以缺失数据当 0 |
 | 5.3 traffic.cv 流量榜 | `boards.mjs` | `traffic-cv --type traffic --tab new` | 名次、域名、月访问量、域名注册时间 |
 | 5.4 traffic.cv 收入榜 | `boards.mjs` | `traffic-cv --type revenue --tab top` | Stripe 结账量排名 |
 | 5.5 TrustMRR 实连收入 | `boards.mjs` | `trustmrr --board mrr` | MRR（Stripe 实连，唯一能当数字用） |
 | 5.6 TrustMRR 增长榜 | `boards.mjs` | `trustmrr --board growth` | 30 天增速排名 |
 | 5.7 收入目标拆解 | `seo-webcafe.mjs` | `money --income <$> --kws <n> --kd <n>` | 反推所需 UV / 日搜索量 / 外链投入（纯本地，零配额） |
 
-官方 Skill 暂无可证明的等价能力（依据：官方 `gefei/SKILL.md`「需求挖掘」只说明 `stripe_checkout_referrals` 查收银台引荐站，未列月份、环比、份额或单站历史字段；`gefei/scripts/webcafe.mjs` 的 `loadTools` 从服务端动态取参数表，本地无字段合同）；保留本地脚本。已知差异：本地 `referringMonth --m YYYYMM` 查月榜，`referringSite --domain <d>` 查在榜历史，沿用旧站点不计配额口径；官方开放 API 扣积分，不能据名称推定历史范围与字段相同。
+Stripe 前 20 名、单站与月度概要已迁官方 `stripe_checkout_referrals`（目录与试用：2026-09-30），每次官方业务调用 1 积分。月榜试用 `202608` 覆盖名次、份额、环比、新进/重返、全球排名与访问量（K）；官方 month 分支只返回前 20 名：`top --limit <=20` 且没有 `--new-only` 时走官方；默认 limit 25、limit>20 或 `--new-only` 仍走旧全榜入口，因官方无全榜等价能力。旧全榜沿用原不计每日配额记录，本轮受探测预算限制未重验当前可用性，不能宣称成功或下线；省略 `--m` 另用官方 overview（1 积分）取最新月份。单站 `monthly/stats` 范围为 2024-01 至 2026-08（32 个月），实际在榜月数因站而异（某个试用站点为 8 个月）；`overview` 最近最多 12 个月，不是全历史汇总。`overview.recentTotals` 实测覆盖 month/visits/listedShare/top10Share/longtailShare；只有缺失字段才输出 null/未知，不补 0。
 
 **三个源给的「收入」不是一回事：TrustMRR 是 Stripe 实连（能当数字用），traffic.cv 是定性信号，Toolify 只能说明「在收钱」。三家域名集合几乎不相交，是互补候选池。**
 
@@ -247,7 +247,7 @@
 | 品牌截流词 | 官方 Skill 调用 `keyword_ideas` / `keyword_difficulty` | `[brand] alternative/vs/review`；先看 SERP 是否真有独立站入口 |
 | AppSumo 差评 | AppSumo 公开页面 | 付费用户差评极其具体，Q&A 区有「does it support...」句式 |
 
-官方 Skill 暂无可证明的等价能力（依据：官方 `gefei/SKILL.md`「哥飞说过什么：知识库」只说明 `knowledge_ask` 返回相关段落与出处、`knowledge_search` 返回标题/日期/链接/短节选、`knowledge_read` 按文档读取；`gefei/scripts/webcafe.mjs` 动态取接口合同，未给原始群聊或论坛全集字段）；保留本地 `webcafe-forum.mjs`。已知差异：本地读取论坛原文、悬赏 `collect.board[]` 投票榜及群聊 `message_list[]`（消息 ID、发送者、时间、群名），官方说明未承诺相同语料覆盖、原始字段或分页范围，且知识库接口扣积分。
+官方能力核对与只读试用（2026-09-30）：`knowledge_search --kind chat` 返回 `docId/title/date/speaker/snippet`，实测 `url=null`，只覆盖哥飞发言节选；目录明确 `knowledge_read` 提供相关段落、群聊去昵称，不是全文，本轮读取试用遇到 TLS 失败，不能视为成功覆盖。官方无论坛全集、悬赏投票榜或完整群聊消息字段的等价工具，因此保留 `webcafe-forum.mjs`：旧 HTTP 悬赏榜实测 20 条，浏览器群聊搜索实测 50 条上限；仍需会员访问权限，未出现工具箱每日配额扣费显示。原文取数与官方知识库积分调用分别记账。
 
 ---
 
@@ -278,7 +278,7 @@
 - [ ] 1.2 Bing 首页实勘
 - [ ] 1.5 意图核验（独立成行，晚于取量、早于裁决）
 - [ ] AI 侧探针（`playbooks/research.md` 阶段 4b；付费工具 / 游戏站 / 平台类必做，其余站型记 N/A 与理由）
-- [ ] 2.1 KD + SERP 盘面（seo-webcafe kd）
+- [ ] 2.1 KD + SERP 盘面（官方 keyword_difficulty）
 - [ ] 3.1 Semrush 搜索量验证
 - [ ] 3.3 多国家库搜索量（逐国，不默认 us）
 - [ ] 3.4 Google Trends 趋势方向

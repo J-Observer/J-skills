@@ -23,11 +23,11 @@
 
 #### 第一小时最小可执行子集（面对 24 个脚本不要发呆，先跑这 6 个）
 
-**全部零配额、零登录、零钥匙**，可以在**一条消息里派 6 个 sub agent 并行**。
+**公开源可直接跑；Stripe 官方分支需要 CLI 授权并按积分计费，全榜/新进筛选保留旧入口（本轮未重验）**，可以在**一条消息里派 6 个 sub agent 并行**。
 
 | 阶段 | 并行/串行 | 跑什么 | 拿到什么 | 卡住了怎么办 |
 |---|---|---|---|---|
-| 1a | **并行 A** | `node $RANKUP/scripts/demand/stripe-referring.mjs top --new-only --limit 40 --json --out /tmp/r/stripe.json` | 本月**新进榜**的 Stripe 引荐域名 = 最强的「新机会」信号 | 不计配额，几乎不会失败；空了看 `months` 子命令确认榜单月份 |
+| 1a | **并行 A** | `node $RANKUP/scripts/demand/stripe-referring.mjs top --m YYYYMM --new-only --limit 40 --json --out /tmp/r/stripe.json` | 本月**新进榜**的 Stripe 引荐域名 = 最强的「新机会」信号 | 新进筛选使用旧全榜入口（官方无等价、本轮未重验，原记录不计每日配额）；不指定月份另需官方 overview 1 积分。空了先核对 sources 状态与榜单月份 |
 | 1b | **并行 A** | `node $RANKUP/scripts/demand/boards.mjs trustmrr --board growth --limit 40 --json --out /tmp/r/mrr.json`<br>`node $RANKUP/scripts/demand/boards.mjs traffic-cv --type traffic --tab new --json --out /tmp/r/tcv.json` | TrustMRR 是 **Stripe 实连**（唯一能当数字用的收入源）；traffic.cv 是定性信号 | 需真实浏览器过 CF 质询，不需登录。失败带 `--keep-open` 保住现场 |
 | 1c | **并行 A** | `node $RANKUP/scripts/demand/boards.mjs taaft --board requests-top --pages 2 --json --out /tmp/r/wish.json` | 许愿区**按票数排**——真实需求信号最强的一档 | 同上，CF 质询 |
 | 1d | **并行 A** | `node $RANKUP/scripts/demand/reddit-wishes.mjs --subreddit SaaS,startups,SideProject,Entrepreneur --time month --limit 40 --json --out /tmp/r/reddit.json` | 用户**原话**（可直接当页面标题用） | 没 token 会走 RSS，`--delay` 别低于 6000，否则 429 |
@@ -75,9 +75,9 @@ wc -l /tmp/r/candidates.txt
 
 | 档位 | 这条链路里的谁 | 代价 |
 |---|---|---|
-| **零配额，放开跑** | 1a stripe-referring · 1e hn-signals / github-trending · 1f anysearch · 4 sitemap-diff / site-network · 6 gt.py · 7 money · `seo-webcafe.mjs kgr/string/money/email` | 只花时间。**并行度只受机器限制** |
+| **零配额，放开跑** | 1e hn-signals / github-trending · 1f anysearch · 4 sitemap-diff / site-network · 6 gt.py · 7 money · `seo-webcafe.mjs kgr/string/money/email` | 只花时间。**并行度只受机器限制** |
 | **零配额但要真浏览器**（过反爬，不需登录） | 1b boards trustmrr/traffic-cv · 1c taaft · reviews-mine 的 trustpilot/g2/capterra · chrome-stats | 每个源一个**描述性会话名**，跑完 `opencli browser <session> close`。sub agent 退出前必须显式关 |
-| **吃 seo.web.cafe 共享池**（档位以阶段 0 脚本打印为准） | `kd`（每词 1，7 天缓存内免费）· `serp`（每次 1）· `payment-referrers serp`（每查询 1） | **整场规模在阶段 0 定死**。`--batch` 走保险丝间隔 |
+| **官方 API 积分** | 1a `stripe-referring` 官方分支每业务调用 1（全榜保留旧入口）；`payment-referrers serp` 每查询 2；KD 等工具按官方实时目录 | 阶段 0 查价格与余额，保留实际扣费字段；不沿用旧网站共享池或缓存免费口径 |
 | **面板配额，一次一个采集器** | 5 similarweb-query / semrush-overview / semrush-report / similarweb-keywords | 会话名固定，**不许并行**。`similarweb-batch` 单域 6–10 秒，可续跑 |
 | **要钱的** | `domain-profile.mjs` 默认官方 gefei CLI（domain_overview 当前 2 积分/域名，以目录为准）；`--provider tabapi` 按 credit · `serp-query`（serper 付费额度） | 官方 API 扣余额，不用网站每日赠送额度 |
 

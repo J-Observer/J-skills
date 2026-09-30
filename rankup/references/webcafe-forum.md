@@ -275,7 +275,7 @@ round 的付费墙只挡**一个字段** `answer_content`；其余元数据（�
 - 顶栏搜索框是 React 受控 input，`type` + 回车**打不动它**（值写进去了但 URL 不变）。
   直接拼 `/search?q=` 导航。
 
-官方 Skill 暂无可证明的等价能力（依据：官方 `gefei/SKILL.md`「哥飞说过什么：知识库」只说明 `knowledge_ask` 返回相关段落与出处、`knowledge_search` 返回标题/日期/链接/短节选、`knowledge_read` 按文档读取；`gefei/scripts/webcafe.mjs` 动态取接口合同，未给原始群聊或论坛全集字段）；保留本地 `webcafe-forum.mjs`。已知差异：本地读取论坛原文、悬赏 `collect.board[]` 投票榜及群聊 `message_list[]`（消息 ID、发送者、时间、群名），官方说明未承诺相同语料覆盖、原始字段或分页范围，且知识库接口扣积分。
+官方能力核对与只读试用（2026-09-30）：`knowledge_search --kind chat` 返回 `docId/title/date/speaker/snippet`，实测 `url=null`，只覆盖哥飞发言节选；目录明确 `knowledge_read` 提供相关段落、群聊去昵称，不是全文，本轮读取试用遇到 TLS 失败，不能视为成功覆盖。官方无论坛全集、悬赏投票榜或完整群聊消息字段的等价工具，因此保留 `webcafe-forum.mjs`：旧 HTTP 悬赏榜实测 20 条，浏览器群聊搜索实测 50 条上限；仍需会员访问权限，未出现工具箱每日配额扣费显示。原文取数与官方知识库积分调用分别记账。
 
 ## 八、群聊归档：哥飞.ai 的知识库，可以直接搜
 
@@ -311,7 +311,7 @@ POST /api/community/message/search-message
 
 | 端点 | 方法 | 说明 |
 |---|---|---|
-| `/api/ai/sessions` | GET | 历史会话列表（**读历史免费**） |
+| `/api/ai/sessions` | GET | 历史会话列表（读历史；本轮未验证计费） |
 | `/api/ai/sessions/<id>/messages` | GET | 一整条对话 |
 | `/api/ai/chat` | POST | `{session_id, message}` → **裸 `data: {json}` 行协议**（不是标准 SSE 头） |
 
@@ -323,8 +323,7 @@ POST /api/community/message/search-message
 > 2026-08-24 实测发过一条（复用已有会话，未新建）：正常返回带引用标记的长答案，
 > **未出现任何配额提示或报错**。但这不等于免费，只等于「没有可见的计费反馈」。
 
-**多数场景应该用 `chat-search` 而不是 `ask`**：同一批语料，拿原文、零额度风险。
-只有需要「让它替你跨来源综合归纳」时才值得走 `ask`。
+原文证据使用 `chat-search` / `search`；需要综合归纳时按官方 `gefei` Skill 使用 `knowledge_ask`。`webcafe-forum.mjs ask` 仅保留历史或用户显式指定的专用用途，不用于 review 或代做调研；未验证免费。
 
 ## 四、SOP：给一个 URL 就把内容取回来
 

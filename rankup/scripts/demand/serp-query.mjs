@@ -6,7 +6,7 @@
  *         (a) 前十里有几个站是**拿这个词当主域名**的（域名主标签命中词素）；
  *         (b) 前十里有几个是首页、有几个是内页。
  *       relatedSearches / peopleAlsoAsk 是扩词的直接来源：把它们再喂回本脚本或
- *       喂给 seo-webcafe.mjs kd 做难度过筛，就是一条完整的挖词流水线。
+ *       喂给 官方 gefei CLI keyword_difficulty 做难度过筛，就是一条完整的挖词流水线。
  *
  * 示例：
  *   node serp-query.mjs "ai photo editor"
@@ -164,7 +164,7 @@ async function main() {
       `     或者临时 export ${KEY_NAME}=你的key\n` +
       `  没有 key 时的替代选路（各家免费额度见 references 的需求源清单）：\n` +
       `  SerpApi / Bright Data SERP / searchapi.io / DataForSEO 的 SERP 端点，\n` +
-      `  或者退一步用 rankup/scripts/seo-webcafe.mjs serp（匿名可跑，10 次/日）。`,
+      `  或者退一步用 官方 gefei CLI 的 serp（官方积分 API，按目录计费）。`,
     );
   }
 
@@ -228,7 +228,7 @@ async function main() {
   console.error(`manifest：${writeManifest('completed')}`);
 
   if (args.expand) {
-    // 纯词表，方便 `| xargs -I{} node seo-webcafe.mjs kd --keyword {}` 直接串起来
+    // 纯词表，方便 `| xargs -I{} node ~/.claude/skills/gefei/scripts/webcafe.mjs keyword_difficulty --keyword {}` 直接串起来
     for (const q of [...related, ...paa.map((p) => p.question)]) if (q) console.log(q);
     return;
   }

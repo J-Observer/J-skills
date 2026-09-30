@@ -22,9 +22,8 @@
  *
  * 缺 key 的降级策略（2026-09-12 修正，之前的草稿把"缺 key"当成能力开关，是错的）：
  *   四个主信号源 ads-transparency / appstore-charts / gplay-charts /
- *   stripe-referring **默认路径全部免 token**（不需要 SERPER_API_KEY、
- *   PRODUCTHUNT_TOKEN、TABAPI_KEY 这些），所以 `scan` 本身不存在"缺 key 降级"
- *   的问题——它就是直接可用的。
+ *   前三个默认路径不需要额外 API key；stripe-referring 经官方 gefei CLI 自管凭据，
+ *   按官方积分余额调用，失败标为取数失败，不冒充零需求。
  *   唯一涉及 key 的地方是可选的 `--web-check`（"网页端有没有人做"初判）：
  *     1) 默认路径：`opencli google search`，免费，走本机已登录的 Chrome
  *        （opencli doctor 连通即可用，不需要任何 API key）。
@@ -1395,8 +1394,8 @@ leading-indicator.mjs — 候选生成器：领先指标而不是滞后指标
 谁在买量 / 谁在冲榜 / 谁在真收钱 → 这需求是什么 → 网页端有没有人做 → 候选。
 **我们自己不买量，只读别人的买量行为当信号**——脚本里没有任何写操作。
 
-四个信号源全部免 token（不需要 SERPER_API_KEY / PRODUCTHUNT_TOKEN 这些），
-scan 本身没有"缺 key 降级"的问题。唯一可能用到 key 的地方是 --web-check：
+前三个信号源无需额外 key；Stripe 引荐信号需官方 gefei CLI 已配置凭据和积分，
+Stripe 取数失败需单独记录；可选 --web-check 的检索 key 路径：
 默认走 \`opencli google search\`（免费，走本机已登录 Chrome），只有这条免费
 路径本身失败时才会看有没有 SERPER_API_KEY 可以兜底——key 是性能兜底，不是开关。
 

@@ -122,7 +122,7 @@ Wave5 起用 CPC 顶替，但 CPC 衡量的是**广告主买量意愿**，不是
 真实关键词全貌之上，不是调研者自己猜的一两个种子词之上。这一步优先用零配额信号完成，与闸门 5 获客
 可行性"优先零配额、拿不准再打开一次面板"同一条省配额纪律，不因此把闸门 0–5 变成闸门 6 那种全量消耗。
 
-官方 Skill 暂无可证明的等价能力（依据：官方 `gefei/SKILL.md`「需求挖掘」列 `translate_demand`、`search_known_sites`、`search_known_keywords`，`gefei-keywords/SKILL.md` 从种子词拓词，均未说明输入类型判定）；保留本地脚本。已知差异：`mineSeed` 只返回输入类型与值，不拉取非种子词或站点关键词；需要查站点排名词时加载官方 `gefei-competitor`，用 `site_keywords`，其国家库与积分口径不同。
+官方实时目录核对（2026-09-30）无输入类型判定等价工具，保留本地 `mineSeed`；本轮旧入口实跑成功返回 `type/value`。已知差异：`mineSeed` 只返回输入类型与值，不拉取非种子词或站点关键词；需要查站点排名词时加载官方 `gefei-competitor`，用 `site_keywords`，其国家库与积分口径不同。
 
 【实测】单次案例，证据与 8.1–8.3 引用的六轮复盘不同来源，标注见 `research.md`「否决前必须反查」对应条目。
 
@@ -173,7 +173,7 @@ Wave5 起用 CPC 顶替，但 CPC 衡量的是**广告主买量意愿**，不是
 
 | 阶段 | 并行/串行 | 跑什么 | 拿到什么 | 卡住了怎么办 |
 |---|---|---|---|---|
-| 生成 | 并行 | `ads-transparency.mjs` / `appstore-charts.mjs` / `boards.mjs` / `stripe-referring.mjs` / `game-newtitles.mjs` 等零配额榜单脚本 | 一批"有人在买量/冲榜"的候选方向 | 没有候选池时改用用户直接给的一个方向（走 `research.md` P0 分流"一个词"入口） |
+| 生成 | 并行 | `ads-transparency.mjs` / `appstore-charts.mjs` / `boards.mjs` / `stripe-referring.mjs` / `game-newtitles.mjs` 等榜单脚本（Stripe 官方分支每业务调用 1 积分，全榜保留旧入口） | 一批"有人在买量/冲榜"的候选方向 | 没有候选池时改用用户直接给的一个方向（走 `research.md` P0 分流"一个词"入口） |
 | 0 硬约束 | 串行，主线判读 | 对照约束清单逐条核对 | 通过/出局 + 命中条款 | 出局直接停，不进闸门 1 |
 | 1 使用频次 | 串行，主线判读 | 判断需求天然触发频率 | 通过/出局 | 拿不准就找 2–3 条真实使用场景佐证，不开配额工具 |
 | 2 痛点证据 | 并行（零配额） | 先 `agent-reach doctor --json` 选路由，按 backend 用 `opencli reddit/xiaohongshu` / `twitter-cli` / `yt-dlp` / `bili-cli` 跑固定搜索词矩阵；`hn-signals.mjs`（HN 专用）+ `reddit-wishes.mjs`（补充/批量场景）兜底 | 独立抱怨来源计数 + 笨办法记录 | <3 个独立来源直接杀，不许"再搜一轮凑数" |
@@ -186,10 +186,10 @@ Wave5 起用 CPC 顶替，但 CPC 衡量的是**广告主买量意愿**，不是
 
 | 档位 | 谁 |
 |---|---|
-| 零配额，放开跑 | 候选生成器全部（producthunt/igdb/github 分支除外）、闸门 0/1（人工）、闸门 2（`agent-reach` 路由的 CLI 命令 + 全部脚本）、闸门 3 除 `serp-query.mjs` 外全部、闸门 4 的人工判断 |
+| 零配额，放开跑 | 候选生成器（Stripe 与 producthunt/igdb/github 分支除外）、闸门 0/1（人工）、闸门 2（`agent-reach` 路由的 CLI 命令 + 全部脚本）、闸门 3 的本地折算与公开证据（官方哥飞工具另计积分）、闸门 4 的人工判断 |
 | 需要真实 Chrome 但不计配额 | `boards.mjs` 的 toolify/taaft 分支、`agent-reach` 路由到 OpenCLI 的 Reddit/小红书 登录态分支（含 `reddit-wishes.mjs` 的 opencli 分支） |
 | 吃共享配额（单次确认） | 闸门 4/5 视需要打开的旧面板查询 |
-| 官方 API 积分 | 闸门 3 的官方 SERP 工具、闸门 4/5 的 `domain-profile.mjs`（默认 domain_overview 当前 2 积分/域名，以官方目录为准） |
+| 官方 API 积分 | Stripe 官方分支每业务调用 1 积分，全榜保留旧入口、闸门 3 的官方工具（以实时目录计价）、闸门 4/5 的 `domain-profile.mjs`（默认 domain_overview 当前 2 积分/域名，以官方目录为准） |
 | 面板配额（真正的大头） | 只在闸门 6，规模按 `research.md` P2 阶段 0 定死 |
 
 ### 收尾

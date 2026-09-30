@@ -180,7 +180,7 @@ opencli browser "$S" eval '(async()=>{ /* fetch(..., {credentials:"include"}) */
 浏览器调用写法按 `opencli` Skill；哥飞调用入口见 [`seo-webcafe.md`](seo-webcafe.md)。**eval 体一律包 IIFE**——本环境 eval 上下文跨调用持续，
 重复声明会抛错且那次调用根本没执行。
 
-**哥飞工具取数**：加载[官方 `gefei` Skill](seo-webcafe.md)及对应专用 Skill，鉴权、工具与配额口径依官方当前说明执行；不要回退到旧网络 CLI 或网页登录端点。本地 `money` / `kgr` / `string` / `email` 计算仍可复用，不代表旧网络路径恢复。
+**哥飞工具取数**：加载[官方 `gefei` Skill](seo-webcafe.md)及对应专用 Skill，鉴权、工具与配额口径依官方当前说明执行；官方已覆盖的用途不要回退旧网络端点；官方无等价能力且仍保留的独有用途与社区原文入口见 `seo-webcafe.md` / `webcafe-forum.md`。本地 `money` / `kgr` / `string` / `email` 计算仍可复用，不代表旧网络路径恢复。
 
 ---
 
@@ -307,7 +307,7 @@ Skill 集合不一样，文档只保证「该用什么」；遇缺就跳过会�
 
 | 错误做法 | 正确做法 | 为什么是错的 |
 |---|---|---|
-| 为拿哥飞论坛内容去问 `ask`（哥飞.ai） | 先 `webcafe-forum.mjs chat-search` / `search` 拿原文，保留本地入口 | 官方 Skill 暂无可证明的等价能力（依据：官方 `gefei/SKILL.md`「知识库」仅列相关段落、文档与短节选）；已知差异：未承诺原始群聊消息字段、论坛全集或同一语料覆盖；本地是原文检索，官方知识库扣积分 |
+| 为拿哥飞论坛内容去问 `ask`（哥飞.ai） | 先 `webcafe-forum.mjs chat-search` / `search` 拿原文，保留本地入口 | 2026-09-30 实时目录与试用确认：官方 chat 检索只有哥飞发言节选，knowledge_read 非全文且群聊去昵称；原文、论坛全集与悬赏投票榜无等价工具。本地悬赏榜和群聊搜索本轮实跑成功，官方知识库另扣积分 |
 | 以为哥飞工具箱只有少量接口 | 加载[官方 `gefei` Skill](seo-webcafe.md)，读取实时工具目录 | 工具能力与价格以供应商当前说明为准 |
 | 为算 KGR/TDK 去开网页或消耗配额 | 本地命令 `kgr` / `string` / `money` / `email` | 纯本地、零配额、支持 `--batch` |
 | 拿 `new.web.cafe` 的 HTTP 200 当「取到了」 | 看 `access` 字段 / 正文空不空 | 该站匿名不返回 401，只把正文抹成空串 |
@@ -387,13 +387,13 @@ Skill 集合不一样，文档只保证「该用什么」；遇缺就跳过会�
 
 ## 十一、令牌统一放 Skill 根目录的 `.env`
 
-**本 Skill 依赖的第三方令牌只有一份，放在 Skill 根目录的 `.env`，所有项目共用。**
+**由 Rankup 脚本直接读取的第三方令牌只有一份，放在 Skill 根目录的 `.env`，所有项目共用；官方哥飞凭据由其 CLI 自管，不由 Rankup 读取。**
 这些令牌属于**工具账号**（关键词难度、SERP、体检这类第三方服务），不属于任何一个站点。放进项目就会出现同一个令牌在 N 个项目里各存一份，
 过期时要改 N 处，漏掉的那几处会以「配额用尽」「未授权」的面貌出现，排查方向完全错。
 
 | | 放什么 | 例子 |
 |---|---|---|
-| Skill 的 `.env` | 跨项目的工具账号令牌**真实值** | `KD_TOKEN`、`CLOUDFLARE_API_TOKEN`（若是 Global API Key 还要 `CLOUDFLARE_EMAIL`） |
+| Skill 的 `.env` | 跨项目的工具账号令牌**真实值** | `SERPER_API_KEY`、`CLOUDFLARE_API_TOKEN`（若是 Global API Key 还要 `CLOUDFLARE_EMAIL`） |
 | 项目的 `secrets.md` | 本项目专属凭据的**名称、用途、保管位置**，绝不写真实值 | 部署密钥、支付密钥 |
 
 1. **必须被 `.gitignore` 排除，且要断言。** `git add -f` 就能绕过 `.gitignore`，所以 `scripts/validate-rankup.mjs` 断言它不被 git 追踪，违反即构建失败。与 `registry.md` 用同一条防线。

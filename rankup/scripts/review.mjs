@@ -35,8 +35,8 @@ const LIFECYCLE_CHECKS = [
     group: "基础",
     evidence: "keywords.md",
     minBytes: 50,
-    fix: "node <rankup>/scripts/seo-webcafe.mjs kd <keyword>",
-    tool: "seo-webcafe.mjs",
+    fix: "加载官方 gefei-keywords Skill，用 keyword_difficulty 查询目标市场",
+    tool: "官方 gefei-keywords",
     why: "SEO 的基底——目标词定了，密度/排名/进度才有锚点",
   },
   {
@@ -67,7 +67,7 @@ const LIFECYCLE_CHECKS = [
     evidence: "audit.md",
     minBytes: 500,
     fix: "执行 references/lifecycle/stage-4-prelaunch.md 段 4 C 节「上线前闸门」0–6 + 4b 逐行留证据",
-    tool: "is-agentic.mjs + seo-webcafe.mjs audit/chat",
+    tool: "is-agentic.mjs + 官方 gefei-page onpage_audit/page_coach",
     why: "站点身份/SEO/TDK/密度/GEO/哥飞审阅/性能——逐项要证据",
   },
   {

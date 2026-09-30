@@ -32,3 +32,26 @@ Rankup 只负责判断**什么时候需要哥飞数据、结果如何进入本�
 4. 真实 SERP 版式、目标市场本地搜索、社区原话、GSC 和 PageSpeed 继续按 Rankup 的相应流程验证。外部工具建议逐条采纳或记录拒绝理由，不能直接当结论。
 
 若官方 Skill 未安装或令牌无效，只标记该依赖步骤待完成；仍可推进不依赖它的本地与公开来源检查。不要改用旧网页登录端点或站内 AI 来伪装成同一份证据。
+
+## 本地脚本与保留的旧能力（2026-09-30）
+
+`stripe-referring.mjs` 的前20名查询、月份汇总及单站历史已迁到官方 `stripe_checkout_referrals`，每业务调用 1 积分；超过20名或 `--new-only` 保留旧全榜，官方目录暂无等价能力（2026-09-30）。旧全榜原记录不计每日配额，本轮探测预算内未重验可用性；`payment-referrers.mjs serp` 改用官方 `serp`，每查询 2 积分，默认 gl=us/hl=en；`revenue-site-audit.mjs` 的 KD 直接调用官方 `keyword_difficulty`，国家取 `--db`。`domain-profile.mjs` 继续使用官方 `domain_overview`。这些脚本不读官方令牌或配置。
+
+已知坑：设了 HTTP(S) 环境代理的机器上，官方 CLI 的 Node 需要 `NODE_USE_ENV_PROXY=1`，上述 Rankup 脚本已自动处理（保留显式设置）。手动直接运行官方 CLI 遇到 TLS 建连失败时，先检查这一点。
+
+旧站内 SEO Agent 入口已从 Rankup 移除。review 用官方 `gefei-page` 的数据和建议，由当前 Agent 判读；查哥飞说法用 `knowledge_ask`，不再委托站内 AI 代做审查。
+
+`seo-webcafe.mjs` 不再是统一网络工具箱，不保留已迁命令的兼容壳。它只提供：
+
+| 用途 | 保留命令 | 官方等价与旧口径 |
+|---|---|---|
+| 本地计算 | `kgr` / `string` / `money` / `email`，支持 `--batch` | 零网络、零积分；结果是公式数值，非商业验证结论 |
+| 输入判型 | `mineSeed --input <词或网址>` | 官方目录暂无等价能力；本日旧接口实跑 HTTP 200，返回 type/value；旧记录不计每日配额 |
+| 单页评分/需求信号 | `serpPage` / `translatePage` / `minePage` | 官方 `serp_review` 是搜索结果盘面，`onpage_audit` 是页面体检，不能据名称宣称这些独有字段覆盖；暂无等价能力。translatePage/minePage 旧记录不计每日配额；serpPage 扣费未显示 |
+| 已取数据聚合/报告 | `translateAggregate` / `mineReport` | 官方 `translate_demand` 不提供原数组聚合或取回旧报告的字段合同；暂无等价能力；旧记录不计每日配额。page 可用保留命令，search/domain 数据另从官方取，格式需人工核对 |
+| 起名意图/撞名/历史会话 | `domainIntent` / `domainCollision` / `domainSessions` | 官方 `brand_naming` / `domain_review` 没有承诺独立意图、单名撞名或旧会话读取的同一输出；暂无等价能力。Sessions 旧记录不计每日配额；其余实际扣费未显示 |
+| 旧网站额度读数 | `translateMe` | 只读网站每日配额，不是官方 API 余额，不用于规划官方调用 |
+
+依据是 2026-09-30 的官方实时目录与本轮试用，不是凭旧文档推测供应商完全没有该能力。保留脚本的 mineSeed 已验证可用；其他独有端点在本轮探测上限内没有逐项实跑，不能把共享脚本通过说成每个端点均已验证。失败时显示失败，不回退到已移除的旧取数命令。
+
+论坛原文、悬赏投票榜与完整群聊搜索继续用 [`webcafe-forum.md`](webcafe-forum.md) 的保留入口；官方知识库只返回相关节选，不能冒充论坛全集或全部群友原文。

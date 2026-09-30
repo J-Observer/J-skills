@@ -1,6 +1,6 @@
 // 为什么有这个文件（2026-08-29）：
 //
-// `gefei-chat.browser.js` 和 `chatbot-drive.browser.js` 都要注入页面才能干活——
+// `chatbot-drive.browser.js` 要注入页面才能干活——
 // 包一层 `navigator.clipboard.writeText`，再挂一个捕获阶段的 `copy` 监听。
 // 老版本**装上就不拆**（chatbot-drive 甚至在 init() 里装、用 window.__rkHooked
 // 做守卫），于是此后页面每一次复制都先经过我们的手：任何「页面复制了什么」的观测，
@@ -24,11 +24,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const GEFEI = path.join(root, "rankup/scripts/gefei-chat.browser.js");
 const CHATBOT = path.join(root, "rankup/scripts/chatbot-drive.browser.js");
 
 /**
- * 一个刚好够跑这两个文件的假页面。
+ * 一个刚好够跑浏览器脚本的假页面。
  *
  * `clickBehavior` 就是「页面点了复制按钮之后到底干了什么」——把四种真实世界的
  * 行为参数化：走 clipboard API、走 copy 事件、什么都不做、以及在我们之上再换一次
@@ -133,80 +132,6 @@ function assertPageRestored(page, label) {
   assert.equal("__rkHooked" in page.window, false, `${label}：不许留 __rkHooked 这类守卫`);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// gefei-chat.browser.js —— __gf.grab()
-// ═══════════════════════════════════════════════════════════════════════════
-
-test("gefei grab: 拿到原文，并把页面还原", async () => {
-  const page = makePage({ clickBehavior: "writeText", text: "一二三四五" });
-  const win = load(GEFEI, page);
-  const got = await win.__gf.grab();
-  assert.equal(got.文本, "一二三四五");
-  assert.equal(got.字数, 5);
-  assert.equal(got.诊断, "ok");
-  // 包装层必须把调用转给原实现，页面自己的复制不能被我们吃掉。
-  assert.deepEqual(page.passedThrough, ["一二三四五"]);
-  assertPageRestored(page, "gefei grab 成功路径");
-});
-
-test("gefei grab: 走 copy 事件的页面同样能拿到", async () => {
-  const page = makePage({ clickBehavior: "copyEvent", text: "来自 copy 事件" });
-  const win = load(GEFEI, page);
-  const got = await win.__gf.grab();
-  assert.equal(got.文本, "来自 copy 事件");
-  assertPageRestored(page, "gefei copy 事件路径");
-});
-
-test("gefei grab: 页面没触发复制 = no-copy-observed，不是笼统的拿不到", async () => {
-  const page = makePage({ clickBehavior: "silent" });
-  const win = load(GEFEI, page);
-  const got = await win.__gf.grab();
-  assert.equal(got.诊断, "no-copy-observed");
-  assert.deepEqual(got.装上的钩子, ["copy-listener", "clipboard.writeText"]);
-  assert.match(got.错误, /没触发复制/);
-  assertPageRestored(page, "gefei 未触发路径");
-});
-
-test("gefei grab: 页面换了复制实现 = hook-displaced，且不许把页面的实现覆盖掉", async () => {
-  const page = makePage({ clickBehavior: "displaced", text: "页面自己写的" });
-  const win = load(GEFEI, page);
-  const got = await win.__gf.grab();
-  assert.equal(got.诊断, "hook-displaced");
-  assert.match(got.错误, /换了复制实现/);
-  // 关键：我们那层被顶掉之后，还原动作必须收手——否则把页面的实现抹掉了。
-  assert.equal(page.navigator.clipboard.writeText, page.pageOwn());
-  assert.equal(page.listeners.length, 0);
-});
-
-test("gefei grab: 复制到空串 = empty-copy", async () => {
-  const page = makePage({ clickBehavior: "emptyCopy" });
-  const win = load(GEFEI, page);
-  const got = await win.__gf.grab();
-  assert.equal(got.诊断, "empty-copy");
-  assertPageRestored(page, "gefei 空串路径");
-});
-
-test("gefei grab: 一个钩子都装不上 = hook-not-installed", async () => {
-  const page = makePage({ clickBehavior: "silent", withClipboard: false, withAddEventListener: false });
-  const win = load(GEFEI, page);
-  const got = await win.__gf.grab();
-  assert.equal(got.诊断, "hook-not-installed");
-  assert.deepEqual(got.装上的钩子, []);
-});
-
-test("gefei grab: 每次采集前归零 —— 上一次的原文不许被读成这一次的产物", async () => {
-  const page = makePage({ clickBehavior: "writeText", text: "第一次的答案" });
-  const win = load(GEFEI, page);
-  const first = await win.__gf.grab();
-  assert.equal(first.文本, "第一次的答案");
-
-  page.setBehavior("silent"); // 第二次页面什么也没复制
-  const second = await win.__gf.grab();
-  assert.equal(second.文本, undefined, "第二次不许拿回上一次的文本");
-  assert.equal(second.诊断, "no-copy-observed");
-});
-
-// ═══════════════════════════════════════════════════════════════════════════
 // chatbot-drive.browser.js —— __rk.init() / __rk.capture() / __rk.uninstall()
 // ═══════════════════════════════════════════════════════════════════════════
 

@@ -27,6 +27,7 @@
  */
 
 import { execFile } from 'node:child_process';
+import { gefeiEnv } from '../lib-gefei-env.mjs';
 import { promisify } from 'node:util';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -66,7 +67,7 @@ async function fetchWebcafe(domain) {
     const { stdout, stderr } = await execFileP(process.execPath, [
       path.join(homedir(), '.claude/skills/gefei/scripts/webcafe.mjs'),
       'domain_overview', domain, '--json',
-    ], { timeout: 120000, maxBuffer: 32 * 1024 * 1024 });
+    ], { env: gefeiEnv(), timeout: 120000, maxBuffer: 32 * 1024 * 1024 });
     if (stderr) process.stderr.write(stderr);
     return JSON.parse(stdout);
   } catch (error) {

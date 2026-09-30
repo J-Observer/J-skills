@@ -235,7 +235,7 @@ B 站 / 小红书评论区全部在它的覆盖范围内。
 
 - `demand/keyword-value.mjs`（本地计算 CPC / 同批中位数比值，不联网）
 - 官方 `gefei-keywords` Skill（按当前官方方法查询 CPC、意图与目标市场量）
-- `demand/stripe-referring.mjs`（不计配额，查谁的流量走到了收银台）
+- `demand/stripe-referring.mjs`（官方前 20 名与单站月度记录每业务调用 1 积分；全榜/新进筛选保留旧入口，本轮未重验）
 - `demand/freelance-demand.mjs`（freelancer 子源零依赖，直接看真实成交订单/竞标）
 - `demand/serp-query.mjs`（**本机缺 `SERPER_API_KEY` 跑不了**，用官方 `gefei-keywords` Skill 的 SERP 工具替代，按实时价格计积分）
 

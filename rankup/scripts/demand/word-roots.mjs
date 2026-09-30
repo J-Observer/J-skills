@@ -21,7 +21,7 @@
  *
  * 已知坑：
  *   1. **扩展出来的是候选串，不是关键词。** 它们没有搜索量、没有难度，
- *      必须再过一遍 `../seo-webcafe.mjs kd --batch` 或数据平台才算数。
+ *      必须再过一遍 官方 gefei CLI 的 `keyword_difficulty` 或数据平台才算数。
  *      把扩展结果当成「我找到了 300 个词」是这条路上最常见的自欺。
  *   2. 不给 --seeds 时只能套用 bare 模板（词根本身），因为其余模板都需要一个主语。
  *      这不是限制，是提醒：光有词根不构成需求，词根 × 领域才构成需求。
@@ -132,7 +132,7 @@ function cmdExpand(args) {
   ]);
   if (rows.length && !args.json) {
     console.error('提醒：这些只是候选串，没有搜索量也没有难度。下一步必须过一遍 KD/搜索量：');
-    console.error('  node ../seo-webcafe.mjs kd --keyword "<候选串>"');
+    console.error('  node ~/.claude/skills/gefei/scripts/webcafe.mjs keyword_difficulty --keyword "<候选串>"');
   }
   void printTable;
 }

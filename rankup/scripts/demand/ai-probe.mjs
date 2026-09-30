@@ -119,7 +119,7 @@
  *   - 网页通道超时（默认 150 秒）就失败并把会话号写进错误与 failures，不重发；回答可能仍在生成，可手动打开该会话查看，
  *     或对同一 --out 加 --resume 重跑（只补失败项，会新发一条对话）。
  *   - Google 前 10 来自用户 Chrome 的 `opencli google search`：带用户所在地区与个性化，不是干净的 gl=us；
- *     要严格对照请传 --google-top（例如 seo-webcafe.mjs serp 的结果）。
+ *     要严格对照请传 --google-top（例如 官方 gefei CLI serp 的结果）。
  *   - n 很小（默认每型 3 次）：稳定度只能说「这次探针里」，不是统计结论。
  *
  * 已验证日期：2026-09-29。

@@ -82,7 +82,7 @@ scan gplay 时不显式加 `--ranking`，gplay 侧的工厂识别、以及"跨�
 | 广告主持续投放（不证明 ROI） | `demand/ads-transparency.mjs` | 零依赖；逆向 RPC，Google 改协议随时可能断；`leading-indicator.mjs scan --source ads` 用时必须显式给 `--ads-mode`（`creatives` 或 `advertisers`）|
 | App Store 付费榜/畅销榜 | `demand/appstore-charts.mjs` | 零依赖，官方 RSS，这 10 个核心脚本里第二直接的付费证据；`--lookup` 才带 `ratingCount`（可选评分数巨头判据） |
 | Google Play 付费榜/畅销榜 | `demand/gplay-charts.mjs` | 零依赖；**要参与工厂识别就必须传 `--ranking`**（`extra.developer` 只有这个模式才有） |
-| Stripe 收银台新上榜域名 | `demand/stripe-referring.mjs` | 不计配额，本月新进榜 = 最强"新机会"信号；只认 `top` 子命令的行形状 |
+| Stripe 收银台新上榜域名 | `demand/stripe-referring.mjs` | `--new-only` 使用旧全榜入口（官方无等价，本轮未重验；旧记录不计每日配额），本月新进榜 = "新机会"线索；只认 `top` 子命令的行形状 |
 | 新品/流量/收入榜（ProductHunt/Toolify/TAAFT/TrustMRR/Columbus） | `demand/boards.mjs` | producthunt 分支缺 `PRODUCTHUNT_TOKEN` 自动降级浏览器，不算硬失败 |
 | Steam/itch/Poki 新游戏（配套工具信号） | `demand/game-newtitles.mjs` | igdb 源缺 `IGDB_CLIENT_ID` 跑不了，换 `--source steam/itch/poki` |
 | 别人写好的 SKILL.md/自动化配置（反推被验证过的需求） | `demand/github-skill-search.mjs` | `--mode code/recent` 需要 `GITHUB_TOKEN`；本机 `gh` CLI 已登录，`gh auth token` 一行就能取得，不必单独申请；不取也能用 `--mode repo`（10 次/分） |
@@ -99,7 +99,7 @@ scan gplay 时不显式加 `--ranking`，gplay 侧的工厂识别、以及"跨�
 | `REDDIT_CLIENT_ID` | Reddit 官方 OAuth API 的替代通道 | 不需要配：Reddit 走 `agent-reach` 路由到的 OpenCLI 登录态即可，见 §3 速查表（**实测**，2026-09-12） |
 | `SERPER_API_KEY` | 付费 SERP 抓取 API 的替代通道 | `opencli google search "<query>" --lang <lang> --limit 10 -f json`（本项目实战验证过）；也可用 官方 `gefei-keywords` Skill 的 SERP 工具（按实时报价） |
 | `GITHUB_TOKEN` | 提高 GitHub API 限流上限的替代通道 | `gh` CLI 本机已登录，直接可用；想要更高限流一行 `gh auth token` 就能取得，不需要单独去 GitHub 后台申请 |
-| `TABAPI_KEY` | 官方数据源的付费替代通道 | 脚本默认 `--provider webcafe`，免费可用，吃共享配额而非硬失败 |
+| `TABAPI_KEY` | 官方数据源的付费替代通道 | 脚本默认 `--provider webcafe` 经官方 gefei CLI，每域名 2 积分（以实时目录为准）；失败保留错误，不能当无数据 |
 | `PRODUCTHUNT_TOKEN` | ProductHunt 官方 GraphQL API 的替代通道 | 脚本默认 provider 免费可用，自动降级浏览器路径，数据更全，不算硬失败 |
 | `IGDB_CLIENT_ID` | 游戏方向专用官方数据源 | 只影响游戏方向；换 `--source steam/itch/poki` 同样能跑 |
 

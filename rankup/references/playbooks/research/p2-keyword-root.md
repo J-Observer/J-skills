@@ -234,12 +234,12 @@ Semrush / Similarweb / seo.web.cafe 这些面板给的月量，是**过去 28–
 
 ### 省配额
 
-一个词根跑完全套 = **seo.web.cafe 约 (存活叶子数 + 1) 次**（每叶 `kd` 1 + `serp` 1，若无 serper）+ **面板约 4–8 次**（每国 bulk 1 + 单词补跑 + 每竞品 1–2）。
+一个词根的官方积分预算按实时 `tools` 目录、存活叶子数与所需接口逐项计算，不能沿用旧网站调用次数；面板另记每国与每竞品的加载次数。
 
 | 档位 | 谁 |
 |---|---|
 | **零配额，放开跑** | 阶段 1 人眼实勘 · 2a `word-roots` · 2b/2c `suggest.mjs`（纯 HTTP，三引擎，不需要钥匙）· 5 `reddit-wishes` / `hn-signals` / `/agent-reach` · 7 `money` / `kgr` / `keyword-value` · 7' `gt.py` |
-| **吃 seo.web.cafe 共享池** | 1 `serp`（每次 1）· 3 `kd`（每词 1，7 天缓存内免费，别为「刷新一下」加 `--force`） |
+| **官方 API 积分** | `serp`、`keyword_difficulty` / `bulk_keyword_difficulty` 等按官方实时工具价格与响应扣费记录，不沿用旧共享池、缓存免费或强制刷新参数 |
 | **面板，一次一个采集器** | 2d `similarweb-keywords`（每个种子一次页面加载，`--settle` 默认 18 秒）· `semrush-report keyword-magic / organic-positions` · 3 `semrush-keyword`（bulk 100 词/次）· 7 `similarweb-query` |
 | **省配额的关键动作** | **初筛用 bulk，入选才回单词模式**；**一次装一堆**：同一个面板窗口连续跑完所有国家库与所有竞品再关；阶段 1 人眼实勘完全不花配额而它最重要——省配额时砍二手 SERP，不砍实勘，**更不砍阶段 5** |
 

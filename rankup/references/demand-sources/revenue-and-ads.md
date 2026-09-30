@@ -8,7 +8,7 @@
 
 | 源 | 拿什么 | 取数方式 | 需登录 | 脚本 |
 |---|---|---|---|---|
-| Stripe 引荐流量榜 | 域名、送往 Stripe 的月引荐量、名次、份额、环比、是否新进榜，**31 个月历史** | 公开 GET ×3，**不计配额** | 否 | `scripts/demand/stripe-referring.mjs`（含派生指标）；原始端点在 `scripts/seo-webcafe.mjs referring` / `referringMonth --m YYYYMM` / `referringSite --domain` |
+| Stripe 引荐流量榜 | 前 20 名官方取数；全榜与新进筛选保留旧入口（本轮未重验）；域名、月引荐量、名次、份额、环比、新进/重返；单站历史范围 2024-01 至 2026-08（32 个月） | 官方分支每业务调用 1 积分；旧全榜沿用原不计每日配额记录，当前状态未重验 | 官方 CLI 授权 | `scripts/demand/stripe-referring.mjs`（含派生指标，缺失值为未知） |
 | traffic.cv 流量榜/收入榜 | 名次、域名、月访问量与环比、Stripe 结账量、**域名注册时间**、TopKeywords | 纯 HTTP（解析 Next.js RSC flight） | 否 | `scripts/demand/boards.mjs traffic-cv` |
 | TrustMRR | MRR、30 天营收、总营收、增速、每访客收入（Stripe 实连） | 纯 HTTP，首页一次带回 5 个榜各 100 条 | 否 | `scripts/demand/boards.mjs trustmrr` |
 | Apple App Store 榜单 | 名次、App 名、开发者；`--lookup` 补价格/评分/评分数/品类。**`--list-genres` 枚举全部品类 id** | 公开 RSS JSON（脚本自动选新旧两套） | 否 | `scripts/demand/appstore-charts.mjs` |
@@ -34,7 +34,7 @@
 月营收估算   ≈ 月访问量 × 到达付费页比例 × 支付成功率 × 客单价
 ```
 
-`stripe-referring.mjs --enrich` 已内建这两个计算（支付成功率与客单价作为参数）。
+`stripe-referring.mjs top --enrich`（每域名画像额外 2 积分，或用 `--visits` 本地映射）已内建这两个计算（支付成功率与客单价作为参数）。
 读表时注意（2026-08-30）：「月总访问」一列的 `—` 只表示**没请求过**（没开 `--enrich`
 也不在 `--visits` 映射里）；`失败(http_429)` 之类才是请求了没取到——配额耗尽的行
 不许被读成「这个站没有总访问量数据」。
@@ -80,7 +80,7 @@
 
 | 路径 | 拿什么 | 取数方式 | 需登录 | 命令 |
 |---|---|---|---|---|
-| SERP 指纹反查 | 引用某网关结账域名/徽标的候选站 + 证据 URL | 走 seo.web.cafe 的 Google 通道，**1 次配额/查询** | 否 | `scripts/demand/payment-referrers.mjs serp <网关>` |
+| SERP 指纹反查 | 引用某网关结账域名/徽标的候选站 + 证据 URL | 官方 raw `serp(q/gl/hl)`，**2 积分/查询**；默认 us/en | 否 | `scripts/demand/payment-referrers.mjs serp <网关>` |
 | Similarweb 引荐流量 | 给某网关送流量的**域名清单** | 面板 + OpenCLI 驱动已登录 Chrome，有配额 | **是**（面板登录态） | `scripts/demand/payment-referrers.mjs similarweb <网关>` |
 
 实测规模：Similarweb 一条查询就能列出某中型网关 90 个引荐域名、另一家 29 个。
@@ -90,7 +90,7 @@
 - **Similarweb 的份额没能可靠配对**（域名数与百分比数不等，如 29 个域名对 37 个百分比）。
   脚本在数量不等时**直接放弃配对并打出说明**——错位的份额比没有份额更危险。
 - Brave 搜索通道对这类指纹查询基本无效；`opencli google` 报 `Navigation rejected`。
-  能用的只有 seo.web.cafe 的 Google 通道那一条。
+  当前脚本已迁官方 raw SERP，保留逐查询状态；这段旧浏览器失败不代表官方接口失效。
 - 失败留现场（2026-08-30，截图链路已实盘验证）：serp 逐 query 在 manifest 里记状态
   （查询失败 ≠ 没人引用这个网关）；similarweb 白屏/超时会先把**截图+页面文本**落进
   证据目录再退出，标签页留在原地供人工排查。

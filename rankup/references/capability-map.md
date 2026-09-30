@@ -76,7 +76,7 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 
 | 能力 | 一句话能干什么 | 入口 | 典型触发说法 |
 |---|---|---|---|
-| Stripe 引荐榜 | 谁在往 Stripe 收银台送人 = 谁已经在收钱，含 31 个月历史 | `scripts/demand/stripe-referring.mjs` | 「反查谁在赚钱」 |
+| Stripe 引荐榜 | 谁在往 Stripe 收银台送人 = 谁已经在收钱，官方前 20 名与单站 32 个月范围按 1 积分/业务调用；全榜/新进筛选保留旧入口，本轮未重验 | `scripts/demand/stripe-referring.mjs` | 「反查谁在赚钱」 |
 | 长尾支付网关反查 | Creem / Lemon Squeezy / Paddle / Gumroad 等网关的引荐站 | `scripts/demand/payment-referrers.mjs` | 「不用 Stripe 的那些人呢」 |
 | 收入/流量榜单聚合 | traffic.cv、TrustMRR、AI 工具榜、新品发现站统一取数 | `scripts/demand/boards.mjs` | 「有哪些站在涨」「谁的 MRR 高」 |
 | App 付费榜 | Apple 榜单（付费榜 = 已验证的付费意愿），可 `--list-genres` | `scripts/demand/appstore-charts.mjs` | 「用户愿意为什么掏钱」 |
@@ -238,12 +238,12 @@ rankup 只判「什么时候发、发多少」（SKILL.md 段 6 一行指回这�
 
 ## 十一、社群与经验（判「别人踩过什么坑」）
 
-官方 Skill 暂无可证明的等价能力（依据：官方 `gefei/SKILL.md`「哥飞说过什么：知识库」只说明 `knowledge_ask` 返回相关段落与出处、`knowledge_search` 返回标题/日期/链接/短节选、`knowledge_read` 按文档读取；`gefei/scripts/webcafe.mjs` 动态取接口合同，未给原始群聊或论坛全集字段）；保留本地 `webcafe-forum.mjs`。已知差异：本地读取论坛原文、悬赏 `collect.board[]` 投票榜及群聊 `message_list[]`（消息 ID、发送者、时间、群名），官方说明未承诺相同语料覆盖、原始字段或分页范围，且知识库接口扣积分。
+官方能力核对与只读试用（2026-09-30）：`knowledge_search --kind chat` 返回 `docId/title/date/speaker/snippet`，实测 `url=null`，只覆盖哥飞发言节选；目录明确 `knowledge_read` 提供相关段落、群聊去昵称，不是全文，本轮读取试用遇到 TLS 失败，不能视为成功覆盖。官方无论坛全集、悬赏投票榜或完整群聊消息字段的等价工具，因此保留 `webcafe-forum.mjs`：旧 HTTP 悬赏榜实测 20 条，浏览器群聊搜索实测 50 条上限；仍需会员访问权限，未出现工具箱每日配额扣费显示。原文取数与官方知识库积分调用分别记账。
 
 | 能力 | 一句话能干什么 | 入口 | 典型触发说法 |
 |---|---|---|---|
 | 论坛全站取数 | new.web.cafe：`get <任意站内 URL>` 万能入口、悬赏问答（含 `collect` 征集榜）、经验 91 条 / 帖子 722 条 / 教程 40 个、站内搜索 | `scripts/webcafe-forum.mjs` | 「论坛里搜一下」 |
-| 微信群归档搜索 | 14 个群的原文，**就是哥飞.ai 的知识库**，零 AI 额度 | `scripts/webcafe-forum.mjs chat-search "词"` | 「群里怎么说的」 |
+| 微信群归档搜索 | 14 个群的原文归档，会员取数；搜索最多 50 条，未出现工具箱每日配额扣费显示 | `scripts/webcafe-forum.mjs chat-search "词"` | 「群里怎么说的」 |
 | 直接使用哥飞开放 API 工具箱 | 实时工具目录，官方 CLI 从服务端实时读取目录；选词/竞品/域名/页面按官方 Skill 工作流编排，Rankup 自己判读 | [`seo-webcafe.md`](seo-webcafe.md) 指向官方 Skill | 「查词、拓词、拆竞品、审页面、查域名」 |
 | 取数注意 | **匿名不报错**：返回 200 但把正文抹成空串、票数归零 | [`references/webcafe-forum.md`](webcafe-forum.md) 第一节 | 拿到空正文时 |
 | 裁定集：挖需求阶段 | 还没定方向时的判断口径 | [`experiences/demand-discovery.md`](experiences/demand-discovery.md) | 「方向怎么选」 |
