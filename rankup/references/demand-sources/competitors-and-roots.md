@@ -105,6 +105,8 @@ node scripts/demand/site-network.mjs --domain <种子域名> --confirm --max 10
 脚本：[`../scripts/webcafe-forum.mjs`](../../scripts/webcafe-forum.mjs)，
 完整接口地图与坑见 [`webcafe-forum.md`](../webcafe-forum.md)。
 
+官方 Skill 暂无可证明的等价能力（依据：官方 `gefei/SKILL.md`「哥飞说过什么：知识库」只说明 `knowledge_ask` 返回相关段落与出处、`knowledge_search` 返回标题/日期/链接/短节选、`knowledge_read` 按文档读取；`gefei/scripts/webcafe.mjs` 动态取接口合同，未给原始群聊或论坛全集字段）；保留本地 `webcafe-forum.mjs`。已知差异：本地读取论坛原文、悬赏 `collect.board[]` 投票榜及群聊 `message_list[]`（消息 ID、发送者、时间、群名），官方说明未承诺相同语料覆盖、原始字段或分页范围，且知识库接口扣积分。
+
 | 你要什么 | 命令 |
 |---|---|
 | 现在有哪些悬赏在问（18 场全站） | `webcafe-forum.mjs bounties --transport http` |

@@ -14,14 +14,14 @@
 > 但**基准日仍是 08-27**——再读时先 `ls backlink/scripts/` 核一遍，不要拿本文件当能力底账。
 > 底账是 [`capability-map.md`](capability-map.md)。
 
-**卡住日常工作流的不是那 60 个没脚本的页面，而是 4 个具体缺口：**
+**早期列出的 4 个具体缺口现在都有现行入口**；下表保留闭环记录，当前脚本能力以第二节为准，仍待增强项见第三节。
 
 | 缺口 | 卡住了什么 |
 |---|---|
 | ~~Similarweb **Keyword Generator**（词根批量扩词）~~ **→ 已实现 2026-08-28** | 曾是整条选词流水线的源头缺口（`demand-discovery.md` 记的规模是「1,309 个词根 → 扩出 97,681 个词」）。现在走 `backlink/scripts/similarweb-keywords.mjs`，四个 tab：`phraseMatch` / `relatedKeywords` / `trending` / `questions`。详见第六节 #1 |
 | ~~Semrush **Keyword Magic Tool**（整包扩词/聚簇）~~ **→ 已实现 2026-08-28** | 落地形态不是新脚本，而是 `backlink/scripts/semrush-report.mjs --report keyword-magic`。实测种子词 `nonogram` 给出 20.1K 词 / 201 页 + Topics 聚簇。详见第六节 #2 |
-| Similarweb **Audience → 国家分布** | 每次跨面板口径对齐都要手开浏览器看目标国占比 |
-| Similarweb **Website → Search**（该站自然搜索词 + 占比） | 隐含点击率校验只能手工做 |
+| ~~Similarweb **Audience → 国家分布**~~ **已有入口**：`similarweb-query.mjs --report audience-geo` | 受众地理分布已由现有脚本读取；人口特征、兴趣与重叠标签仍不在这个入口内 |
+| ~~Similarweb **Website → Search**（该站自然搜索词）~~ **已有入口**：`similarweb-query.mjs --report site-keywords` | 可读取站点排名词；覆盖范围与页面实际返回字段以本轮产物为准 |
 
 ### 反例先记住：页面数排序会骗人
 
@@ -63,7 +63,7 @@
 | `semrush-batch.mjs` | 域名概览（批量流量卡片） | **没有全球选项**，`organicTraffic` 恒为某一个国家库；`db: null` 只表示"不知道是哪个库" |
 | `semrush-report.mjs` | organic-overview / organic-positions / organic-pages / backlinks-list / backlinks-overview / keyword-overview | positions/pages 支持翻页；词维度刻意只留一张，指向 `semrush-keyword.mjs` |
 | `semrush-keyword.mjs` | 关键词概览 | **唯一有 `globalVolume` 的口径**；`--db` 默认 `jp`（历史包袱）；**bulk 模式下 `globalVolume`/`byCountry` 恒为 `null`**；`byCountry` 只是页面 Top-N，加总 ≠ `globalVolume` |
-| `similarweb-query.mjs` / `similarweb-batch.mjs` | performance / channels / similar-sites | **只有 performance 有结构化 metrics**；`similar-sites` 只给 bodyText；`noDataTextObserved` **是观测事实（页面正面写了那句话），既不是失败也不是判决**，它意味着什么由 AI 读证据判（旧字段名 `belowFloor` 已移除） |
+| `similarweb-query.mjs` / `similarweb-batch.mjs` | performance / channels / similar-sites / audience-geo / site-keywords | 各报表字段不同；`similar-sites` 只给 bodyText；`noDataTextObserved` **是观测事实（页面正面写了那句话），既不是失败也不是判决**（旧字段名 `belowFloor` 已移除） |
 | `payment-referrers.mjs similarweb` | 引荐域名 | **焊死在支付网关场景**，不是通用引荐域脚本；份额配对已知失败（29 个域名对 37 个百分比） |
 
 ---
@@ -76,9 +76,9 @@
 |---|---|---|
 | 1 | ~~**Similarweb Keyword Generator**~~ **已实现** → `similarweb-keywords.mjs` | 选词流水线的入口。`demand-discovery.md` 闭环第②步就是"用词根批量查 Similarweb，下载 搜索量>3万 / KD<60 的词"。**2026-08-28 落地后此行不再是缺口** |
 | 2 | ~~**Semrush Keyword Magic Tool**~~ **已实现** → `semrush-report.mjs --report keyword-magic` | `semrush-keyword.mjs` 注释里写明的分工，另一半已补齐。`game-sites.md` 的每日动作要"多语言关键词需求簇"，走整包导出 |
-| 3 | **Similarweb Audience → 国家分布** | [`demand-sources/validation-chain.md`](demand-sources/validation-chain.md#②六-拆渠道时两个面板的口径必须各用各的不能交叉相减) 明确要求：并排 Semrush 国家库和 Similarweb 全球总访问之前**先看目标国占比**。实测"美国流量只占 21–39%，光这一条就是约 5 倍" |
+| 3 | ~~**Similarweb Audience → 国家分布**~~ **已覆盖**：`similarweb-query.mjs --report audience-geo` | 现行入口见第二节与 `research-checklist.md` 4.3；此前的手工缺口已关闭 |
 | 4 | **Semrush Referring Domains 列表** | `webcafe-experiences.md` 外链 SOP 第 2–3 步就是"导出外链域名列表，按出现次数排序"。现在只有逐条链接的 `backlinks-list`，要域名级聚合得二次汇总，分页开销几十倍 |
-| 5 | **Similarweb Website → Search** | `webcafe-experiences.md` 用"前 5 个词只占自然流量 15.5%"反证 Semrush 低估。这个数拿不到，隐含点击率校验就只能手工做 |
+| 5 | ~~**Similarweb Website → Search**~~ **已覆盖**：`similarweb-query.mjs --report site-keywords` | 现行入口见第二节与 `research-checklist.md` 4.4；此前的自然词缺口已关闭 |
 | 6 | **Similarweb Search Competitors** | 每个词在一段时间内各站的**市场占比**，谁起来了谁掉了。比 SERP 快照多一层时间维度 |
 | 7 | **通用化 Similarweb Referrals** | **最低成本的一个缺口——代码已经跑通**，只是焊死在支付场景里。抽出来即可 |
 | 8 | Semrush Keyword Gap / Backlink Gap | 一次给出差集，比逐个跑 `organic-positions` 再做集合运算省一个数量级配额。但频率是周级不是日级 |
@@ -133,9 +133,9 @@
 
 ---
 
-## 六、Top 5 实现草案
+## 六、已实现入口与剩余设计草案
 
-> 以下是设计草案，**尚未实现**。动手前先读第四节的硬约束。
+> 下列 Keyword Generator 与 Keyword Magic 条目记录已实现入口和限制，不再是缺口；Semrush Referring Domains 聚合仍是**未实现草案**。动手前先读第四节的硬约束。
 
 ### 1. ~~`backlink/scripts/similarweb-keywords.mjs`~~ → **已实现**
 
@@ -160,17 +160,6 @@ node backlink/scripts/similarweb-keywords.mjs --seed-file roots.txt --tab relate
 数字挪过去冒充它。
 
 **只读当前页 100 行**，`shownTotal` / `complete` 如实报出总量差距，并打 `[partial]`。
-
-### 旧草案（保留作对照）
-
-### 1. `backlink/scripts/similarweb-keywords.mjs`
-```
---seed "json editor" --mode generator|overview|competitors
-[--country us] [--limit 500] [--min-volume 30000] [--max-kd 60]
-[--seed-file roots.txt] [--out kw.jsonl] [--session x]
-```
-输出 JSONL：`{version, source, retrievedAt, seed, country, keyword, volume, kd, cpc, trafficShare, scope:'28d', session}`
-难点：Keyword Research 是另一段 hash 路由（不能照抄）；虚拟滚动长表要分批 + 硬上限；就绪判据认数据行不认 chip。
 
 ### 2. ~~`backlink/scripts/semrush-keyword-magic.mjs`~~ → **已实现，但没有新建脚本**
 
@@ -201,40 +190,10 @@ innerText、指标可以整格「不可用」——同一页里第 1 行有 8 �
 在页面里取 `document.visibilityState` 并数表格元素，而不是再读一次。
 完整实测和判据在 backlink Skill 的 SKILL.md 里，id 为 `hidden-tabs-do-not-hydrate` 的那条 law。
 
-### 旧草案（保留作对照）
-### 2. `backlink/scripts/semrush-keyword-magic.mjs`
-```
---seed "png to svg" --db us [--match broad|phrase|exact|related]
-[--limit 1000] [--min-volume 500] [--max-kd 39] [--out magic.jsonl]
-```
-输出 JSONL：`{keyword, db, volume, kd, cpc, competition, results, intent, cluster, seed}`
-难点：第一个「分页 + 侧边聚簇树」的 Semrush 表；`--db` 强制必填；默认读页面不点导出。
-**关键约束（2026-08-28 实测）**：这个页面的**搜索量/KD/CPC 三列返回「不可用」**，
-要点「刷新指标」才补齐，大概率消耗配额。所以脚本应当**先只取词表和聚簇**（便宜、可大量），
-把指标标成 `null` + `metricsPending: true`，需要时再走 `semrush-keyword.mjs` 按需补。
-**不要设计成一次拿全，那会在不知不觉中烧配额。**
-顺手把 `semrush-keyword.mjs` 的 `parseCompact` 抽到共享 lib，**别第三次复制**。
-
-### 3. `backlink/scripts/similarweb-audience.mjs`
-```
---domain example.com [--report geography|demographics] [--window 28d] [--out geo.json]
-```
-输出：`{version, domain, window, scope:'global', countries:[{code,name,visits,sharePercent}], top1Share, retrievedAt, noDataTextObserved}`
-难点：份额**由绝对值自己算**，别去页面捞百分比串；中文国家名 → ISO 映射，映射不上保留原文不要丢弃。
-**这个脚本的价值全在下游**——同时给 `revenue-site-audit.mjs` 加可选入参，让地理错配自动算出来而不是靠人记。
-
-### 4. `backlink/scripts/semrush-referring-domains.mjs`
+### Semrush Referring Domains 聚合
 ```
 --domain example.com [--limit 500] [--min-as 20] [--sort as|first-seen] [--out rd.jsonl]
 --domains-file competitors.txt --out all.jsonl    # 批量+续跑
 ```
 输出 JSONL：`{domain, referringDomain, authorityScore, backlinksCount, firstSeen, lastSeen, ipCountry}`
 批量再给 `--rollup` 汇总 `{referringDomain, hitCount, fromDomains}`——**正好就是外链 SOP 第 3 步的"按出现次数排序"，让脚本一步做完**。
-
-### 5. `backlink/scripts/similarweb-site-search.mjs`
-```
---domain example.com [--channel organic|paid] [--limit 100] [--window 28d] [--out search.json]
-```
-输出：`{domain, channel, window, organicVisits, keywords:[{keyword,trafficShare,position,volume}], top5SharePercent, coverageNote}`
-`top5SharePercent` 是这张表最有价值的派生量（隐含点击率校验就靠它），**必须显式给，别让调用方自己加**。
-与 `channels` 的自然搜索访问数互核，差异过大按 `similarweb_report_conflict` 报冲突，**不要二选一**。

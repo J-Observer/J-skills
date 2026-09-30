@@ -1,5 +1,23 @@
 # Cloudflare-first 全栈架构
 
+## 目录
+
+- [1. 默认项目脚手架](#1-默认项目脚手架)
+- [2. TanStack Start SSR 和 API](#2-tanstack-start-ssr-和-api)
+- [3. 按需求选择资源](#3-按需求选择资源)
+- [4. cf CLI、Wrangler 和 bindings 工作流](#4-cf-cliwrangler-和-bindings-工作流)
+- [5. D1 数据与迁移](#5-d1-数据与迁移)
+- [6. R2 对象与上传](#6-r2-对象与上传)
+- [7. KV、Queues、Workflows 与 Durable Objects](#7-kvqueuesworkflows-与-durable-objects)
+- [8. 环境隔离](#8-环境隔离)
+- [8.5 接入域名 · 8.6 品牌邮箱（已下沉）](#85-接入域名--86-品牌邮箱已下沉)
+- [8.7 Cloudflare 的 AI 爬虫阻止（边缘拦截与 robots.txt）](#87-cloudflare-的-ai-爬虫阻止边缘拦截与-robotstxt)
+- [8.8 基础安全：主动补齐，按用途取舍](#88-基础安全主动补齐按用途取舍)
+- [9. 部署（已下沉）](#9-部署已下沉)
+- [10. Live verification：真实线上验证](#10-live-verification真实线上验证)
+- [11. 已验证的部署陷阱(2026-08 回流)](#11-已验证的部署陷阱2026-08-回流)
+- [12. 匿名页面 HTML 边缘缓存（Cache API）](#12-匿名页面-html-边缘缓存cache-api)
+
 本文件定义 `rankup` 新网站的默认运行平台和资源选择方法。Cloudflare-first 的含义是：没有已批准的例外时，TanStack Start 的 SSR、API、数据、对象存储、异步任务和部署统一使用 Cloudflare；它不意味着预先创建全部 Cloudflare 产品。每项资源都必须由当前需求驱动，并在目标环境完成真实验证。
 
 ## 1. 默认项目脚手架

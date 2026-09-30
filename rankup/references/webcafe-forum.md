@@ -1,5 +1,20 @@
 # new.web.cafe（哥飞社区论坛）接口地图与取数 SOP
 
+## 目录
+
+- [一、最重要的一节：匿名不会 401，它会静默给你半份数据](#一最重要的一节匿名不会-401它会静默给你半份数据)
+- [二、正文为空有四个原因，只有一个是登录能解决的](#二正文为空有四个原因只有一个是登录能解决的)
+- [三、两套问答产品，别混：round ≠ bounty](#三两套问答产品别混round--bounty)
+- [四、bounty 还分两种 kind，内容放在不同数组里](#四bounty-还分两种-kind内容放在不同数组里)
+- [五、接口表（/ask/，有 JSON API）](#五接口表ask有-json-api)
+- [六、经验 / 帖子 / 教程：没有 API，解析服务端渲染](#六经验--帖子--教程没有-api解析服务端渲染)
+- [七、站内搜索：必须登录，而且没有 JSON 端点](#七站内搜索必须登录而且没有-json-端点)
+- [八、群聊归档：可直接搜索的知识库](#八群聊归档哥飞ai-的知识库可以直接搜)
+- [九、站内聊天：两套服务的区别](#九哥飞aichat-和-seowebcafechat-是两个东西)
+- [四、SOP：给一个 URL 就把内容取回来](#四sop给一个-url-就把内容取回来)
+- [五、给这个站写脚本时会踩的坑](#五给这个站写脚本时会踩的坑)
+- [六、只读红线](#六只读红线)
+
 哥飞的社区论坛，域名 `new.web.cafe`。**和 `seo.web.cafe` 是两个站、两套 API，不要混**：
 那边是工具箱（KD / SERP / 体检 / 估值，见 [`seo-webcafe.md`](seo-webcafe.md)），
 这边是内容社区（悬赏问答 / 经验 / 话题 / 教程）。
@@ -260,6 +275,8 @@ round 的付费墙只挡**一个字段** `answer_content`；其余元数据（�
 - 顶栏搜索框是 React 受控 input，`type` + 回车**打不动它**（值写进去了但 URL 不变）。
   直接拼 `/search?q=` 导航。
 
+官方 Skill 暂无可证明的等价能力（依据：官方 `gefei/SKILL.md`「哥飞说过什么：知识库」只说明 `knowledge_ask` 返回相关段落与出处、`knowledge_search` 返回标题/日期/链接/短节选、`knowledge_read` 按文档读取；`gefei/scripts/webcafe.mjs` 动态取接口合同，未给原始群聊或论坛全集字段）；保留本地 `webcafe-forum.mjs`。已知差异：本地读取论坛原文、悬赏 `collect.board[]` 投票榜及群聊 `message_list[]`（消息 ID、发送者、时间、群名），官方说明未承诺相同语料覆盖、原始字段或分页范围，且知识库接口扣积分。
+
 ## 八、群聊归档：哥飞.ai 的知识库，可以直接搜
 
 `/messages` 是「哥飞的朋友们」**14 个微信群的完整聊天记录归档**。
@@ -289,8 +306,8 @@ POST /api/community/message/search-message
 | 入口 | 是什么 | 我们的脚本 |
 |---|---|---|
 | `new.web.cafe/chat` | 哥飞.ai，语料 = 群聊归档 + 站内教程 | `webcafe-forum.mjs ask` |
-| `seo.web.cafe/chat/` | 哥飞 SEO Agent，会调用工具箱查真实数据 | `gefei-ask.mjs` |
-| `seo.web.cafe/` | SEO 工具箱 | `seo-webcafe.mjs` |
+| 站内聊天入口 | 旧站内 SEO Agent；Rankup 改用官方 `gefei` Skill 的 `knowledge_ask` / `knowledge_search` / `knowledge_read` | [`seo-webcafe.md`](seo-webcafe.md) |
+| 工具箱首页 | SEO 工具箱 | [`seo-webcafe.md`](seo-webcafe.md) 指向官方 Skill |
 
 | 端点 | 方法 | 说明 |
 |---|---|---|

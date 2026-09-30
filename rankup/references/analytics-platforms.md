@@ -1,5 +1,16 @@
 # 数据分析平台接入：GA4 · Clarity · Firebase · Ahrefs
 
+## 目录
+
+- [先看这张顺序表](#先看这张顺序表)
+- [0. GA4（域名无关，可在预览域先接）](#0-ga4域名无关可在预览域先接)
+- [CF WA（Cloudflare Web Analytics，域名无关，可在预览域先接）](#cf-wacloudflare-web-analytics域名无关可在预览域先接)
+- [1. Microsoft Clarity](#1-microsoft-clarity)
+- [2. Firebase](#2-firebase)
+- [3. Ahrefs](#3-ahrefs)
+- [各站的实际取值放哪里（不要写回本文档）](#各站的实际取值放哪里不要写回本文档)
+- [新站接入清单](#新站接入清单)
+
 段 4 末到段 5 的子环节。与 [`search-platforms.md`](search-platforms.md) 平行：
 搜索平台管「搜索引擎怎么看你」，分析平台管「用户怎么用你、外链怎么指向你」。
 同样是**每建一个站都要原样做一遍**，本文档记录操作步骤和自动化脚本。

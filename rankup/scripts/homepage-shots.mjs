@@ -210,6 +210,7 @@ function candidates(requestedUrl, meta) {
     .map(({ href }) => href);
   urls.push(...["/about", "/product", "/features", "/pricing", "/landing"].map((p) => origin + p));
   if (!host.startsWith("www.")) urls.push(`https://www.${host}/`);
+  // 公共研究目标适配，持续支持则保留。
   if (host === "flowith.io") urls.unshift("https://flowith.io/home", "https://flowith.io/pricing/");
   if (host === "genspark.ai") urls.unshift("https://www.genspark.ai/about", "https://www.genspark.ai/pricing");
   return [...new Set(urls)].filter((candidate) => {

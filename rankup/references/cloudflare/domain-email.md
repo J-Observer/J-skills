@@ -82,7 +82,7 @@ Spaceship 注册的域名可用官方 API 操作，免去逐站手改 NS：
 `scripts/spaceship-api.mjs set-ns <domain> <Cloudflare NS1> <Cloudflare NS2>` 整体替换并跳过已一致的配置。
 先按上面步骤关闭旧 DNSSEC、确认注册局 DS 已消失，再执行 `set-ns`。
 脚本从 macOS 钥匙串读取 `rankup.spaceship.api-key` 与 `rankup.spaceship.api-secret`
-（账户名 `kcsx`），不会把凭据放到命令参数、项目文件或日志里。
+（账户默认取当前登录用户名；需要时用环境变量 `SPACESHIP_KEYCHAIN_ACCOUNT` 覆盖为现有钥匙串条目的账户名），不会把凭据放到命令参数、项目文件或日志里。
 通用官方端点可用 `scripts/spaceship-api.mjs request GET /domains/<domain>`；
 写入请求的 JSON 从标准输入读取，其他操作的路径与参数按[Spaceship 官方 API](https://docs.spaceship.dev/)核对。
 Spaceship 另有[官方远程 MCP](https://www.spaceship.com/en-GB/knowledgebase/spaceship-mcp/)（`https://mcp.spaceship.com/mcp`，OAuth 授权，含 `domain_set_nameservers`）；目前官方仅验证 Claude 客户端，其他 MCP 客户端需实际连接验收。

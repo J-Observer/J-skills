@@ -68,7 +68,7 @@
 
 ## 五、维护 Skill 源码（rankup 本身）
 
-1. **可复用操作必须落成脚本**（硬闸门）：会再做一次、换个站或词或日期就要重跑、驱动登录态浏览器超过约 5 步、同一串命令本轮手敲 2 次以上，满足任一条就在本轮存成脚本。动手前先查本 Skill `scripts/`、backlink `scripts/`、opencli adapter 与跨项目登记表（`registry.mjs list`），有就用，不好用就修；没有就把第一次跑通的链路当场写成参数化脚本：通用的放本 Skill `scripts/<动词-对象>.mjs`，头部注释写用途、参数、登录态依赖、已知坑、验证日期；只属于某个项目的放 `<project>/.rankup/scripts/` 并登记进 `INDEX.md`。写完用真实参数跑一次，没跑通不算沉淀。登录态、property ID、账号配置只作参数或项目侧配置。
+1. **可复用操作落成脚本**：在授权修改范围内，把确定会重复的链路本轮参数化并跑通，省掉下轮重写；只读或禁止改脚本的任务仅列候选。具体判定：会再做一次、换个站或词或日期就要重跑、驱动登录态浏览器超过约 5 步、同一串命令本轮手敲 2 次以上，满足任一条就在本轮存成脚本。动手前先查本 Skill `scripts/`、backlink `scripts/`、opencli adapter 与跨项目登记表（`registry.mjs list`），有就用，不好用就修；没有就把第一次跑通的链路当场写成参数化脚本：通用的放本 Skill `scripts/<动词-对象>.mjs`，头部注释写用途、参数、登录态依赖、已知坑、验证日期；只属于某个项目的放 `<project>/.rankup/scripts/` 并登记进 `INDEX.md`。写完用真实参数跑一次，没跑通不算沉淀。登录态、property ID、账号配置只作参数或项目侧配置。
 2. **经验回流**（「把这个经验写进 rankup」）：先按 [`experiences/INDEX.md`](experiences/INDEX.md) 定证据等级与归属层，再按 [`evolution.md`](evolution.md) 晋升门判进 Skill 还是留项目；进 Skill 的写进**对应的现有文件**，不带站名与数字；同一条已有就更新旧条目的日期与内容，不另起一条；改完跑 `node scripts/validate-rankup.mjs`，直接提 main（多会话共用工作树时只提 rankup 相关文件，不用 stash / reset）。面板与网页操作口径的修正先过 [`discipline.md`](discipline.md) 十五的五层分诊。
 3. **改术语、路径、阈值、脚本名**：先 `ref-scan.mjs` 全量扫描（Skill 全目录、仓库 README、`skill.json`、`validate-rankup.mjs` 预期），逐处改，再扫一次。
 4. **拆分或移动文档**：写计划 JSON，跑 `node scripts/maintain/split-doc.mjs <plan.json>`（自动修相对链接与入站锚点），再跑 `node scripts/maintain/doc-lint.mjs` 到断链为 0；validate 断言与测试引用随内容迁移，不删断言。
@@ -76,9 +76,11 @@
 6. **发版**：`node scripts/validate-rankup.mjs` 与相关 `node --test` 通过；版本号 patch 文字与小经验、minor 向后兼容的新工作流、major 目录协议或核心行为破坏性变化；同时改 `SKILL.md` 的 `metadata.version`、`skill.json`、validate 预期与仓库 README。
 7. **Skill 自己的 `.rankup/`**（git 忽略）只放脚本试跑证据与 `skill-state.json`，`INDEX.md` 只写当前状态；`evidence/` 每个脚本只留最新一次试跑，其余先确认报告与 references 里没有目录名引用，再移到废纸篓（可恢复）；`node --test` 也会往这里写试跑证据，跑完测试顺手清。
 
+`evals/trigger-evals.json` 与 `evals/evals.json` 分别定义触发与行为评测；需要时按 `skill-creator` 的 `run_loop` / 行为对比流程运行。当前两套评测均未运行过，静态校验不代表行为效果已验证。
+
 ## 六、`/rankup doctor`：整理 `.rankup/` 的显式入口
 
-**触发**：「/rankup doctor」「doctor」「整理一下项目记录」「整理一下 rankup」「帮我把这个项目的 .rankup 重新整理」「.rankup 太乱了」。
+**触发**：在整理项目 `.rankup/` 记录的语境下，「/rankup doctor」「doctor」「整理一下项目记录」「整理一下 rankup」「帮我把这个项目的 .rankup 重新整理」「.rankup 太乱了」。
 它就是本章的显式入口：用在一个用了很久、产出很多文档的项目上，一次性把整个 `.rankup/` 与相关记录整理到「只留长远规划和当前进展」。
 
 | 命令 | 回答什么 | 动什么 |

@@ -1,0 +1,52 @@
+[
+  {
+    "query": "我们昨天筛了两个图像工具方向，今天继续。当前项目有.rankup，先核对交接和否决记录，再告诉我先做哪步。",
+    "should_trigger": true,
+    "expected_boundary": "接力/check；依据现有证据推进"
+  },
+  {
+    "query": "想做iPad买断App，没有网站SEO计划。帮我验证商店需求和付费信号，把立项与止损条件写清楚。",
+    "should_trigger": true,
+    "expected_boundary": "原生App分支；网页指标N/A"
+  },
+  {
+    "query": "这批德语工具词量看着不错，帮我核SERP、本地竞品和变现，再选能做的那几个，不拿美国量替代。",
+    "should_trigger": true,
+    "expected_boundary": "关键词/P2与国家口径"
+  },
+  {
+    "query": "能帮我对比过去12个月两个游戏词的Google Trends吗？暂时不建站，想分清热度走势和绝对搜索量。",
+    "should_trigger": true,
+    "expected_boundary": "独立Trends；不跑全生命周期"
+  },
+  {
+    "query": "这个老项目的.rankup太乱，整理过期结论和重复交接；网站代码和线上配置都别动。",
+    "should_trigger": true,
+    "expected_boundary": "doctor与明确编辑范围"
+  },
+  {
+    "query": "docs下面的路线图组件键盘焦点有bug，只修这个React控件；目录没有.rankup，不做项目规划或SEO。",
+    "should_trigger": false,
+    "expected_boundary": "通用开发；“路线图”是控件名"
+  },
+  {
+    "query": "写一篇中文SEO趋势博客，我已经给了完整材料，今天只写稿，不做选词、项目计划或站点体检。",
+    "should_trigger": false,
+    "expected_boundary": "write；SEO主题不等于rankup任务"
+  },
+  {
+    "query": "按我给的截图调整首页视觉，保留文案和结构；项目没有.rankup，不要做市场分析或上线检查。",
+    "should_trigger": false,
+    "expected_boundary": "frontend-design；纯视觉"
+  },
+  {
+    "query": "opencli doctor报扩展连接不上，帮我恢复已登录Chrome的桥接；这不是整理项目记录。",
+    "should_trigger": false,
+    "expected_boundary": "opencli；doctor近似负例"
+  },
+  {
+    "query": "Cloudflare部署报binding缺失，只排查这个配置错误。项目有.rankup，但不要改计划或做SEO审查。",
+    "should_trigger": false,
+    "expected_boundary": "专项排错；遵守显式范围，不能全量触发"
+  }
+]

@@ -183,5 +183,5 @@ node rankup/scripts/demand/keyword-value.mjs --in <关键词 JSON/JSONL>
 | 看到被社区折叠/低分的回答就跳过 | 该帖 17 条被折叠的回答里有本章最可执行的几条方法 | 折叠是投票结果，不是质量判定；自己读一遍再决定 |
 
 关于「怎么把挖到的方向收敛成可做的词」，见 [`../trends.md`](../trends.md) 与
-[`../seo-webcafe.md`](../seo-webcafe.md)；关于「这个词难不难做」，用
-`scripts/seo-webcafe.mjs kd`。
+[`../seo-webcafe.md`](../seo-webcafe.md)；关于「这个词难不难做」，用官方
+`gefei-keywords` Skill 的 `keyword_difficulty`。

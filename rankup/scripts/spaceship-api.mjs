@@ -2,11 +2,12 @@
 // Spaceship official API. Credentials live in the macOS Keychain, never in Git or argv.
 import { execFileSync, spawnSync } from "node:child_process"
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { tmpdir, userInfo } from "node:os"
 import { join } from "node:path"
 
 const base = "https://spaceship.dev/api/v1"
-const keychain = (service) => execFileSync("security", ["find-generic-password", "-a", "kcsx", "-s", service, "-w"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim()
+const account = process.env.SPACESHIP_KEYCHAIN_ACCOUNT || userInfo().username
+const keychain = (service) => execFileSync("security", ["find-generic-password", "-a", account, "-s", service, "-w"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim()
 const key = keychain("rankup.spaceship.api-key")
 const secret = keychain("rankup.spaceship.api-secret")
 const config = `header = "X-API-Key: ${key}"\nheader = "X-API-Secret: ${secret}"\nheader = "Content-Type: application/json"\n`

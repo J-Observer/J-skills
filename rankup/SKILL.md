@@ -1,8 +1,8 @@
 ---
 name: rankup
-description: 独立开发者的项目全生命周期管理：需求验证、选词、选品立项、建站或做原生 App、上线接入、SEO/GEO 获客、支付变现、监控迭代，以及跨会话接力与项目记录维护。以下情况使用：用户提到 rankup 或 /rankup（含 check、review、init、doctor）；当前目录或工作区有 .rankup/，或要读取、续做、整理任何形态的项目计划、路线图、待办、PRD、交接或进度文档；在有 .rankup/ 或项目计划、交接文档的上下文里说「继续」「接着做」「上次做到哪」「下一步做什么」；「整理一下项目记录」「doctor」「/rankup doctor」；做项目规划、维护与迭代；以及需求验证、关键词调研与 SERP、Google Trends 对比、AI 搜索推荐（GEO）、网站体检、sitemap/IndexNow/Search Console、流量、建站、上线、支付（Stripe、Anyway、PayPal）、变现与增长。SEO/GEO 是主要手段，不是适用边界，非 SEO 的项目计划同样适用。纯文案（含 SEO 趋势博客等主题写作）、纯视觉设计、与项目管理无关的通用开发及基础设施排错（含 Cloudflare 部署报错排查）不触发；目录内有 .rankup/ 时仅叠加项目记录维护义务；外链执行交 backlink，浏览器驱动交 opencli，配图生成交 imagegen，多模型派单交 agent-fleet。
+description: 独立开发者的项目全生命周期管理：需求验证、选词选品、建站或做原生 App、上线接入、SEO/GEO 获客、支付变现、监控迭代与跨会话接力。以下情况使用：用户提到 rankup 或 /rankup（check、review、init；doctor 仅指整理项目 .rankup 记录）；当前目录或工作区有 .rankup/，或要读取、续做、整理项目计划、路线图、待办、PRD、交接或进度文档；在这些项目记录上下文里说「继续」「接着做」「上次做到哪」「下一步做什么」；以及项目规划、需求验证、关键词调研与 SERP、独立 Google Trends 热度查询或对比、AI 搜索推荐（GEO）、网站体检、sitemap/IndexNow/Search Console、流量、建站、上线、支付（Stripe、Anyway、PayPal）、变现与增长。SEO/GEO 是主要手段，不是适用边界，非 SEO 的项目计划与 macOS、iOS、iPad 原生 App 同样适用。纯文案（含 SEO 趋势博客等主题写作）、纯视觉设计、与项目管理无关的通用开发及基础设施排错（含 Cloudflare 部署报错、普通 CLI doctor）不触发；目录内有 .rankup/ 时仅叠加项目记录维护义务；外链执行交 backlink，浏览器驱动交 opencli，配图生成交 imagegen，多模型派单交 agent-fleet。
 metadata:
-  version: "3.31.0"
+  version: "3.32.0"
 ---
 
 # Rankup
@@ -14,13 +14,13 @@ SEO 与 GEO 是最主要的获客与验证手段，**不是适用边界**：项�
 
 ## 强制流程（先读这张表，再做任何事）
 
-命中哪一行就按哪一行做；「必须先读」的文件要真的打开读，不凭印象。每个任务先看表首的开工、里程碑、收尾三行，再选任务行；纯只读与轻量任务按例外执行。
+项目任务按下表读取相关入口与接力，再选择任务分支，避免依据过期印象执行；纯只读与轻量任务按对应例外执行。
 
 | 触发条件 | 必须先读 | 必须做 | 完成标志 |
 |---|---|---|---|
-| **开工**：项目任务（含工作区根） | [接力协议](references/project-memory.md#接力协议任务随时可能中断新会话必须立即接上)、项目接力记录 | 读接力、用户全局层与相关否决；按启动协议对账；读完顺手清一遍。**有状态变化前先写接力**；纯只读问答免写；无 `.rankup/` 用项目根 `HANDOFF.md` | 接力可续做；回复一行说明清理结果 |
-| **里程碑**：一个页面上线、一批词调研完、一次部署、做出一个决定、派出或收回后台任务 | 接力协议 | 立刻覆盖「接力」；后台任务写任务名与结果文件路径 | 接力反映最新状态 |
-| **收尾**：每个任务结束前（含放弃、叫停、等用户决定） | [维护「一」「二」](references/maintenance.md#二收尾维护五步顺序固定) | 有沉淀走五步（扫描用 `scripts/maintain/ref-scan.mjs`）；**小修小改、无可沉淀**走轻量路径，回复末尾写「维护：无可沉淀（理由）」即可，无需完整章节 | 回复有「维护：…」；有沉淀时报告列脚本 |
+| **开工**：项目任务（含工作区根） | [接力协议](references/project-memory.md#接力协议任务随时可能中断新会话必须立即接上)、项目接力记录 | 按接力与下文启动协议恢复、对账和记录状态 | 接力可续做 |
+| **里程碑**：产物、决定或后台任务状态变化 | 同上接力协议 | 覆盖当前接力与产物指针 | 接力反映最新状态 |
+| **收尾**：完成、放弃、叫停或等用户决定 | [维护「一」「二」](references/maintenance.md#二收尾维护五步顺序固定) | 按轻量路径或五步维护收口；扫描用 `scripts/maintain/ref-scan.mjs` | 回复有维护摘要与证据 |
 | 有项目记录上下文的「继续」「接着做」「上次做到哪」「我们开始执行这个项目的计划」，或读计划 / 交接 / 进度文档 | 同上「新会话怎么接」 | 定位项目 → 读接力（无 `.rankup/` 用 `HANDOFF.md`）→ 核对后台产物与改动 → 直接执行下一步 | 下一步已有执行证据 |
 | 选词、调研、找需求（**已有主词**） | [`playbooks/entry.md`](references/playbooks/entry.md) → [`research.md`](references/playbooks/research.md) | 花配额前按入口四步执行；方向未落主词先走 [`selection.md`](references/playbooks/selection.md)，无方向先走 [P1](references/playbooks/research/p1-discovery.md)，主词出现后回本行 | 入口卡写进 `.rankup/research/<词根>-<日期>.md` |
 | AI 探针、「ChatGPT 会不会推荐」、付费工具 / 游戏 / 平台类候选 | [`seo-geo.md`](references/seo-geo.md) 步骤 1–4 | 通道隔离；只报出现率与区间；需求信号与推荐位难度信号分开记；取不到写「未知」 | 汇总写入口卡③，第 4 节只留指针 |
@@ -31,9 +31,11 @@ SEO 与 GEO 是最主要的获客与验证手段，**不是适用边界**：项�
 | 外链 | `backlink` Skill、[`lifecycle/stage-6-backlinks.md`](references/lifecycle/stage-6-backlinks.md) | Rankup 只判时机与数量；提交前把候选清单给用户圈定 | 台账有 submitted → public → indexed 证据 |
 | 变现、支付、定价 | [`monetization.md`](references/monetization.md)、[`lifecycle/stage-7-monetize.md`](references/lifecycle/stage-7-monetize.md) | 按分发方式选主通道与备份，目标环境端到端验证 | 验证记录进 `.rankup/integrations.md` |
 | 维护 Skill 本身：改 rankup 源码，或「把这个经验写进 rankup」 | [`maintenance.md`「五」](references/maintenance.md#五维护-skill-源码rankup-本身)、[`evolution.md`](references/evolution.md) | 全量扫描后改；拆移文档用 `scripts/maintain/split-doc.mjs`；`scripts/maintain/doc-lint.mjs` 断链为 0；validate 与相关测试通过；按规则升版本 | `node scripts/validate-rankup.mjs` 通过 |
-| 「/rankup doctor」「doctor」「整理一下项目记录」「.rankup 太乱了」「整理一下 rankup」「把这个项目的 .rankup 重新整理」 | [`maintenance.md`「六」](references/maintenance.md#六rankup-doctor整理-rankup-的显式入口)、[`project-memory.md` 目录规范](references/project-memory.md#目录规范常驻文件保留什么去哪里多大) | 免版本更新与线上对账；`rankup-doctor.mjs` 只读诊断 → **经验分拣与回流**（按四层归属逐条判去向）→ 分三类出计划 → 执行 A、B → 回读校验；C 类与别的 Skill 的经验只列给用户 | 整理报告：改了、删了（从哪找回）、留了、经验分拣表、待用户决定 |
+| 「/rankup doctor」「doctor」（整理项目 `.rankup/` 记录）、「整理一下项目记录」「.rankup 太乱了」「整理一下 rankup」「把这个项目的 .rankup 重新整理」 | [`maintenance.md`「六」](references/maintenance.md#六rankup-doctor整理-rankup-的显式入口)、[`project-memory.md` 目录规范](references/project-memory.md#目录规范常驻文件保留什么去哪里多大) | 免版本更新与线上对账；`rankup-doctor.mjs` 只读诊断 → **经验分拣与回流**（按四层归属逐条判去向）→ 分三类出计划 → 执行 A、B → 回读校验；C 类与别的 Skill 的经验只列给用户 | 整理报告：改了、删了（从哪找回）、留了、经验分拣表、待用户决定 |
 
 ## 一句话落到哪
+
+本表是已进入 rankup 项目流程后的路由，不扩大触发范围。
 
 用户不会说「跑一下 seo-audit.mjs」。命中就照入口走，不要现编步骤；越模糊越不盲跑全套：有明确对象先选对应 playbook，已有项目没有明确动作先 `rankup check`，连项目与方向都没有时只问一句有没有想好的词或方向。
 
@@ -49,7 +51,7 @@ SEO 与 GEO 是最主要的获客与验证手段，**不是适用边界**：项�
 | 「筛这批 AITDK 报告」「只看竞品异常」 | 1 | [`seo-box.md`](references/seo-box.md#aitdk-研究报告离线分流)：`aitdk-triage.mjs` 离线分流 |
 | 「XX 和 YY 哪个更火」「今天美国在搜什么」「这个词有没有量」 | 1–2 | [`trends.md`](references/trends.md)（[gpts 基线判读](references/trends.md#gpts-基线判读到底怎么才算有搜索量唯一判据源)），`scripts/gt.py` |
 | 「这个词在 AI 里有多大需求」「ChatGPT 会不会推荐我们」「竞品为什么被 AI 推荐」 | 1 / 4 复测 | [`seo-geo.md`](references/seo-geo.md)；面板 AI 侧数据见 [`provider-capabilities.md`](references/provider-capabilities.md)「三·五」 |
-| 「有什么游戏站能做」「小游戏机会每日采集 / 决策」 | 1–2 | [`game-sites.md`](references/game-sites.md)（内部模块已下线，先读其顶部说明） |
+| 「有什么游戏站能做」「小游戏机会采集 / 决策」 | 1–2 | [`game-sites.md`](references/game-sites.md)：平台监控、sitemap 差分、新标题筛选；旧每日决策协议仅部分覆盖 |
 | 「做不做」「做哪个语种」「要不要多语言」「做成工具还是内容站」 | 2 | [`lifecycle/stage-2-positioning.md`](references/lifecycle/stage-2-positioning.md) |
 | 「我们做个网站吧」「帮我搭起来」 | 2→3 | 先过段 2 立项，再段 3 初始化；手上没有词树先回段 1 |
 | 「做个功能」「加个 X」 / 开发中「按 rankup 规范来」 | 3–4 | [`lifecycle/stage-3-build.md`](references/lifecycle/stage-3-build.md)：UI 一律来自 shadcn 组件库，多功能工具站导航先读[侧栏统一规范](references/design-references.md#多功能工具站侧栏统一规范)；做完段 4 全套体检 |
@@ -71,7 +73,7 @@ SEO 与 GEO 是最主要的获客与验证手段，**不是适用边界**：项�
 | 「现在该做什么」「一步步来」「到哪一步了」「让流量涨一点」「优化一下我的网站」「今天弄下 SEO」 | check | `rankup check`（下文「命令」）；默认打磨转化链路，见[段 7 段首](references/lifecycle/stage-7-monetize.md) |
 | 「review 一下我的站」「查漏补缺」「这项目脱轨了」 | review | `rankup review` |
 | 「把这个老项目接进来」「rankup init」 | init | `rankup init` → [`project-memory.md`](references/project-memory.md) |
-| 「/rankup doctor」「doctor」「整理一下项目记录」「.rankup 太乱了」「整理一下 rankup」 | doctor | `rankup doctor` → [`maintenance.md`](references/maintenance.md)「六」 |
+| 「/rankup doctor」「doctor」（整理项目 `.rankup/` 记录）、「整理一下项目记录」「.rankup 太乱了」「整理一下 rankup」 | doctor | `rankup doctor` → [`maintenance.md`](references/maintenance.md)「六」 |
 | 「群里怎么说的」「哥飞说过什么」 | 经验 | 官方 `gefei` Skill 知识库工作流；公开论坛 [`webcafe-forum.md`](references/webcafe-forum.md) |
 | 「把这个经验写进 rankup」 | 维护 | [`maintenance.md`](references/maintenance.md)「五」第 2 条 |
 | 「抓一下后台数据」「Semrush 能查这个吗」 | 取数 | 哥飞工具先加载官方 `gefei`；其他面板看 [`provider-capabilities.md`](references/provider-capabilities.md) |
@@ -79,71 +81,60 @@ SEO 与 GEO 是最主要的获客与验证手段，**不是适用边界**：项�
 
 ## 七段生命周期
 
-每段四块：触发、入口、关键红线、闸门。硬规则全文（含「为什么」）在各段文件，步骤 check 与操作也在那里；[`lifecycle.md`](references/lifecycle.md) 是总述、旧编号映射与对账。**闸门判据只在 [`references/checklists.md`](references/checklists.md)。**
+每段保留适用场景、入口、原则摘要与闸门指针。硬规则全文（含「为什么」）在各段文件，步骤 check 与操作也在那里；[`lifecycle.md`](references/lifecycle.md) 是总述、旧编号映射与对账。**闸门判据只在 [`references/checklists.md`](references/checklists.md)。**
 
 ### 1 调研 · [全文](references/lifecycle/stage-1-research.md)
 
 - **触发**：一批数据、一个词、一个帖子、一个域名，问能不能做；或只有模糊方向问值不值得做（先进 `selection.md`）。
 - **入口**：词级先过[入口环节](references/playbooks/entry.md) → [`research.md`](references/playbooks/research.md)（P0 分流：没东西 P1、一个词 P2、一个域名 P4）；判读 [`demand-discovery.md`](references/experiences/demand-discovery.md)；验收单 `research-checklist.md`。常用：`scripts/demand/suggest.mjs`、官方 `gefei-keywords` / `gefei-competitor`、`backlink/scripts/semrush-keyword.mjs`、面板取证 `scripts/rankup-cli.mjs`（`npx @yan-labs/rankup audit similarweb`）、`scripts/select/leading-indicator.mjs` 与 `scripts/select/gate-runner.mjs`、`scripts/demand/ai-probe.mjs`。
-- **关键红线**：Trends 必须同框 `gpts` 基线判量（[判读表](references/trends.md#gpts-基线判读到底怎么才算有搜索量唯一判据源)，【经验·起步阈值】）；「有人做」只作辅助；任何词都是词根，扩树并跑完五个取数动作；判「量太少」前必须站找词加词找站反查；社区验证必走；非英语词过三关；亲眼看 SERP 核意图；空结果先看 manifest；开跑前 grep `rejected.md`；结论折成钱；付费工具、游戏、平台类必跑 AI 探针；KD 只排复核顺序，不作硬闸。
+- **原则与范围**：以同框基线判读 Trends、结合竞品反查复核低量，避免把相对热度或单一词形当绝对需求；适用于词级需求判断，详见[调研规则](references/lifecycle/stage-1-research.md)与[基线判读表](references/trends.md#gpts-基线判读到底怎么才算有搜索量唯一判据源)。
 - **闸门**：`checklists.md` 段 1。
 
 ### 2 立项与定位 · [全文](references/lifecycle/stage-2-positioning.md)
 
 - **触发**：方向已有，问做不做、做哪个语种、做成什么形态。入口另读 [`zero-to-one.md`](references/experiences/zero-to-one.md)、`webcafe-topics.md` 七。
-- **关键红线**：语种跟着流量走；量大竞争小的语种只做单语站；意图与使用环境决定形态（内容站 / 网站与 SaaS / macOS、iOS、iPad App）；写清「1」的定义与放弃条件。
+- **原则与范围**：定位、语种与产品形态按本段规则裁决，避免把市场读数直接当立项；见[段 2](references/lifecycle/stage-2-positioning.md)。
 - **闸门**：`checklists.md` 段 2。
 
 ### 3 建站与开发 · [全文](references/lifecycle/stage-3-build.md)
 
 - **适用**：shadcn、TanStack、Cloudflare 与段 4–6 的网页规则只约束 Web 面；macOS 按 `build-macos-apps` 专项 Skill，iOS/iPad 按对应原生工具，商店分发读 `monetization.md` 五；只有 App 时网页项标 N/A。
 - **入口**：[`cloudflare-stack.md`](references/cloudflare-stack.md)（脚手架命令、资源选择）；三方库优先见 [`integrations.md`](references/integrations.md)。
-- **关键红线**：一律用 shadcn monorepo 初始化命令；GitHub 私有仓；UI 只准来自 shadcn 组件库，不手写基础控件；域名一处配置留位；任何页面不得有占位链接、文案、图片；**品牌图标在开发当天做齐**（段 3 Day-1 D15）；视觉素材用 `/imagegen` 真实生成；匿名页 HTML 走边缘缓存；Day-1 默认清单当天过完。
+- **原则与范围**：Web 面复用现有可访问组件与 shadcn 初始化流程，保留键盘、焦点与 ARIA 能力；基础控件边界见[纪律十六](references/discipline.md#十六组件库红线段-3--段-4ui-只准来自组件库不许自己造控件)。**品牌图标在开发当天做齐**，Day-1 清单见[段 3](references/lifecycle/stage-3-build.md)。
 - **闸门**：`checklists.md` 段 3。
 
 ### 4 上线前 SEO / GEO · [全文](references/lifecycle/stage-4-prelaunch.md)
 
 - **入口**：判读 [`seo-box.md`](references/seo-box.md)、[`seo-webcafe.md`](references/seo-webcafe.md)、[`seo-ai-search.md`](references/seo-ai-search.md)。常用：`scripts/seo-audit.mjs --sitemap`、`scripts/pagespeed.mjs collect --strategy both`、`scripts/is-agentic.mjs scan --save`、`scripts/ai-crawler-access.mjs --url <正式域名>`、`scripts/ua-parity.mjs <url>`。
-- **关键红线**：预览域 noindex；一词一页；无关区块客户端加载（想被 AI 引用的价格表除外）；占位专项复查；**图标专项未通过不许上线**；每页独立 OG 且有图；正文过去 AI 味；`llms.txt` 保留为闸门但不当 Google 收益依据；AITDK 全站报告所有标红标黄与未满分项必修；每次改动全套重跑；PageSpeed、CWV 与 TTFB 达标（判据见 `checklists.md` 段 4 闸门 6）。
+- **原则与范围**：本段每次改动后按[段 4 全套验收](references/lifecycle/stage-4-prelaunch.md)重跑，因为 TDK、布局与性能会相互影响；适用范围与全部闸门按原规则执行。**图标专项未通过不许上线**。
 - **上线前与发布后复核入口**：复用 `checklists.md` D1 / D4 / D12 / D13 / P3（索引水合、Schema 语义、网格与键盘、SSR 可达性、分析去重与真实上报）；操作见段 4 文件与 `analytics-platforms.md`。
 - **闸门**：`checklists.md` 段 4。
 
 ### 5 上线与接入 · [全文](references/lifecycle/stage-5-launch.md)
 
 - **入口**：[`search-platforms.md`](references/search-platforms.md)、[`analytics-platforms.md`](references/analytics-platforms.md)、域名接入 [`cloudflare/domain-email.md`](references/cloudflare/domain-email.md)。常用：`scripts/site-onboard.mjs`、`scripts/gsc-domain-verify.mjs`、`scripts/bing-import-from-gsc.mjs`、`scripts/cf-analytics-setup.mjs`、`scripts/indexnow-submit.mjs`、`scripts/webmaster-sitemap.mjs`、`scripts/yandex-setup.mjs`、`scripts/ahrefs-site-audit.mjs`、`scripts/analytics-beacon-check.mjs`。
-- **关键红线**：部署走 Cloudflare 原生 Git 集成；批 A（域名无关）→ 域名定稿 → 部署验证即放开索引 → 批 B（域名相关）→ 提交 sitemap；域名先过黑历史闸门；接入一个不漏；IndexNow 排在站长工具前；绑定后补基础安全；**所有 AI 爬虫必须放行**并逐 UA 实测；接入必须线上实测；GA4、Clarity 延迟到首次交互或 6 秒兜底加载。
+- **原则与范围**：按[段 5](references/lifecycle/stage-5-launch.md)完成部署、索引与接入，并以真实线上证据收口，避免用勾选代替生效状态。
 - **闸门**：`checklists.md` 段 5。
 
 ### 6 外链 · [全文](references/lifecycle/stage-6-backlinks.md)
 
 - **入口**：`backlink` Skill（未装：`npx skills add yan-labs/yan-skills --skill backlink -g -y`）；判据 `webcafe-topics.md` 五；发布平台 `product-launch.md`。
-- **关键红线**：Rankup 只判什么时候发、发多少；技术上可提交不等于这一轮要提交，批量投递前由用户圈定；新词上线 2–4 周内不改页面；302 / 307 不传权重；每条外链进台账并有证据阶梯。
+- **原则与范围**：外链执行、范围圈定与证据台账见[段 6](references/lifecycle/stage-6-backlinks.md)，技术可提交不等于本轮已授权投递。
 - **闸门**：`checklists.md` 段 6。
 
 ### 7 变现与监控 · [全文](references/lifecycle/stage-7-monetize.md)
 
 - **入口**：[`monetization.md`](references/monetization.md)、[`conversion.md`](references/experiences/conversion.md)、[`evolution.md`](references/evolution.md)；掉量排查 `webcafe-experiences-2.md` 十七～十九；常用 `scripts/is-agentic.mjs diff`、`scripts/review.mjs`。
-- **关键红线**：Web 直销支付有主通道与备份（Stripe 直连、Anyway 与 PayPal 按支付责任和目标市场选），App 商店按当地 IAP 规则；AdSense 先传 `ads.txt`；动页面前先查上游意图；流量掉了先查 GSC 与 TDK、canonical；退款全退；监控读数触发回段 1 开下一棵树。
+- **原则与范围**：支付、变现、监控与回流见[段 7](references/lifecycle/stage-7-monetize.md)，按目标分发方式和真实业务证据判断。
 - **闸门**：`checklists.md` 段 7。
 
 ## 红线速查
 
-| 红线 | 细则在 [`discipline.md`](references/discipline.md) |
-|---|---|
-| 全权委托：不请示、不问「要不要继续」、连锁任务做到底 | 一 |
-| 先查脚本清单，禁止现写等价实现或手点界面；脚本坏了修脚本 | 二 |
-| 花配额前先看档位，以脚本打印为准 | 三 |
-| 一切浏览器动作（含测试自己的站、截图、公开 SERP）一律 OpenCLI 驱动用户的浏览器；有 API/CLI 且有凭据时一律走 API/CLI | 五 |
-| 配额站（Semrush / Similarweb / Ahrefs）不传 `--session`；会话名不用 `$$` | 五、六 |
-| 任何页面不得有占位链接 / 文案 / 图片；UI 只准来自组件库 | 十四、十六 |
-| 网站不得禁用任何 AI 爬虫；新 zone 关闭 AI 拦截并逐 UA 实测 | [`cloudflare/domain-email.md`](references/cloudflare/domain-email.md) §8.5、[`cloudflare-stack.md`](references/cloudflare-stack.md) §8.8、`checklists.md` 段 5 |
-| AI 探针必须通道隔离，不隔离的样本作废；AI 需求读数取不到写「未知」，不当闸门 | [`seo-geo.md`](references/seo-geo.md) 步骤 1、2 |
-| 漏了不会变红的收尾动作（IndexNow 等）焊进 ship 命令；IndexNow 默认只推新增 URL | 九、十七 |
-| 接入必须线上实测，不采信勾；接入看板逐行由 `scripts/review.mjs` 断言 | 十 |
-| 真实令牌只在 Skill 的 `.env`，不进回复 / 日志 / git；ID 与密钥从 DOM 或复制按钮取，不从截图或记忆抄 | 十一、十八 |
-| `check` 轻量零配额；命中升级条件明说「这已经不是 check，是 review」 | 十三 |
-| 面板 / 网页操作与文档对不上：先过五层分诊，确认是平台变了才改原文档 | 十五 |
-| 省 token 工作流（verify-live 验收、排查派便宜模型、换乘新会话、防 rtk 篡改循环） | 二十 |
+先查脚本清单，禁止现写等价实现或手点界面，脚本坏了修脚本（[`discipline.md`](references/discipline.md) 二）；执行、取数、完成标准与事故判据统一查 [`discipline.md`](references/discipline.md)，AI 探针的通道与证据边界查 [`seo-geo.md`](references/seo-geo.md)。
+
+- **一切浏览器动作一律 OpenCLI 驱动用户的浏览器**，以复用登录态与可复现会话；见[纪律五](references/discipline.md#五浏览器与取数规则在-opencli-skill这里只留判据)。
+- **所有 AI 爬虫必须放行**并逐 UA 实测，使公开内容具备被发现与读取的资格；见[基础安全](references/cloudflare-stack.md)与 `checklists.md` 段 5。
+- 令牌保护见文末「令牌与项目中立」；密钥不进回复、日志或仓库，防止泄漏与误提交。
 
 ## 主线：维护 checklist，使用 checklist
 
@@ -176,15 +167,15 @@ SEO 与 GEO 是最主要的获客与验证手段，**不是适用边界**：项�
 
 1. 常规执行读 `skill.json`，跑 `node "<rankup-skill-dir>/scripts/check-version.mjs" --project-root . --apply`；网络失败保留当前版本，不得伪称已更新。**doctor 只整理记录，免版本更新与线上三方对账**；任务明确禁止联网、Git 或改动时遵守其范围。
 2. **三方对账门禁**：回答「接下来做什么」或宣称执行进度前，核对 `git log --oneline -25`、真实路由与线上 `sitemap.xml` 全量 `<loc>`；按任务适用面核对，记录与现实不一致先回写。只读问答只核对所问事实，不为此制造状态变化。
-3. 其余读取、接力、随手清理与收尾统一按「强制流程」及[接力协议](references/project-memory.md#接力协议任务随时可能中断新会话必须立即接上)；无 `.rankup/` 用项目根 `HANDOFF.md`，不强制 init。**沉淀义务与是否调用本 Skill 无关**，细则见 [`project-memory.md`](references/project-memory.md#沉淀义务)。
+3. 其余读取、接力与收尾只按表首指针执行。**沉淀义务与是否调用本 Skill 无关**，细则见 [`project-memory.md`](references/project-memory.md#沉淀义务)。
 
 ## 经验库：规划与迭代之前先翻一遍
 
 [`references/experiences/`](references/experiences/INDEX.md) 回答「该怎么判断、别人踩过什么坑」：挖需求读 `demand-discovery.md`，规划读 `zero-to-one.md`，上线后改什么读 `conversion.md`，技术 SEO / 站群 / 多语言 / 索引读 [`webcafe-experiences.md`](references/experiences/webcafe-experiences.md) 与 `webcafe-topics.md`。经验层不带项目信息；每条有出处与证据等级（【实测】/【经验】/【猜测】，猜测不当结论）；采纳前先问「我们的前提一样吗」。
 
-## 可复用操作必须落成脚本（硬闸门，不需要用户督促）
+## 可复用操作必须落成脚本
 
-触发条件、脚本落点与验收只在 [`maintenance.md`「五」第 1 条](references/maintenance.md#五维护-skill-源码rankup-本身)；命中必须本轮落成并跑通，沉淀责任在当前执行者。
+在授权修改范围内，将确定会重复的链路本轮参数化并跑通，省掉下轮重写；只读或禁止改脚本的任务只列候选。触发条件、落点与验收见 [`maintenance.md`「五」第 1 条](references/maintenance.md#五维护-skill-源码rankup-本身)。
 
 ## 跨项目资产登记表
 
@@ -210,5 +201,5 @@ npx skills update rankup -p -y                            # 项目级更新
 
 - 第三方工具令牌只有一份，放 Skill 根目录 `.env`，环境变量优先；细则见 `discipline.md` 十一。
 - 严禁在 Skill、`.rankup/`、Git、测试或回复中保存真实密钥、token、密码、私钥、webhook secret、支付敏感数据或个人敏感信息。
-- **本 Skill 必须保持项目中立与机器中立**：站点名、域名、流量数字、证据出处、account/property ID、本机路径与代理、凭据位置一律不进 Skill；回流经验只带走剥离站点后仍成立的规则。由 `scripts/validate-rankup.mjs` 断言。
+- **本 Skill 必须保持项目中立与机器中立**：不带本项目私有出处或身份（站点名、域名、流量数字、account/property ID、本机路径与代理、私有凭据位置）；公开供应商地址与必要的公开来源可保留。回流经验只带走剥离站点后仍成立的规则。由 `scripts/validate-rankup.mjs` 断言。
 - 不记录未验证猜测；旧经验被证伪时修订原条目，不并列保留冲突结论。

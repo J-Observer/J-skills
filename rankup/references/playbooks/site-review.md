@@ -181,7 +181,7 @@ E 组依赖 A/B/D 的事实，先完成这些取数再综合判读。开放 API 
 | D4 长尾扩展 | 串行编排 | 官方 Skill 调用 `keyword_ideas "<种子>" --gl <cc>` 拓词；对 SERP 专门站用 `site_keywords <域名> --gl <cc>` 反查新词根；三引擎联想、Trends 与社区原话补充 | 长尾候选池、快照量与新词根 | 种子后缀扩不动时按 `research.md` 五个动作切换到站→词/站→站；未拿到不当零 |
 | D5 长尾怎么分组、怎么排 | 串行（拿到词之后） | 加载 `keyword-research` Skill，按它的 8 个 phase 走 Classify（意图四分类）→ Score（`Opportunity = Volume × Intent Value / Difficulty`）→ GEO-Check → Cluster（pillar + cluster） | 意图标签、优先级排序、主题簇、内容日历 | 这个 Skill **自己不带数据源**（它的 Data Sources 一节写明「没有工具就问用户要种子词」）。**数据全部由 D1–D4 供给它**，不要让它去问用户；缺了这一步，rankup 只有一堆孤词，没有簇 |
 | D6 竞品词库差集 | 串行 | 官方 Skill 调用 `site_keywords <竞品域名> --gl <国> --limit 50`，3–5 个同赛道站与自己的词池做差集；需要独立来源才补 Semrush | 自己漏掉的词根与页面 | `site_keywords` 是月更快照、按国家，空结果先核接口状态 |
-| D7 首页实勘 | 串行 | 用 OpenCLI 在用户 Chrome 的 dedicated 窗口里，把目标词在 Google + Bing（做非英语市场再加本地引擎）各搜一遍，显式指定地区与语言，每个引擎记七样 | 版式、SERP 特性占屏、AI 答案引用了谁、有没有独立站空位 | 二手 SERP 接口（`serp-query.mjs` / `seo-webcafe.mjs serp`）看不到版式与 AI 答案，**不能代替这一步**；公开 SERP 也不用沙箱浏览器 |
+| D7 首页实勘 | 串行 | 用 OpenCLI 在用户 Chrome 的 dedicated 窗口里，把目标词在 Google + Bing（做非英语市场再加本地引擎）各搜一遍，显式指定地区与语言，每个引擎记七样 | 版式、SERP 特性占屏、AI 答案引用了谁、有没有独立站空位 | 二手 SERP 接口（`serp-query.mjs` / 官方 Skill 的 `serp`）看不到版式与 AI 答案，**不能代替这一步**；公开 SERP 也不用沙箱浏览器 |
 
 **E 组 · 哥飞开放 API 独立复核**
 

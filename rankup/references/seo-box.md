@@ -1,5 +1,14 @@
 # seo.box：一张外部工具清单，用来给 rankup 的工具地图做对账
 
+## 目录
+
+- [先说清它是什么，免得按错的期待去用](#先说清它是什么免得按错的期待去用)
+- [对账结果：28 条逐条判定](#对账结果28-条逐条判定)
+- [会员实测：判定不能靠推断，要用登录态验](#会员实测判定不能靠推断要用登录态验)
+- [本轮真正落地的三件事](#本轮真正落地的三件事)
+- [seo-audit 判读指引（分级表从脚本迁来）](#seo-audit-判读指引分级表从脚本迁来)
+- [什么时候回来读这一篇](#什么时候回来读这一篇)
+
 ## 先说清它是什么，免得按错的期待去用
 
 **[seo.box](https://seo.box/) 不是工具站，是一张单页静态导航。**
@@ -28,10 +37,10 @@
 | Similarweb | ✅ | `backlink/scripts/similarweb-query.mjs` / `similarweb-batch.mjs`，能力边界见 [`provider-capabilities.md`](provider-capabilities.md) |
 | Semrush | ✅ | `backlink/scripts/semrush-*.mjs` 一组 |
 | Ahrefs（主站） | ✅ **且被低估了** | 见下方「会员实测」一节：免费 AWT 档的 Site Audit 是完整的，`scripts/ahrefs-site-audit.mjs` 取它 |
-| Ahrefs Keyword Difficulty Checker | ❌ | KD 已有两条更好的路：`seo-webcafe.mjs kd`（带 top9 盘面，零配置）与 `semrush-keyword.mjs`（带 `globalVolume`）。Ahrefs 免费版一次一个词、要账号、给不出盘面，接了是**第三个口径**，只会制造对不上的数字 |
+| Ahrefs Keyword Difficulty Checker | ❌ | KD 已有官方 `gefei-keywords` Skill 的 `keyword_difficulty`（哥飞版盘面）与 `semrush-keyword.mjs`（带 `globalVolume`）。Ahrefs 免费版一次一个词、要账号、给不出盘面，接了是**第三个口径**，只会制造对不上的数字 |
 | Ahrefs Backlink Checker | ❌ | 同上。外链走 `backlink` Skill 的既有链路（Semrush 引荐域 + `ledger.mjs` 证据阶梯）。免费版只给 Top 100 外链且要注册，**不足以支撑任何判断，却足以让人以为查过了** |
 | Ahrefs Website "Authority" Checker | ❌ | AS/DR 这类第三方权重分在 rankup 里只作为**相对参照**出现，`semrush-overview.mjs` 已经给 AS。再引一个厂商的分数会诱发跨厂商比大小，那是无意义的 |
-| WooRank SEO Health Checker | ❌ | 站点体检已有两条自有路径：`scripts/seo-audit.mjs`（全站逐 URL、零配额、可对 localhost 跑）与 `seo-webcafe.mjs audit`。WooRank 免费额度极小且要注册，**覆盖不了「全站每一个 URL」这条闸门 2 的硬判据** |
+| WooRank SEO Health Checker | ❌ | 全站逐 URL 体检走 `scripts/seo-audit.mjs`；代表页的哥飞复核走官方 `gefei-page` Skill。WooRank 免费额度极小且要注册，**覆盖不了「全站每一个 URL」这条闸门 2 的硬判据** |
 | Google Search Console | ✅ | `scripts/webmaster-sitemap.mjs gsc`、`scripts/gsc-remove-urls.mjs`，见 [`search-platforms.md`](search-platforms.md) |
 | Google Analytics（清单里重复了两次） | ✅ | 接入清单里的 GA4 一行，验证方式 `curl` grep `gtag` |
 | Microsoft Clarity | ✅ | `scripts/clarity-setup.mjs`，见 [`analytics-platforms.md`](analytics-platforms.md) 第 1 节 |
@@ -193,7 +202,7 @@ GEO 报告里这两项的原文措辞，看它是否真的只匹配英文疑问�
 **不能**：查别人的站、Keywords Explorer 的词量与 KD、Content Explorer（导航里有，点进去是升级页）。
 
 所以 Ahrefs 在 rankup 里的正确位置**不是关键词工具，也不是外链工具**（那两件事分别归
-`seo-webcafe.mjs kd` / Semrush 和 `backlink` Skill），而是**自有站点的第二台爬虫**：
+官方 `gefei-keywords` Skill / Semrush 和 `backlink` Skill），而是**自有站点的第二台爬虫**：
 
 | 它能替谁干活 | 现状 | 拿 Ahrefs 之后 |
 |---|---|---|

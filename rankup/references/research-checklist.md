@@ -1,5 +1,20 @@
 # 需求调研验收清单
 
+## 目录
+
+- [使用规则](#使用规则)
+- [第一节 · 亲眼看搜索结果首页（在任何取数之前）](#第一节--亲眼看搜索结果首页在任何取数之前)
+- [第二节 · KD + SERP 盘面分析](#第二节--kd--serp-盘面分析)
+- [第三节 · 搜索量验证（量 / KD / SERP 数据的三角校验）](#第三节--搜索量验证量--kd--serp-数据的三角校验)
+- [第三·五节 · 社区验证（补面板的 28 天盲区，必做）](#第三五节--社区验证补面板的-28-天盲区必做)
+- [第四节 · 竞品站真实流量（Similarweb + Semrush 域名维度）](#第四节--竞品站真实流量similarweb--semrush-域名维度)
+- [第五节 · 收入信号验证](#第五节--收入信号验证)
+- [第六节 · 折成钱（第四道闸门，不能跳过）](#第六节--折成钱第四道闸门不能跳过)
+- [第七节 · 词表补全（反查竞品补第二轮）](#第七节--词表补全反查竞品补第二轮)
+- [第八节 · 补充信号源（按需选用）](#第八节--补充信号源按需选用)
+- [第九节 · 结论产出格式](#第九节--结论产出格式)
+- [检查矩阵：一眼看清哪些跑了哪些没跑](#检查矩阵一眼看清哪些跑了哪些没跑)
+
 **本清单是段 1「调研」的验收单——每次调研（词根、选题、竞品、赛道）收尾时逐项对照，勾不满不算完成。**
 
 > **本文件是验收单，不是执行顺序，也不是入口。** 「一句话进来 → 先跑哪条命令、哪些能并行、
@@ -146,6 +161,8 @@
 | 5.6 TrustMRR 增长榜 | `boards.mjs` | `trustmrr --board growth` | 30 天增速排名 |
 | 5.7 收入目标拆解 | `seo-webcafe.mjs` | `money --income <$> --kws <n> --kd <n>` | 反推所需 UV / 日搜索量 / 外链投入（纯本地，零配额） |
 
+官方 Skill 暂无可证明的等价能力（依据：官方 `gefei/SKILL.md`「需求挖掘」只说明 `stripe_checkout_referrals` 查收银台引荐站，未列月份、环比、份额或单站历史字段；`gefei/scripts/webcafe.mjs` 的 `loadTools` 从服务端动态取参数表，本地无字段合同）；保留本地脚本。已知差异：本地 `referringMonth --m YYYYMM` 查月榜，`referringSite --domain <d>` 查在榜历史，沿用旧站点不计配额口径；官方开放 API 扣积分，不能据名称推定历史范围与字段相同。
+
 **三个源给的「收入」不是一回事：TrustMRR 是 Stripe 实连（能当数字用），traffic.cv 是定性信号，Toolify 只能说明「在收钱」。三家域名集合几乎不相交，是互补候选池。**
 
 ---
@@ -180,7 +197,7 @@
 | 7.2 竞品排名词反查 | `backlink/scripts/semrush-report.mjs` | `--report organic-positions --domain <竞品> --db <目标国>` | 竞品前 100 词，与自己的池子做差集 |
 | 7.3 Semrush Keyword Magic | `backlink/scripts/semrush-report.mjs` | `--report keyword-magic --keyword <词> --db <目标国>` | 整包词 + 聚簇（Topics） |
 | 7.4 Similarweb 扩词 | `backlink/scripts/similarweb-keywords.mjs` | `--seed <词> --tab phraseMatch` | 匹配词（relatedKeywords 量最大） |
-| 7.5 补测差集词的量与难度 | `backlink/scripts/semrush-keyword.mjs` + `seo-webcafe.mjs kd` | 逐个补测 | 被自己判过「太难」的头词也测 |
+| 7.5 补测差集词的量与难度 | `backlink/scripts/semrush-keyword.mjs` + 官方 `gefei-keywords` Skill 的 `keyword_difficulty` | 逐个补测 | 被自己判过「太难」的头词也测 |
 | 7.6 重算按量加权的 CPC | 手算或 `demand/keyword-value.mjs` | `--in <关键词JSON>` | 扩完词后 CPC 可能掉 |
 | 7.7 树只扩两层、停止条件写明 | 人工核对 | 报告第 3 节 | 每片叶子标层级；月量低于筛子阈值、或竞争复核判打不动的叶子没有往下扩（KD 只排复核顺序） |
 | 7.8 探索广度闸（防牛角尖） | 人工核对 | 报告第 3 节 | 词→词/词→问题/词→站/站→词/站→站五个动作各至少一轮 + 探索日志；词池里有不含种子字面串的新词根；判据见 [`playbooks/research.md`](playbooks/research.md#五个取数动作与编排探索循环) |
@@ -219,7 +236,7 @@
 | 竞品 sitemap 变化 | `sitemap-diff.mjs` | `--domain <d>` |
 | 站群反查 | `site-network.mjs` | `--domain <d>` |
 | 支付网关反查 | `payment-referrers.mjs` | `serp <网关>` / `similarweb <网关>` |
-| 哥飞社区经验 | `webcafe-forum.mjs` | `search "<词>"` / `chat-search "<词>"` |
+| 哥飞社区原文（保留本地） | `webcafe-forum.mjs` | `search "<词>"` / `chat-search "<词>"`；等价性与差异见下文 |
 | AI 新词信号 | HuggingFace Trending + Arena.ai | AI 读 trending 页 / leaderboard 页，新模型名 = 新关键词 |
 | 产品发现榜 | turbo0.com + Indie Hackers | AI 读 Collections 页 / 产品目录 |
 | 平台子域名监控 | crt.sh CT logs | `https://crt.sh/?q=%.vercel.app&output=json` |
@@ -229,6 +246,8 @@
 | 博客评论监控 | Google Alerts + `site:` | 评论者措辞 = 长尾搜索查询词 |
 | 品牌截流词 | 官方 Skill 调用 `keyword_ideas` / `keyword_difficulty` | `[brand] alternative/vs/review`；先看 SERP 是否真有独立站入口 |
 | AppSumo 差评 | AppSumo 公开页面 | 付费用户差评极其具体，Q&A 区有「does it support...」句式 |
+
+官方 Skill 暂无可证明的等价能力（依据：官方 `gefei/SKILL.md`「哥飞说过什么：知识库」只说明 `knowledge_ask` 返回相关段落与出处、`knowledge_search` 返回标题/日期/链接/短节选、`knowledge_read` 按文档读取；`gefei/scripts/webcafe.mjs` 动态取接口合同，未给原始群聊或论坛全集字段）；保留本地 `webcafe-forum.mjs`。已知差异：本地读取论坛原文、悬赏 `collect.board[]` 投票榜及群聊 `message_list[]`（消息 ID、发送者、时间、群名），官方说明未承诺相同语料覆盖、原始字段或分页范围，且知识库接口扣积分。
 
 ---
 

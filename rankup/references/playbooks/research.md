@@ -1,5 +1,18 @@
 # 调研流水线（预制 playbook）
 
+## 导航
+
+- [怎么用](#怎么用)
+- [四条贯穿全部流水线的铁律](#四条贯穿全部流水线的铁律)
+- [五个取数动作与编排（探索循环）](#五个取数动作与编排探索循环)
+- [阶段 0 开工前 30 秒（每条流水线都以它开头）](#阶段-0-开工前-30-秒每条流水线都以它开头)
+- [App 市场验证分支](#app-市场验证分支)
+- [P0 · 分流器：只看他交给你的是什么](#p0--分流器只看他交给你的是什么)
+- [P1 / P2 分册（2026-09-30 拆分）](#p1--p2-分册2026-09-30-拆分)
+- [P4 · 竞品调研 / 反查谁在赚钱](#p4--竞品调研--反查谁在赚钱)
+- [附 · 兄弟 Skill 在这条链路里的位置](#附--兄弟-skill-在这条链路里的位置)
+- [维护契约](#维护契约)
+
 **这个文件回答一件事：用户丢来一句模糊的话，从下一秒开始该跑哪几条命令、按什么顺序、哪些并行。**
 
 `SKILL.md` 的总路由表是**索引**（一句话 → 哪一段 → 哪个文件），
@@ -26,8 +39,8 @@
 ### 路径变量（每个 sub agent 的 prompt 里都要带上这两行）
 
 ```bash
-RANKUP=~/.agents/skills/rankup        # 本仓库开发时 = <repo>/rankup
-BACKLINK=~/.agents/skills/backlink    # 本仓库开发时 = <repo>/backlink
+RANKUP=<rankup-skill-dir>
+BACKLINK=<backlink-skill-dir>
 ```
 
 **为什么必须写全路径**：Semrush / Similarweb / Tools Share 那一组脚本住在
@@ -65,7 +78,7 @@ BACKLINK=~/.agents/skills/backlink    # 本仓库开发时 = <repo>/backlink
 | **站→站** | 还有哪些站在做同一件事 | 官方 Skill 调用 `search_known_sites` · `domain_overview`，SERP 共现域名 | API 按实时报价，共现域名零配额 | 新站清单，回「站→词」 |
 
 脚本能力据实标注，不存在的没有写进上表：**Semrush 没有独立的「关键词 → 排名域名列表」报表**，
-词→站只能靠 SERP 通道（`serp-query.mjs` / `seo-webcafe.mjs serp` / 人眼），不冒称有等效面板报表；
+词→站只能靠 SERP 通道（`serp-query.mjs` / 官方 Skill 的 `serp` / 人眼），不冒称有等效面板报表；
 上表每个脚本与参数已逐个用 `--help` 或读源码核实真实存在。
 
 **几套编排**（不是唯一顺序，起手信息决定先跑哪套）：
@@ -275,6 +288,10 @@ node $BACKLINK/scripts/tools-share-node.mjs list --tool similarweb
 | **6 · 薄编排复核**（帖子声称数字时） | 串行，在 5 之后 | `node $RANKUP/scripts/demand/revenue-site-audit.mjs --domain <域名> --source-url <帖子链接> --claimed-visits <n> --claimed-organic-share <pct> --claimed-mrr <n> --keyword <主词> --db <目标国> --out audit.json` | 各源原始对照数据 + 倍差事实，**不含 verdict** | 它顺序调用现有 AITDK / Similarweb 两张报表 / Semrush / sitemap / KD 脚本。`--from <目录>` 可离线重整已保存的原始文件（**不重跑不再花配额**）。原始文件全保留在输出的 `rawFilesDir` |
 | **7 · 定性背景**（可选，判断「他为什么能起来」） | 并行，与 5/6 无冲突 | `/deep-research` 或 `/agent-reach`：查这个品牌/产品在 Reddit / X / 小红书 / 播客里的讨论<br>`node $RANKUP/scripts/webcafe-forum.mjs chat-search "<品牌或赛道>"` | 叙事与打法（社群里有没有人拆过它） | **这一步只出定性叙事，不出任何数字**。哥飞社区那条**优先于问 AI**：`chat-search` 拿的是群聊归档原文，不经模型转述、零 AI 额度。**匿名不报错，只把正文抹成空串** |
 | 8 | 串行 | 他排的头部词当**词根**进 [P2](research/p2-keyword-root.md#p2--词根调研这个词能不能做扩成树)，看这棵树自己能不能进 | 立项 / 否决 | — |
+
+官方 Skill 暂无可证明的等价能力（依据：官方 `gefei/SKILL.md`「需求挖掘」只说明 `stripe_checkout_referrals` 查收银台引荐站，未列月份、环比、份额或单站历史字段；`gefei/scripts/webcafe.mjs` 的 `loadTools` 从服务端动态取参数表，本地无字段合同）；保留本地脚本。已知差异：本地 `referringMonth --m YYYYMM` 查月榜，`referringSite --domain <d>` 查在榜历史，沿用旧站点不计配额口径；官方开放 API 扣积分，不能据名称推定历史范围与字段相同。 本节阶段 1 的历史范围为旧文档口径，本轮未联网复核。
+
+官方 Skill 暂无可证明的等价能力（依据：官方 `gefei/SKILL.md`「哥飞说过什么：知识库」只说明 `knowledge_ask` 返回相关段落与出处、`knowledge_search` 返回标题/日期/链接/短节选、`knowledge_read` 按文档读取；`gefei/scripts/webcafe.mjs` 动态取接口合同，未给原始群聊或论坛全集字段）；保留本地 `webcafe-forum.mjs`。已知差异：本地读取论坛原文、悬赏 `collect.board[]` 投票榜及群聊 `message_list[]`（消息 ID、发送者、时间、群名），官方说明未承诺相同语料覆盖、原始字段或分页范围，且知识库接口扣积分。 本节阶段 7 只作定性原文证据，不当收入或流量数据。
 
 ### 判读
 

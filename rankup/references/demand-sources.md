@@ -86,7 +86,7 @@ node scripts/demand/boards.mjs traffic-cv --json \
    看起来完全正常，实际测的是另一个市场。
 3. **公开 SERP 也用 `opencli browser <描述性会话名>` 驱动用户的 Chrome**；
    显式指定地区与语言，结束后关闭会话。
-4. **不要用二手 SERP 接口代替这一步。** `serp-query.mjs`、`seo-webcafe.mjs serp`
+4. **不要用二手 SERP 接口代替这一步。** `serp-query.mjs`、官方 Skill 的 `serp`
    是给规模化统计用的，返回的是结构化字段，看不到版式、看不到 SERP 特性占了多少屏、
    看不到 AI 答案。而且 2026-08 起 Google 把出站链接换成了 `google.com/goto` 跳板，
    二手通道更容易降级而接口照样回 200——见 [`seo-data-channels.md`](seo-data-channels.md) 对应一节。

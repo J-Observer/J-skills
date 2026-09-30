@@ -160,7 +160,7 @@
    取到的全是 `google.com`。判域名改看**结果卡片上可见的 cite / 显示 URL**，
    不要读链接目标。跟随跳转在单条核查时可行，成批取数不可行。
 2. **第三方 SERP / 排名 / KD 通道会跟着抖**（`serp-query.mjs` 走的 serper.dev、
-   `seo-webcafe.mjs serp|kd`、Semrush 的排名表都是二手 SERP）。表现可能是变慢、变贵、
+   官方 `gefei` 的 `serp` / `gefei-keywords` 的 `keyword_difficulty` 工具、Semrush 的排名表都是二手 SERP）。表现可能是变慢、变贵、
    字段缺失，或**悄悄降级但接口照样 200**。因此：**结果域名突然变少、变怪、
    或某个词的盘面一夜之间「空了」时，先怀疑通道，再怀疑盘面**——
    换一个源交叉验证过才允许写进 `keywords.md`。这条与「拿 HTTP 200 当取到了」是同一类错误。

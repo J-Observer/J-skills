@@ -83,7 +83,7 @@ Anyway 是 Merchant of Record 模式：由服务商承担其覆盖交易的间�
 判据两条：
 
 - 单页工具站几乎过不了 AdSense，先补 about / terms / 有信息增量的内容页再申请。
-- AdSense 过审预检可先跑 `scripts/seo-webcafe.mjs adsense`（[`capability-map.md`](capability-map.md) 八）。
+- AdSense 过审预检可用官方 `gefei-page` Skill 的 `adsense_audit`（[`seo-webcafe.md`](seo-webcafe.md)）。
 
 【实测】先按访客地区确认收款和广告渠道能否覆盖，再比较广告净收入、跳出与核心交互；有作者在支付地区受限且 AdSense 未通过时改用其他广告商，另一位作者限制弹跳广告后访问恢复、广告单价却下降（戳头像联系，[复盘](https://new.web.cafe/topic/hy6b6s9527)；运气选手走得远，[复盘](https://new.web.cafe/topic/6dx0cbme8c)）。若主要地区不能用默认收款通道，先重选适配渠道；AdSense 审核结果不等于站点能否变现。低付费意愿时，导向已有相关产品也需看后续转化（小张，[复盘](https://new.web.cafe/topic/4k6f2747an)）。
 

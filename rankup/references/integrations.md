@@ -1,5 +1,21 @@
 # Rankup 集成与专项 Skill 路由
 
+## 目录
+
+- [已验证的 Skills CLI 命令](#已验证的-skills-cli-命令)
+- [路由表](#路由表)
+- [Google OAuth 2.0 Web Client（登录用，非 GA4/GSC）](#google-oauth-20-web-client登录用非-ga4gsc)
+- [Cloudflare 路由](#cloudflare-路由)
+- [Stripe 路由](#stripe-路由)
+- [PayPal 路由](#paypal-路由)
+- [三方库与现成服务优先](#三方库与现成服务优先)
+- [趋势、SEO 与外链路由](#趋势seo-与外链路由)
+- [能力发现](#能力发现)
+- [登录态后台批量取数 · 网页版 AI Chatbot 取答（已下沉）](#登录态后台批量取数--网页版-ai-chatbot-取答已下沉)
+- [分析与搜索平台接入](#分析与搜索平台接入)
+- [权限边界](#权限边界)
+- [授权与宽限期](#授权与宽限期)
+
 Rankup 负责识别需求、选择专项能力和保持项目记录；专项 Skill 负责各自领域的操作细节。只安装当前任务需要的依赖，并在执行前确认用户授权范围。
 
 ## 已验证的 Skills CLI 命令
