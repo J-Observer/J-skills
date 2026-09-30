@@ -10,7 +10,7 @@
 
 ## 往哪派
 
-- 按 `agent-fleet` Skill 与全局 §2 路由：编码类默认 `fleet code`（本机 Codex `gpt-6-sol`），文案与翻译走 `fleet copy`（Gemini），Grok 分担其他调研与备选，判断节点（分类、路由、是非、打分、成败判定）走 `fleet judge`（JEV，置信度低时交回主线程）。
+- 按 `agent-fleet` Skill 与全局 §2 路由：编码类默认 `fleet code`（本机 Codex `gpt-6.1-sol`），文案与翻译走 `fleet copy`（Gemini），Grok 分担其他调研与备选，判断节点（分类、路由、是非、打分、成败判定）走 `fleet judge`（JEV，置信度低时交回主线程）。
 - Claude 只做全局路由表明确归它的事：建站设计与视觉交互、3D/游戏、复杂脚手架、深度架构、不可逆或安全敏感的改动。**Haiku 档位与 `executor-haiku` 已停用**。
 - 模型档位是运行时配置，不在 Skill 里断言本机当前模型或某个版本的表现；具体模型名、命令与回退顺序以 `agent-fleet` 当前文档为准。
 

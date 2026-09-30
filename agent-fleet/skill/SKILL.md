@@ -34,7 +34,7 @@ description: 使用本机 fleet 分派 Codex GPT-6、Gemini、Grok 或 JEV 任�
 
 ## 模型路由与任务边界
 
-大部分任务（编码、修 bug、补测试、调研、技术文档、报告、数据整理）优先 `fleet code`：本机 Codex `gpt-6-sol`，默认 medium，单文件且边界明确时用 `--low`。页面、营销和产品文案、翻译、多语言及母语校对一律 `fleet copy`，写能做什么和带来什么好处，不贬低竞品或用恐吓式对比。Grok 可分担擦边题材、其他调研或作为 GPT-6 备选；JEV 只做结构化判断。Claude 只做全局 CLAUDE.md §2 明确归它的任务。
+大部分任务（编码、修 bug、补测试、调研、技术文档、报告、数据整理）优先 `fleet code`：本机 Codex `gpt-6.1-sol`，默认 medium，单文件且边界明确时用 `--low`。页面、营销和产品文案、翻译、多语言及母语校对一律 `fleet copy`，写能做什么和带来什么好处，不贬低竞品或用恐吓式对比。Grok 可分担擦边题材、其他调研或作为 GPT-6 备选；JEV 只做结构化判断。Claude 只做全局 CLAUDE.md §2 明确归它的任务。
 
 GPT-6 只做 brief 点名的事。除非逐项要求，不写测试或测试脚本、不先写测试、不加安全校验/防御代码/权限边界/输入校验/异常兜底、不重构或抽象封装、不加配置项、文档或注释、不改无关文件、不装依赖、不提交/推送/部署/发布、不调用外部写接口。已有测试和构建只在 brief 要求时运行；拿不准的事不做，最终回复用一行列「建议但未做」。未点名的产物算越界。brief 必须逐字包含：「只做本 brief 列出的事。不写测试、不加安全防护或边界校验、不重构、不做任何未点名的额外工作或 action；拿不准就不做，在回复里列一行建议。」
 
@@ -46,7 +46,7 @@ GPT-6 走 ChatGPT 会员额度，按现有账号约定不额外花钱；其 brie
 | `grok` | `kollab-gateway-research` | 擦边题材、其他调研、GPT-6 备选 |
 | `bulk` | `kollab-gateway-bulk` | 批量转换 |
 | `gpt` | `kollab-gateway-gpt-sol` | GPT 托管任务 |
-| `code` | 本机 Codex `gpt-6-sol` | **默认执行者**：编码、调研、报告、通用任务；默认 medium，`--low` 为 low |
+| `code` | 本机 Codex `gpt-6.1-sol` | **默认执行者**：编码、调研、报告、通用任务；默认 medium，`--low` 为 low |
 | `judge` | `jev` | 分类、选择、打分 |
 
 `code` 在本机 Codex 缺失、登录失效或模型明确不支持时，自动改走 `kollab-gateway-gpt-sol`；其他失败不自动重试。选择以当前配置和实际结果为准；查看其他模型用 `fleet list-models`。Codex 审查范围见 [编程与 review](references/codex-coding.md)。

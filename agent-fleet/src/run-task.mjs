@@ -50,7 +50,7 @@ export const DEFAULT_EXECUTOR_SYSTEM_PROMPT =
  * @param {{ resolved: object, cwd: string, maxTurns?: number, systemPrompt?: string, resume?: string }} params
  * @returns {object} 传给 query() 的 options
  */
-export function buildQueryOptions({ resolved, cwd, maxTurns, systemPrompt, resume }) {
+export function buildQueryOptions({ resolved, cwd, maxTurns, systemPrompt, resume, projectSettings }) {
   return {
     model: resolved.model,
     cwd,
@@ -63,17 +63,10 @@ export function buildQueryOptions({ resolved, cwd, maxTurns, systemPrompt, resum
     // SDK 类型定义明确要求:用 bypassPermissions 必须显式加这个安全确认字段,
     // 防止「误设了 bypassPermissions 却没意识到风险」。
     allowDangerouslySkipPermissions: true,
-    // 只加载目标工作目录自己的项目级配置(.claude/settings.json、CLAUDE.md、
-    // .claude/settings.local.json),不加载运行这个 CLI 的操作者本人的全局
-    // ~/.claude/settings.json——那里面是操作者自己日常用 Claude Code 攒下的
-    // hooks、MCP server、个人权限白名单,和"跑一个独立子任务"这个场景无关,
-    // 混进来既是噪音也是新的隔离漏洞(实测这条不设的话,子进程会把操作者本机
-    // 装的一整套 MCP server、slash command 都加载进来)。
-    settingSources: ['project', 'local'],
-    // 目标目录的项目配置可以影响 Agent 在目录里怎么干活(CLAUDE.md、权限、hooks),
-    // 但不能影响模型请求本身。flag 层 settings 是用户可控层里优先级最高的一层,
-    // 把 baseURL 钉在这里,项目配置里的同名 env 覆盖不掉(已实测验证)。
-    settings: buildPinnedSettings(resolved),
+    // SDK 不加载任何项目、本地或全局配置。默认只传 fleet 钉死的请求配置;
+    // 可选白名单的过滤结果由前置层显式传入,避免 SDK 再读取未过滤的文件。
+    settingSources: [],
+    settings: { ...projectSettings, ...buildPinnedSettings(resolved) },
     // 不加载目标目录的 .mcp.json。MCP server 条目本质是"会话启动时自动执行的命令",
     // 而这个子进程的环境里带着用户的真实第三方密钥——让一个可能来自外部的目录决定
     // 启动时跑什么进程,等于直接把密钥递出去,且不需要模型配合。本工具从不传
@@ -192,11 +185,12 @@ function markPidFinished(runId) {
 
 async function runTaskInner({ friendlyModel, prompt, cwd, config, maxTurns, systemPrompt, resume, resumedFrom, startedAt, log, runId }) {
   let resolved;
+  let projectSettings;
   try {
-    // 顺序是有意的:先过目标目录的信任闸门,再解析模型(后者会把真实密钥读进内存)。
-    // 目标目录一旦被判定为不可信,这次运行连"密钥进内存、注入子进程环境"这一步都不发生。
-    // 见 project-trust.mjs:--cwd 可能是别人发来的目录,它不得决定请求发去哪、带什么凭据。
-    assertProjectSettingsTrusted(cwd);
+    // 先决定项目配置来源,再 resolveModel 读取密钥。默认不读取目录配置内容,
+    // 安全保证由不加载来满足,无需为每个仓库维护白名单;白名单仅加载过滤后的配置。
+    projectSettings = assertProjectSettingsTrusted(cwd);
+    if (projectSettings !== undefined) process.stderr.write('cwd 在受信白名单内，已跳过项目配置越权检查（项目凭据、地址和请求头设置仍被忽略）\n');
     resolved = resolveModel(friendlyModel, config);
     // typesafe-systemone 协议(JEV 等结构化决策 API)不实现 Anthropic Messages 协议,
     // Claude Agent SDK 的 query() 没法驱动它——它不生成文本、不支持多轮工具调用,委派
@@ -222,7 +216,7 @@ async function runTaskInner({ friendlyModel, prompt, cwd, config, maxTurns, syst
     throw err;
   }
 
-  const options = buildQueryOptions({ resolved, cwd, maxTurns, systemPrompt, resume });
+  const options = buildQueryOptions({ resolved, cwd, maxTurns, systemPrompt, resume, projectSettings });
 
   const stream = createPromptStream(prompt);
   const q = query({ prompt: stream, options });
