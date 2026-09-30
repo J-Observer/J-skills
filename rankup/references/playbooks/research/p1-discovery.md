@@ -45,7 +45,7 @@ wc -l /tmp/r/candidates.txt
 
 | 阶段 | 并行/串行 | 跑什么 | 拿到什么 | 卡住了怎么办 |
 |---|---|---|---|---|
-| 2 | **串行**（官方 API 按积分余额计费） | `node $RANKUP/scripts/demand/aitdk-lookup.mjs --file /tmp/r/candidates.txt --out /tmp/r/profiles.jsonl --limit 60` | 每个域名的**注册日期 / 站龄 / 月访问 / 流量结构 / DR / 核心搜索词** | 官方 CLI 报错行 = 取数失败，**不是「该站没数据」**。按提示检查余额/每日上限或上游错误（`.jsonl` 可续跑，已有行会跳过，包括失败行） |
+| 2 | **串行**（官方 API 按积分余额计费） | `node $RANKUP/scripts/demand/domain-profile.mjs --file /tmp/r/candidates.txt --out /tmp/r/profiles.jsonl --limit 60` | 每个域名的**注册日期 / 站龄 / 月访问 / 流量结构 / DR / 核心搜索词** | 官方 CLI 报错行 = 取数失败，**不是「该站没数据」**。按提示检查余额/每日上限或上游错误（`.jsonl` 可续跑，已有行会跳过，包括失败行） |
 | 3 | 串行，主线判读，**不跑脚本** | 对 `/tmp/r/profiles.jsonl` 套 [`demand-discovery.md`](../../experiences/demand-discovery.md)「原帖给的阈值」：注册 <1 年 / 月访问 >3,000 / 搜索占比 >20% / 直接访问占比 >20% | 通常 60 个域名剩 0–2 个（**实测命中率约 300:1**，剩 0 个是正常结果，不是失败） | 剩 0 个 → 回阶段 1 换榜单源再来一轮，**不要放宽阈值**。阈值是可调的，但调之前要写明为什么调 |
 
 #### 第三段：入选候选逐个走验证链路 → 进 P2
@@ -79,7 +79,7 @@ wc -l /tmp/r/candidates.txt
 | **零配额但要真浏览器**（过反爬，不需登录） | 1b boards trustmrr/traffic-cv · 1c taaft · reviews-mine 的 trustpilot/g2/capterra · chrome-stats | 每个源一个**描述性会话名**，跑完 `opencli browser <session> close`。sub agent 退出前必须显式关 |
 | **吃 seo.web.cafe 共享池**（档位以阶段 0 脚本打印为准） | `kd`（每词 1，7 天缓存内免费）· `serp`（每次 1）· `payment-referrers serp`（每查询 1） | **整场规模在阶段 0 定死**。`--batch` 走保险丝间隔 |
 | **面板配额，一次一个采集器** | 5 similarweb-query / semrush-overview / semrush-report / similarweb-keywords | 会话名固定，**不许并行**。`similarweb-batch` 单域 6–10 秒，可续跑 |
-| **要钱的** | `aitdk-lookup` 默认官方 gefei CLI（domain_overview 当前 2 积分/域名，以目录为准）；`--provider tabapi` 按 credit · `serp-query`（serper 付费额度） | 官方 API 扣余额，不用网站每日赠送额度 |
+| **要钱的** | `domain-profile.mjs` 默认官方 gefei CLI（domain_overview 当前 2 积分/域名，以目录为准）；`--provider tabapi` 按 credit · `serp-query`（serper 付费额度） | 官方 API 扣余额，不用网站每日赠送额度 |
 
 ### 收尾
 

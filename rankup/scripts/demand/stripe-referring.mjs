@@ -112,7 +112,7 @@ async function closeBrowser(session) {
 
 /**
  * 取一个域名的月总访问量。走 /mine/api/domain —— 它返回的字段和 AITDK 插件那一套
- * 完全对得上（visits / registeredAt / topKeywords），详见 aitdk-lookup.mjs。
+ * 完全对得上（visits / registeredAt / topKeywords），详见 domain-profile.mjs。
  */
 const MINE_EXPR = (domain) => `(async()=>{
   const html = await (await fetch("/mine/", {credentials:"include"})).text();

@@ -169,7 +169,7 @@ node $BACKLINK/scripts/tools-share-node.mjs list --tool similarweb
 | `PRODUCTHUNT_TOKEN` | 无 | `boards.mjs producthunt` 自动降级浏览器路径，**浏览器路径本来就更全** |
 | `REDDIT_CLIENT_ID` | `reddit-wishes` 没有 score | 自动降级 RSS，能跑但慢（`--delay` 别低于 6000）；本机 Chrome 登录了 Reddit 时 auto 链会先走 opencli，全字段 |
 | `IGDB_CLIENT_ID` | `game-newtitles --source igdb` | 换 `--source steam` / `steam-featured` / `itch` / `poki` |
-| `TABAPI_KEY` | 无 | `aitdk-lookup` 默认 `--provider webcafe` 经官方 gefei CLI，需其授权，当前 2 积分/域名（以目录为准） |
+| `TABAPI_KEY` | 无 | `domain-profile.mjs` 默认 `--provider webcafe` 经官方 gefei CLI，需其授权，当前 2 积分/域名（以目录为准） |
 
 **`suggest.mjs`、`word-roots.mjs`、`keyword-value.mjs`、`gt.py`、`seo-webcafe.mjs kgr/money` 不需要任何钥匙**——扩树与折算那半永远能跑。
 
@@ -281,7 +281,7 @@ node $BACKLINK/scripts/tools-share-node.mjs list --tool similarweb
 | 0 | 串行 | [阶段 0](#阶段-0-开工前-30-秒每条流水线都以它开头) | 档位与钥匙 | — |
 | **1 · 钱的信号** | **并行 F**（全部零配额或不计配额） | `node $RANKUP/scripts/demand/stripe-referring.mjs site --domain <域名>`<br>`node $RANKUP/scripts/seo-webcafe.mjs referringSite --domain <域名>`（**不计配额**）<br>`node $RANKUP/scripts/demand/boards.mjs trustmrr --board mrr --limit 60 --json` | 该域名在 Stripe 引荐榜的**在榜轨迹**（31 个月历史）；TrustMRR 上有没有它 | 不在 Stripe 榜 ≠ 没收钱——可能用长尾网关，去阶段 1' |
 | **1' · 长尾网关**（Stripe 榜没有它时） | 并行 F | `node $RANKUP/scripts/demand/payment-referrers.mjs list`<br>`node $RANKUP/scripts/demand/payment-referrers.mjs serp <网关> --max-queries 2` | Creem / Lemon Squeezy / Paddle / Gumroad 等网关的引荐站 | `serp` 走 seo.web.cafe，**每查询 1 次配额**，`--max-queries` 默认 2 就是为了省。逐 query 记状态进 manifest，**查询失败 ≠ 没人引用** |
-| **2 · 域名画像** | 并行 F | `node $RANKUP/scripts/demand/aitdk-lookup.mjs <域名>` | 注册日期 / 站龄 / 月访问 / 流量结构 / DR / 环比 / 核心搜索词 | 官方 CLI 报错 = 取数失败，不是没数据；核对积分/每日上限及上游错误 |
+| **2 · 域名画像** | 并行 F | `node $RANKUP/scripts/demand/domain-profile.mjs <域名>` | 注册日期 / 站龄 / 月访问 / 流量结构 / DR / 环比 / 核心搜索词 | 官方 CLI 报错 = 取数失败，不是没数据；核对积分/每日上限及上游错误 |
 | **3 · 站群反查** | 并行 F | `node $RANKUP/scripts/demand/site-network.mjs --domain <域名> --confirm --max 25 --json --out net.json` | 同一主体运营的其它站 + 共同指纹 + 回访状态 | 脚本**只记事实不裁定强弱**。`revisit=fetch_failed` = 这次没看到，不是不共享指纹。**「无共同指纹」是站群的常态**（各站独立 GA4 / 埋点进 GTM 容器 / 服务端埋点），空结果读成「这条路没找到」 |
 | **4 · 广告与供给侧** | 并行 F | `node $RANKUP/scripts/demand/ads-transparency.mjs creatives --domain <域名> --region US`<br>`node $RANKUP/scripts/demand/sitemap-diff.mjs --domain <域名> --all --slug-words --top-words 40` | 他在不在持续买流量（持续投放 = ROI > 1）；他用几页吃了多少词 | ads-transparency 不需要 token 不需要登录。**广告数值不准，趋势与量级对**（50K 真值 40K–60K），**不进任何财务测算** |
 | **5 · 竞品真实流量** | 串行 | 官方 Skill 调用 `domain_overview <域名>` 读整站访问/渠道/地区/DR，`site_keywords <域名> --gl <目标国>` 读排名词与页面；多站批量用 `domain_traffic` / `domain_dr`；需要独立面板对账才补 Similarweb/Semrush | 总访问、渠道、国家、排名词与落地页；每项标口径 | `site_keywords` 快照的估算自然流量不能当总访问；两家数字差异先核国家和渠道口径 |
@@ -313,7 +313,7 @@ node $BACKLINK/scripts/tools-share-node.mjs list --tool similarweb
 | **不计配额**（seo.web.cafe 明确不扣） | `referring` / `referringMonth` / `referringSite` · `translatePage` · `translateAggregate` · `mineReport` |
 | **零配额** | `stripe-referring` · `ads-transparency` · `site-network` · `sitemap-diff` · `boards`（浏览器但不计额度） |
 | **吃 seo.web.cafe 共享池** | `payment-referrers serp`（每查询 1） |
-| **官方 API 积分** | `aitdk-lookup` 默认官方 `domain_overview`，当前 2 积分/域名（以官方目录为准），扣余额 |
+| **官方 API 积分** | `domain-profile.mjs` 默认官方 `domain_overview`，当前 2 积分/域名（以官方目录为准），扣余额 |
 | **面板配额** | 阶段 5 全部。**一个域名跑全 5 张 Similarweb 报表 + 4 张 Semrush 报表 = 9 次页面加载**，规模在阶段 0 定死 |
 | **免费重跑的技巧** | `revenue-site-audit --from <已保存目录>` 离线重整，不重新取数 |
 | **不要用** | `stripe-referring top --enrich` 的批量补总访问量（**吃配额**）——改用 `--visits <本地 JSON 映射>` |

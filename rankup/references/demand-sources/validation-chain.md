@@ -27,7 +27,7 @@
    ↓ ⓪ 亲眼看一遍搜索结果首页：Google / Bing / 目标市场本地引擎，各记七样
    见 [`demand-sources.md`](../demand-sources.md) 第一·五节。这一步在任何取数之前，别拿二手 SERP 接口代替
    ↓ ① 这个站什么来历：注册日期 / 站龄 / 月访问 / DR / 环比 / 核心搜索词
-   scripts/demand/aitdk-lookup.mjs <域名>           # 支持 --file 批量、jsonl 续跑；只采集不筛选，阈值判断按第二节的表由 AI 做
+   scripts/demand/domain-profile.mjs <域名>           # 支持 --file 批量、jsonl 续跑；只采集不筛选，阈值判断按第二节的表由 AI 做
    ↓ ② 词有没有量、难不难做
    按官方 `gefei-keywords` Skill 调用 `keyword_difficulty`，记录目标市场与实际扣费
                                                      # （经 OpenCLI 驱动已登录 Chrome 读真实档位），
@@ -55,7 +55,7 @@
 
 | 步 | 失败长什么样 | 正确读法 |
 |---|---|---|
-| ① aitdk-lookup | 表格里的 `✗ 错误` 行（TabAPI 可带 HTTP 状态）；manifest 里该域 `error` / `http_*` | 取数失败，**不是「该站没数据」**。默认官方 CLI 的积分余额/每日上限或上游失败应按错误提示处理；不再用 `--via browser` 换档。脚本已不做阈值筛选——出错行永远显示在默认输出里 |
+| ① domain-profile.mjs | 表格里的 `✗ 错误` 行（TabAPI 可带 HTTP 状态）；manifest 里该域 `error` / `http_*` | 取数失败，**不是「该站没数据」**。默认官方 CLI 的积分余额/每日上限或上游失败应按错误提示处理；不再用 `--via browser` 换档。脚本已不做阈值筛选——出错行永远显示在默认输出里 |
 | ② kd | 非 200 或配额用尽 | 词的难度「未测得」，不是 KD=0 |
 | ③ serp-query | serper 报错/超时 | 盘面「没看到」，不是「盘面是空的」 |
 | ④ similarweb/semrush | 面板没渲染稳、登录态失效 | 流量「未取得」，不是流量小；查 backlink 侧证据目录 |
@@ -331,7 +331,7 @@ CDX 直查是 **41 条 200 快照，跨 2002–2010**，且能取回当年正文
 | `--provider webcafe`（默认） | 注册日期 / 站龄 / 月访问 / DR / 环比 / 核心搜索词 / 月度曲线 | 经官方 gefei CLI 的 `domain_overview`，当前 2 积分/域名（以官方目录为准），扣余额，不用网站每日赠送额度。**缺失字段为未知，JSON 保留 null** |
 | `--provider tabapi` | 月访问 / 流量来源 / 地区 / 核心词 / WHOIS / RDAP / 反链 | 需付费令牌 `TABAPI_KEY`，按 credit 计费 |
 
-**已迁移官方积分 API（2026-09-30）**：`aitdk-lookup.mjs --provider webcafe` 默认 spawn 官方 `~/.claude/skills/gefei/scripts/webcafe.mjs domain_overview`，旧 `/mine/api/domain` 与浏览器配额通道已移除。大站和中小站实测覆盖注册日期、站龄、访问、DR、环比、渠道、核心词（含品牌/导航标记）与月度曲线，保留原输出结构；不声明其他域名都有数据，也不声明与旧端点数据逐值同源。凭据只由官方 CLI 管理；缺失数值保留 null、表格显示未知。
+**已迁移官方积分 API（2026-09-30）**：`domain-profile.mjs --provider webcafe` 默认 spawn 官方 `~/.claude/skills/gefei/scripts/webcafe.mjs domain_overview`，旧 `/mine/api/domain` 与浏览器配额通道已移除。大站和中小站实测覆盖注册日期、站龄、访问、DR、环比、渠道、核心词（含品牌/导航标记）与月度曲线，保留原输出结构；不声明其他域名都有数据，也不声明与旧端点数据逐值同源。凭据只由官方 CLI 管理；缺失数值保留 null、表格显示未知。
 
 **流量结构（搜索占比 / 直接访问占比）拿不到时，退到 Similarweb 的渠道构成补这两格**——
 它们正是下面那张阈值表里最关键的两行。

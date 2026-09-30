@@ -25,7 +25,7 @@ const execFileP = promisify(execFile);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../../..');
 const scripts = {
-  aitdk: path.join(here, 'aitdk-lookup.mjs'),
+  aitdk: path.join(here, 'domain-profile.mjs'),
   sitemap: path.join(here, 'sitemap-diff.mjs'),
   kd: path.join(here, '../seo-webcafe.mjs'),
   similarweb: path.join(repo, 'backlink/scripts/similarweb-query.mjs'),

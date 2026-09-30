@@ -1,27 +1,19 @@
 #!/usr/bin/env node
 /**
- * 用途：给一个域名，拿回悬赏帖里 AITDK 那套判断所需要的四件事——
- *         域名注册日期 / 月访问量 / 流量结构（搜索占比、直接访问占比）/ 核心搜索关键词。
- *       用途一句话：**采回「一个刚注册不久却已经跑起量的站」的原始画像。**
- *       本脚本只采集：不做阈值筛选，「新站 + 有量 + 搜索为主」这类判断由 AI
- *       对着完整输出（含出错行）来下——见 references/demand-sources/validation-chain.md「十、候选验证链路」。
+ * domain-profile.mjs：给一个域名，取回注册日期 / 月访问量 / 流量结构 / 核心搜索关键词。
+ * 本脚本只采集域名画像，不做阈值筛选；判断由 AI 对着完整输出（含出错行）来下，
+ * 见 references/demand-sources/validation-chain.md「十、候选验证链路」。
  *
- * 关于 AITDK 本身（2026-08-23 实测，重要，别再重复探）：
- *   - aitdk.com 网站本身**已经没有域名查询入口了**，只剩 13 个 AI 文案生成器。
- *     整站是 TanStack Start SSR，前端 JS 里只有 /api/auth 和 /api/config/public，
- *     猜 /api/traffic、/api/domain、/api/whois 一律 404。**没有公开的免费查询端点。**
- *   - 那套流量数据现在在它的 Chrome 扩展里，扩展背后的公开 API 是同一作者的
- *     **TabAPI**（tabapi.com，页脚「API」链接）：GET /api/v1/domains/{domain}/traffic
- *     返回 overview.visits / sources / top_keywords / country_rank，3–12 credits，
- *     **必须 Bearer sk_live_ 付费令牌**，匿名调用 401。它还有 WHOIS/RDAP（各 1 credit）
- *     给注册日期。所以 AITDK 这条线是「可用但要花钱」。
+ * 历史上为复现 AITDK 那套判断而写。AITDK 自身无公开免费查询端点，
+ * 故默认取数走官方哥飞 CLI；本脚本不是 AITDK 面板查询或验收入口。
+ * 可选 tabapi provider 使用付费流量与 WHOIS/RDAP API，按 credit 计费。
  * 默认 webcafe provider 经官方 gefei CLI 调 domain_overview，按积分余额计费。
  * 2026-09-30 两站实测：注册日期、访问、DR、环比、渠道、核心词、曲线字段覆盖。
  * 凭据由官方 CLI 自行管理；本脚本不读取 WEBCAFE_TOKEN 或其配置。
  * tabapi provider 保留，需要 TABAPI_KEY，按 credit 计费。
  *
- * 示例：node aitdk-lookup.mjs example.com --json
- * 批量：node aitdk-lookup.mjs --file domains.txt --out profiles.jsonl
+ * 示例：node domain-profile.mjs example.com --json
+ * 批量：node domain-profile.mjs --file domains.txt --out profiles.jsonl
  *
  * 已知坑：
  *   1. `--file` 批量是**逐条追加落盘**（.jsonl），中断后再跑会自动跳过已完成的域名。
@@ -47,11 +39,11 @@ import { UA } from '../seo-webcafe.mjs';
 
 const execFileP = promisify(execFile);
 
-const HELP = `域名画像（AITDK 那套字段）—— 注册日期 / 月访问 / 流量结构 / 核心词
+const HELP = `域名画像 —— 注册日期 / 月访问 / 流量结构 / 核心词
 
 用法:
-  node aitdk-lookup.mjs <域名> [选项]
-  node aitdk-lookup.mjs --file <每行一个域名的文件> --out out.jsonl [选项]
+  node domain-profile.mjs <域名> [选项]
+  node domain-profile.mjs --file <每行一个域名的文件> --out out.jsonl [选项]
 
 Provider:
   --provider webcafe     默认。经官方 gefei CLI 调 domain_overview，当前 2 积分/域名（以官方目录为准）
@@ -62,7 +54,7 @@ Provider:
   --json                 输出 JSON
   --out <file.jsonl>     逐条追加落盘，可续跑（强烈建议批量时使用）
   --limit <n>            批量时最多处理 n 个
-  --evidence-dir <dir>   失败现场与 manifest 落点，默认 .rankup/evidence/demand/aitdk-lookup-<ts>/
+  --evidence-dir <dir>   失败现场与 manifest 落点，默认 .rankup/evidence/demand/domain-profile-<ts>/
   --help
 
 注意：本脚本只采集，不做阈值筛选。官方 CLI 的积分、上限或网络错误会显示在默认输出里——「取数失败」和「字段为空」是两回事，判断交给 AI。`;
@@ -173,7 +165,7 @@ if (args.help || (!args._[0] && !args.file)) { console.log(HELP); process.exit(0
 for (const gone of ['max-age-days', 'min-visits', 'min-search-share', 'max-direct-share', 'strict']) {
   if (args[gone] != null) die(`--${gone} 已移除：脚本不再做阈值筛选（会把「没取到」筛成「不合格」）。拿完整输出去判断。`);
 }
-initEvidence('aitdk-lookup', { dir: args['evidence-dir'] || null });
+initEvidence('domain-profile', { dir: args['evidence-dir'] || null });
 
 const provider = args.provider === 'tabapi' ? 'tabapi' : 'webcafe';
 const months = Math.min(12, Math.max(3, Number(args.months || 3)));
