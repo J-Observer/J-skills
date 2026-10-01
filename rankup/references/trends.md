@@ -405,6 +405,8 @@ python3 $GT compare "<新词>" --geo JP --time 1d   # 按国家看
 
 ## 新版接口勘探（2026-09-09）
 
+2026-10-01 起脚本已全部改走旧版页面，本节保留作历史勘探记录。
+
 Google Trends 新版 Explore UI（`https://trends.google.com/explore?...`）不再暴露旧版那套
 公开可读的匿名 widget REST 接口，改用 Google 通用的 `batchexecute` RPC 框架。但**在页面
 自己的上下文里同源 fetch 时，旧版 REST 接口依然可用**——这是本轮（第四轮修订）把三条命令
@@ -538,7 +540,7 @@ IntersectionObserver 上。所以在隐藏标签页里，**块的 DOM 骨架会�
 | 热度曲线（Interest over time） | `compare KW…`，`--time` 全部档位含 1h/4h/1d | ✅ 实跑；now 区间分钟/8 分钟级 |
 | 地区分布（Interest by region） | `region KW…`，`--resolution country\|region\|city` | ✅ 实跑；`city` 对小词常为全 0（Google 就是没给），不是命令坏了 |
 | 相关查询（Search queries：Rising / Top） | `related KW` | ✅ 实跑 |
-| 相关主题（Search topics：Rising / Top） | `related KW` 的「相关主题」段 | ❌ **拿不到**：接口把脚本会话标为 `USER_TYPE_SCRAPER`，`RELATED_TOPICS` 恒回空 `rankedList`；把 userType 改成 LEGIT_USER 会 401（token 绑定）；后台标签页里 DOM 也不渲染。相关主题是 Google 的实体归并，`related` 的相关查询已覆盖绝大多数用法；确实要主题时让用户在前台标签页里看 |
+| 相关主题（Search topics：Rising / Top） | 不提供 `topics` 命令 | ❌ **前台窗口实测：不可，2026-10-01**。OpenCLI 旧版页、minecraft、美国 7 天，首次 `visibilityState=visible` 时主题块已渲染，但显示 `Hmm, your search doesn't have enough data to show here.`；相关查询同页有 Breakout。页面自身 ENTITY 请求 HTTP 200，同 URL 回读 `{"default":{"rankedList":[]}}`（原始响应抓包不可用，回读不是原始响应）；保存证据时可见性变为 hidden。仅为自动化会话实测，不推断普通 Chrome；ai generator / chatgpt 前台补验因浏览器桥断线未完成。报告与截图：`gt-old-ui.md`、`gt-old-ui-minecraft.png`。 |
 | 地区 / 时间 / 类目 / 搜索类型四个下拉 | `--geo`、`--time`、`--category N`、`--property web\|images\|news\|youtube\|shopping` | ✅ 实跑（`--property youtube`、`--category 5` 的 explore URL 与取数都对上） |
 | Trending Now（每日热搜） | `hot --region US` | ✅ 实跑 |
 | 多词对比（最多 5 个） | `compare A B C` | ✅ 实跑；标签页 URL 带全部关键词；**归一化按同框峰值**，大小词别同框 |

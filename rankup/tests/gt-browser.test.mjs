@@ -5,57 +5,12 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-// gt-browser.mjs 2026-09-09 四次切版：三条命令的**主路**都改成「在 trends.google.com
-// 页面上下文里同源打旧版 REST 接口」（dataPath: rest）——
-//   compare → /trends/api/widgetdata/multiline      （TIMESERIES widget）
-//   region  → /trends/api/widgetdata/comparedgeo    （GEO_MAP widget）
-//   related → /trends/api/widgetdata/relatedsearches（RELATED_QUERIES widget）
-// 换路的原因是 opencli 标签页在本机是 visibilityState:"hidden"，渲染生命周期停摆，
-// IntersectionObserver 不回调 → 新版页面的懒加载 widget（尤其 related）永远不发请求，
-// 抓包/DOM 两条路都拿不到（完整根因见 gt-browser.mjs 文件头与 references/trends.md）。
-// 兜底仍在：compare 保留 batchexecute 抓包，region 保留表格 DOM + 翻页，related 保留表格 DOM。
-//
-// 这份 fake opencli 模拟的就是这条新链路：
-//   - batch: open + eval(装抓包壳子)
-//   - eval(含 "widgetdata/"): REST 主路，按 widget id 回对应 fixture；
-//     GT_FAKE_REST_FAIL=1 时统一回 {ok:false}，用来逼出兜底路径
-//   - eval(含 "data-search-interest"): related 的 DOM 兜底探测
-//   - eval(含 "data-geo-code"): region 的 DOM 兜底行读取
-//   - eval(含 "rpcids=" + "__gtCapture"): compare 的抓包兜底
-//   - eval(含 "scrollBehavior"): 同步滚动，回个现场
-//   - click: region 翻页按钮，直接回 clicked:false 结束分页
-//   - screenshot / close: 落空文件 / 退出 0
-
+// 三条命令只走旧版 Explore 页的 REST；REST 失败直接报错，无新版兜底。
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const gt = path.join(root, "rankup/scripts/gt.py");
 const base = await mkdtemp(path.join(tmpdir(), "gt-browser-test-"));
 const fakeOpencli = path.join(base, "opencli");
 const log = path.join(base, "opencli.log");
-
-/** 把 payload 编码成 batchexecute 的 `)]}'` 分块响应体，decodeWrb() 能解出来的那种。 */
-function wrbBody(rpcid, payload) {
-  const inner = JSON.stringify(payload);
-  const literal = JSON.stringify(inner); // 带引号、已转义的字符串字面量
-  const triplet = `[["wrb.fr","${rpcid}",${literal},null,null,null,"generic"]]`;
-  return `)]}'\n\n${triplet.length}\n${triplet}\n`;
-}
-
-// g4kJzf（compare 的抓包兜底）真实响应【实测，2026-09-09】比最初勘探记的多包一层。
-const CAPTURE_FIXTURES = {
-  g4kJzf: wrbBody("g4kJzf", [
-    [
-      ["demo", null, null, 40, [
-        [10.4, 10, [[1704067200], [1704672000]], false, 1],
-        [20.6, 20, [[1704672000], [1705276800]], false, 1],
-      ]],
-      // Prior-year same-name comparison must not overwrite the requested primary series.
-      ["demo", null, null, 40, [
-        [90, 90, [[1672531200], [1673136000]], false, 1],
-        [95, 95, [[1673136000], [1673740800]], false, 1],
-      ]],
-    ],
-  ]),
-};
 
 // REST fixtures：结构照抄本机实测响应（去掉 `)]}'` 前缀后的那段 JSON）。
 const REST_FIXTURES = {
@@ -90,7 +45,6 @@ const REST_FIXTURES = {
 await writeFile(fakeOpencli, `#!/usr/bin/env node
 import { appendFileSync, writeFileSync } from "node:fs";
 
-const CAPTURE_FIXTURES = ${JSON.stringify(CAPTURE_FIXTURES)};
 const REST_FIXTURES = ${JSON.stringify(REST_FIXTURES)};
 const args = process.argv.slice(2);
 appendFileSync(process.env.GT_FAKE_LOG, JSON.stringify(args) + "\\n");
@@ -98,17 +52,6 @@ appendFileSync(process.env.GT_FAKE_LOG, JSON.stringify(args) + "\\n");
 if (args.includes("close")) process.exit(0);
 
 const sub = args[2]; // browser <session> <sub> ...
-if (sub === "batch") {
-  const commands = JSON.parse(args[args.indexOf("--commands") + 1]);
-  console.log(JSON.stringify(commands.map((c, index) => ({ cmd: c.cmd, index, ok: true, result: { installed: true, value: true } }))));
-  process.exit(0);
-}
-if (sub === "scroll") { console.log("Scrolled down"); process.exit(0); }
-if (sub === "click") {
-  // region 的 DOM 兜底分页：测试用例 --top <= 5，第一页就够，直接说翻到底了。
-  console.log(JSON.stringify({ clicked: false }));
-  process.exit(0);
-}
 if (sub === "eval") {
   const js = args[3] || "";
 
@@ -124,38 +67,6 @@ if (sub === "eval") {
     process.exit(0);
   }
 
-  // 2) related 的 DOM 兜底探测
-  if (js.includes("data-search-interest")) {
-    console.log(JSON.stringify({
-      top: [{ query: "dom top term", value: "55", change: "+10%" }],
-      rising: [{ query: "dom rising term", value: "3", change: "BREAKOUT" }],
-      h3: ["Top queries", "Rising queries"],
-    }));
-    process.exit(0);
-  }
-
-  // 3) region 的 DOM 兜底：aria-label 覆盖单关键词格式。
-  if (js.includes("data-geo-code")) {
-    console.log(JSON.stringify([
-      { code: "US", name: "United States", al: "demo: 42" },
-      { code: "JP", name: "Japan", al: "demo: 7" },
-    ]));
-    process.exit(0);
-  }
-
-  // 4) compare 的抓包兜底
-  const rpcMatch = js.match(/rpcids=([a-zA-Z0-9]+)/);
-  if (rpcMatch && js.includes("__gtCapture")) {
-    const body = CAPTURE_FIXTURES[rpcMatch[1]];
-    console.log(JSON.stringify(body ? { resBody: body, via: "fake" } : null));
-    process.exit(0);
-  }
-
-  // 5) 同步滚动（SCROLL_PANES_JS）与其它只读探测
-  if (js.includes("scrollBehavior")) {
-    console.log(JSON.stringify({ panes: 1, moved: true, top: 1400, height: 2036 }));
-    process.exit(0);
-  }
   console.log(JSON.stringify({ installed: true, value: true }));
   process.exit(0);
 }
@@ -183,11 +94,10 @@ try {
   assert.match(compare.stdout, /2024-01-01\s*\|\s*10\b/, "compare 应取 value[i]");
   assert.match(compare.stdout, /峰值/);
 
-  // --- compare：REST 挂掉时回落到 batchexecute 抓包 ---
+  // --- compare：REST 失败直接报错 ---
   const compareFallback = run(["compare", "demo", "--time", "2024-01-01:2024-01-08", "--session", "gt-browser-test"], { GT_FAKE_REST_FAIL: "1" });
-  assert.equal(compareFallback.status, 0, compareFallback.stderr);
-  assert.match(compareFallback.stdout, /2024-01-01/, "抓包兜底也应换算出日期");
-  assert.match(compareFallback.stdout, /\b10\b/, "抓包兜底应取 roundedValue（第二个字段），不是浮点原值");
+  assert.notEqual(compareFallback.status, 0);
+  assert.match(compareFallback.stderr, /fake REST failure; HTTP=unknown/);
 
   const wrongWindow = run(["compare", "demo", "--time", "28d", "--session", "gt-browser-test"]);
   assert.notEqual(wrongWindow.status, 0, "old timestamps must not pass a current 28-day request");
@@ -199,10 +109,10 @@ try {
   assert.match(region.stdout, /United States\s*\|\s*42/, "region 应从 geoMapData.value 解析出数值");
   assert.match(region.stdout, /Japan\s*\|\s*7\s*\|/);
 
-  // --- region：REST 挂掉时回落到表格 DOM ---
+  // --- region：REST 失败直接报错 ---
   const regionFallback = run(["region", "demo", "--top", "5", "--session", "gt-browser-test"], { GT_FAKE_REST_FAIL: "1" });
-  assert.equal(regionFallback.status, 0, regionFallback.stderr);
-  assert.match(regionFallback.stdout, /United States\s*\|\s*42/, "DOM 兜底应从 aria-label 解析出 value");
+  assert.notEqual(regionFallback.status, 0);
+  assert.match(regionFallback.stderr, /fake REST failure; HTTP=unknown/);
 
   // --- related：REST 主路（relatedsearches）---
   const related = run(["related", "demo", "--session", "gt-browser-test"]);
@@ -216,12 +126,10 @@ try {
   assert.ok(related.stdout.indexOf("demo breakout term") < topIdx, "Breakout 词必须落在 Rising 区块里，不能串到 Top");
   assert.ok(related.stdout.indexOf("demo top term") > topIdx, "0-100 的词必须落在 Top 区块里");
 
-  // --- related：REST 挂掉时回落到表格 DOM ---
+  // --- related：REST 失败直接报错 ---
   const relatedFallback = run(["related", "demo", "--session", "gt-browser-test"], { GT_FAKE_REST_FAIL: "1" });
-  assert.equal(relatedFallback.status, 0, relatedFallback.stderr);
-  assert.match(relatedFallback.stdout, /dom rising term/);
-  assert.match(relatedFallback.stdout, /dom top term\s*\|\s*55\s*\|\s*\+10%/, "DOM 兜底给的是 query/value/change 三列");
-  assert.match(relatedFallback.stdout, /DOM 兜底取数/, "走兜底时要在输出里明说，别让判读者以为是主路数据");
+  assert.notEqual(relatedFallback.status, 0);
+  assert.match(relatedFallback.stderr, /fake REST failure; HTTP=unknown/);
 
   const related2kw = run(["related", "a", "b", "--session", "gt-browser-test"]);
   assert.notEqual(related2kw.status, 0, "related 应拒绝多个关键词（跟旧版契约一致）");
