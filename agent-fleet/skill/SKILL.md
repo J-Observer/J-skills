@@ -13,6 +13,7 @@ description: 使用本机 fleet 分派 Codex GPT-6、Gemini、Grok 或 JEV 任�
 |---|---|
 | `fleet copy brief.md` | Gemini 文案、翻译 |
 | `fleet grok brief.md` | Grok 调研 |
+| `fleet web start/say/close/list`；兼容 `fleet web "问题" [--followup "追问" ...] [--close]` | 网页版 ChatGPT，少量串行问答 |
 | `fleet bulk brief.md` | Gemini 批量处理 |
 | `fleet gpt brief.md` | 托管 GPT 任务 |
 | `fleet code brief.md [--low] [--cwd dir]` | 本机 Codex GPT-6：默认入口 |
@@ -48,8 +49,41 @@ GPT-6 走 ChatGPT 会员额度，按现有账号约定不额外花钱；其 brie
 | `gpt` | `kollab-gateway-gpt-sol` | GPT 托管任务 |
 | `code` | 本机 Codex `gpt-6.1-sol` | **默认执行者**：编码、调研、报告、通用任务；默认 medium，`--low` 为 low |
 | `judge` | `jev` | 分类、选择、打分 |
+| `web` | 网页版 ChatGPT（`chatgpt-web-ask.mjs`） | 联网调研、综述、对比、选题发散、竞品功能核对 |
 
 `code` 在本机 Codex 缺失、登录失效或模型明确不支持时，自动改走 `kollab-gateway-gpt-sol`；其他失败不自动重试。选择以当前配置和实际结果为准；查看其他模型用 `fleet list-models`。Codex 审查范围见 [编程与 review](references/codex-coding.md)。
+
+## 网页版 ChatGPT 通道
+
+与 Rankup 探针共用网页驱动，适合少量串行调研、综述与对比；每轮约 30–110 秒。不适合读本地文件、执行命令、改代码或批量任务。
+
+```bash
+fleet web start "问题" --name research-signatures
+fleet web say chatgpt-web-research-signatures "追问"
+fleet web list
+fleet web close chatgpt-web-research-signatures
+fleet web "问题" --followup "追问1" --followup "追问2" --out answer.md --json
+```
+
+- 不设轮次上限，不会自动关页；用完请 `close`。兼容问答命令加 `--close` 才在成功结束后关闭。追问间至少隔 8 秒。
+- 常驻临时聊天占一个窗口池位（池容量 10），默认 dedicated，副屏优先、自动铺开；`AI_PROBE_WEB_WINDOW` 可覆盖。保活依赖 `OPENCLI_BROWSER_IDLE_TIMEOUT`（秒），默认 86400（24 小时），并非永久保存；页面丢失须重新 start，临时聊天无法找回。
+- 不产生 API token 费用，但消耗订阅额度；高频可能触发验证或限流（探针遇过一次，原因未确认）。限流、验证码或登录失效立即停，保存 pageText 和 pageUrl，不关页，留给人看。
+- 须用户确认账号已关闭记忆；脚本在发送前自动确认并回读临时页「不使用记忆」声明及页首「不个性化」模式，无法确认就停止并保存 pageText/pageUrl，不改账号设置。已开路径已验证；未开路径尚未验证，需用户在当前聊天手动选择「不个性化」后重新开始。
+- 内容发给 OpenAI，不放密钥或未公开资料；答案当线索，域名与数字需核对来源。输出 DOM 引用域名，未做 payload 核验。
+- `start/say` 支持 `--json`、`--out file`；会话名、回答和引用一起输出。直接调用脚本与 `fleet web` 等价。窗口机制见 [opencli Skill](../../opencli/SKILL.md)。
+
+## 行动范围（方向锁定，适用于所有被派出的模型）
+
+执行者会自己找方向、顺手做没点名的事、做不成就绕路凑数。派单时把范围写死，一单只一个方向、一个目标：
+
+1. **方向由 brief 给定，执行者不自找方向。** brief 第一段写清「只做这一件事」和交付物；执行者不新增、不切换方向，不因发现更有价值的事就转去做；线索只在最终回复里用一行列出，不执行。
+2. **目标不漂移：能做就做，做不了就停。** 缺权限、缺输入、工具不可用、遇到 brief 没覆盖的分叉、需要超出范围的动作，一律立刻停止并如实写明已完成什么、卡在哪；不绕路、不换方案、不降低目标凑数、不扩大范围补救。是否换路径由派单者决定。
+3. **边界要写成清单**：允许读写的路径、允许调用的工具与接口、明确禁止项、完成标准各一条；没写进允许清单的就是不允许。需要多个方向就拆成多个 brief，不在一个 brief 里并列。
+4. **自动兜底**：`fleet code` 在 brief 前自动加上下面这段，网关模型则追加进默认执行者系统提示（`src/scope.mjs` 的 `SCOPE_LOCK`，文字与此逐字一致；改一处必须同步另一处）。brief 里仍要写自己的边界，兜底只防漏写：
+
+> 【行动范围，最高优先级】你只有 brief 指定的这一个任务方向和目标。不自己寻找、新增或切换方向，不因为发现了更有价值的事就转去做它；发现的线索只在最终回复里用一行列出，不执行。能按 brief 做就做；做不到（缺权限、缺输入、brief 所需且没有 brief 内替代路径的工具不可用、遇到 brief 没覆盖的分叉、需要做超出范围的动作）就立刻停止，如实写明已完成什么、卡在哪里，不绕路、不换方案、不降低目标凑数、不扩大范围补救。brief 已列出多条路径时，单条路径不可用就改用 brief 列出的其他路径，全部不可用才停。
+
+验收时，执行者做了 brief 之外的事、改了方向、或做不到却用替代品交差，都算越界，按 CLAUDE.md §4.3 先向用户报告，不自行掩盖。
 
 ## 简报与验收
 
@@ -66,7 +100,9 @@ GPT-6 走 ChatGPT 会员额度，按现有账号约定不额外花钱；其 brie
 
 ## brief 写法
 
-开头说明目标、真实交付物、允许改的文件、不可碰的范围、并行工作边界、必须跑的检查和完成标准。需要改文件时加 `--expect-changes`；涉及浏览器时写明用 opencli（`opencli browser <会话名>`），禁止 Playwright/agent-browser。最终回复列改动与验证结果，不能只说“已完成”。
+开头说明目标、真实交付物、允许改的文件、不可碰的范围、并行工作边界、必须跑的检查和完成标准；方向只写一个，写法见上文「行动范围」。
+
+**派单前先核实路径，再写进 brief。** 允许读写清单里的每个路径都用 `ls` 或 `test -e` 确认：已有文件确认存在；新文件确认上级目录存在，并明确写成「新建，路径为……」，不要写「放在已有的脚本目录」这类要执行者自己去猜的说法。执行者遇到路径对不上会按「行动范围」直接停止、不会自行换路径，一处路径写错就白跑一轮。各 Skill 的布局并不统一（例如 agent-fleet 的说明在 `agent-fleet/skill/SKILL.md`、可执行脚本在 `bin/`；rankup 与 opencli 的说明在各自根目录的 `SKILL.md`、脚本在 `scripts/`），以派单时的实际 `ls` 为准，不凭记忆。需要改文件时加 `--expect-changes`；涉及浏览器时写明用 opencli（`opencli browser <会话名>`），禁止 Playwright/agent-browser。最终回复列改动与验证结果，不能只说“已完成”。
 
 ## 安全边界
 

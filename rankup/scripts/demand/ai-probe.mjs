@@ -34,6 +34,14 @@
  *   --google-serp-file <f>  可选。opencli google search -f json 的输出文件（带标题，追问更自然）。
  *   --fetch-google          没给上面两项时，用 `opencli google search` 现抓一次前 10（只读，需 Chrome）。
  *   --channel <c>           codex（默认）| chatgpt-web。见下方「通道」。
+ *   --multi-turn            仅 chatgpt-web：每个 N/K 样本在同一临时页自然提问并追问，不加 PROBE/搜索包装，不做 C 型。
+ *   --turns <整数>           多轮总轮数，任意正整数，默认 3；轮间至少等 8 秒，全部读完才关页；失败保留轮次、不重发。
+ *   --turn2-prompt <文本>   默认 Why did you recommend that one first, and what are its weak points?
+ *   --turn3-prompt <文本>   默认 Is there anything better out there that you'd recommend instead? What would a better product need to do?
+ *   --followup "文本"        可重复，依次定制第 2、3、4…轮；未给的轮交替用默认两句。
+ *   --keep-open             仅 chatgpt-web 且 reps=1：采样后保留页面并打印会话名。
+ *   # 三轮预览：--channel chatgpt-web --multi-turn --kinds K --reps 1 --dry-run
+ *   # AI_PROBE_WEB_WINDOW 覆盖临时页窗口模式，默认 dedicated。raw 的 turns 保存各轮原文、域名、耗时与状态。
  *   --temporary             chatgpt-web 默认开启：dedicated 临时页发送，DOM 读取回答与来源；--no-temporary 用旧路径。
  *   --kinds <N,K,C>         仅执行指定类型，默认 N,K,C；单措辞采样可用 --kinds N，避免 reps 翻倍。
  *   --followup-prompt <文本> C 型完整提问，替代 Google 前三模板。
@@ -103,7 +111,7 @@
  * 已知坑（都踩过）：
  *   - **不要在 codex 通道里用默认 ~/.codex**（见上，记忆/指令污染）。脚本自己造空 home，别改成复用。
  *   - 空 home 里仍会带的环境信息：时区、cwd、日期。联网搜索的结果还受本机出口 IP 的地区影响。
- *   - 提问带了固定的「探针尾巴」（要求先自然作答，再在 ---PROBE--- 之后给一行 JSON：名单/类型/弱点/空白）。
+ *   - 单轮提问带了固定的「探针尾巴」（--multi-turn 不带）（要求先自然作答，再在 ---PROBE--- 之后给一行 JSON：名单/类型/弱点/空白）。
  *     这会让模型多讲「弱点」，与用户的自然提问略有不同；N/K 三组用同一尾巴，组间可比，绝对值别当真实分布。
  *   - 模型「联网」不等于「靠联网发现」：codex 通道看事件流里有没有 web_search 项判断是否联网；
  *     2026-09-29 三个词 21 次全部联网，且**每一次首轮搜索词里就已带上最终推荐的产品名**
@@ -146,25 +154,10 @@ import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from './_lib.mjs';
+import { regDomain, oc, parseEvalJson, classifyWebSend, failedPage, sendTurn as runTemporaryChat, closeSession } from './_chatgpt_web.mjs';
+export { regDomain, parseEvalJson } from './_chatgpt_web.mjs';
 
 // ───────────────────────── 域名工具 ─────────────────────────
-
-const SLD2 = new Set(['co.uk', 'org.uk', 'com.au', 'co.jp', 'com.br', 'co.in', 'com.cn', 'com.tw', 'co.kr', 'com.hk', 'com.sg', 'co.nz', 'com.mx', 'com.tr', 'co.za']);
-// 多租户平台：子域名才是「一个产品」，不能折叠到主域
-const MULTI_TENANT = ['itch.io', 'github.io', 'netlify.app', 'vercel.app', 'pages.dev', 'notion.site', 'substack.com', 'wordpress.com', 'blogspot.com', 'herokuapp.com', 'web.app', 'firebaseapp.com', 'gitlab.io', 'onrender.com', 'fly.dev', 'replit.app', 'glitch.me'];
-
-export function regDomain(input) {
-  let host = String(input || '').trim().toLowerCase();
-  if (!host) return '';
-  try { host = new URL(/^[a-z]+:\/\//.test(host) ? host : `https://${host}`).hostname; } catch { /* keep */ }
-  host = host.replace(/^www\./, '').replace(/\.$/, '');
-  const parts = host.split('.');
-  if (parts.length <= 2) return host;
-  const last2 = parts.slice(-2).join('.');
-  if (MULTI_TENANT.includes(last2)) return parts.slice(-3).join('.');
-  if (SLD2.has(last2)) return parts.slice(-3).join('.');
-  return last2;
-}
 
 // 同一产品的多个域名（例如官方域名 + 旧域名/子域名）折成一个：--alias "old.example=new.example,a.com=b.com"
 let ALIASES = {};
@@ -324,11 +317,6 @@ function runCodexOnce({ prompt, model, effort, timeoutS, rawBase }) {
 
 // ───────────────────────── chatgpt-web 通道 ─────────────────────────
 
-function oc(args, { timeoutS = 180 } = {}) {
-  const r = spawnSync('opencli', args, { encoding: 'utf8', timeout: timeoutS * 1000, maxBuffer: 64 * 1024 * 1024 });
-  return { status: r.status, stdout: r.stdout || '', stderr: r.stderr || '', spawnError: r.error ? (r.error.code || r.error.message) : null };
-}
-
 /**
  * 页内读取器：在 chatgpt.com 页面里跑（经 `opencli browser <会话> eval`），自包含、不引用外部变量（用 toString 注入）。
  * 只做两次只读 GET：/api/auth/session（取令牌，令牌只在这里用、不返回）与 /backend-api/conversation/<id>。
@@ -410,31 +398,11 @@ export const readerJs = (id, waitMs) => `(${pageReader.toString()})(${JSON.strin
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
-/** opencli browser eval 的输出：字符串结果原样打印（一行 JSON），对象结果会被美化；两种都兼容 */
-export function parseEvalJson(stdout) {
-  const t = String(stdout || '').trim();
-  if (!t) return null;
-  const tryParse = (s) => { try { return JSON.parse(s); } catch { return undefined; } };
-  for (const cand of [t, t.split('\n').filter(Boolean).pop()]) {
-    let v = tryParse(cand);
-    if (typeof v === 'string') v = tryParse(v);
-    if (v && typeof v === 'object' && !Array.isArray(v)) return v;
-  }
-  return null;
-}
-
 function convIdFrom(text) {
   const t = String(text || '');
   try { const v = JSON.parse(t); const o = Array.isArray(v) ? v[0] : v; if (o?.conversationId && /^[0-9a-f-]{20,}$/i.test(o.conversationId)) return o.conversationId; } catch { /* fall through */ }
   const m = t.match(/"?conversationId"?\s*[:=]\s*"?([0-9a-f-]{20,})/i) || t.match(/\/c\/([0-9a-f-]{20,})/i);
   return m ? m[1] : null;
-}
-
-function classifyWebSend(text) {
-  const t = String(text || '');
-  if (/logged[- ]in|not logged|sign in|log in|login|unauthorized/i.test(t)) return 'auth';
-  if (/rate.?limit|too many requests|usage limit|reached the limit/i.test(t)) return 'rate-limit';
-  return 'send-failed';
 }
 
 /** 发送：只借 `opencli chatgpt ask --new --wait false`（不传 --web-search），拿 conversationId。最多 2 次，认证类错误不重试。 */
@@ -457,47 +425,26 @@ async function sendChatgptPrompt(prompt) {
  * 发送 → 页内轮询会话数据 → 取回答与引用。总硬超时 timeoutS（从发送成功起算），不重发、不无限重试。
  * web = { session, ready, opened }：读数据用的 opencli browser 会话（描述性名字）、「已在 chatgpt.com」标记、是否开过（收尾要 close），跨提问复用。
  */
-async function runTemporaryChat({ prompt, timeoutS, web }) {
+async function runMultiTurnChat({ prompts, timeoutS, web }) {
   const t0 = Date.now();
-  const deadline = t0 + timeoutS * 1000;
-  const browser = (...args) => oc(['browser', web.session, ...args, '--window', 'dedicated'], { timeoutS: Math.max(1, Math.floor((deadline - Date.now()) / 1000)) });
-  web.opened = true;
-  const opened = browser('open', 'https://chatgpt.com/?temporary-chat=true');
-  if (opened.status !== 0) return { ok: false, failure: 'page', error: (opened.stderr || opened.stdout).trim(), durationMs: Date.now() - t0 };
-  let notice = '';
-  for (;;) {
-    const state = parseEvalJson(browser('eval', `JSON.stringify({text:document.body.innerText,ready:!!document.querySelector('[contenteditable="true"][role="textbox"]')})`).stdout);
-    const text = state?.text || '';
-    if (/验证码|captcha|verify you are human|too many requests|usage limit|reached the limit|达到.*上限/i.test(text)) return { ok: false, failure: 'rate-limit', error: '临时页出现验证码或限流提示', durationMs: Date.now() - t0 };
-    if (!state?.ready && /登录|log in|sign in/i.test(text)) return { ok: false, failure: 'auth', error: '临时页出现登录门', durationMs: Date.now() - t0 };
-    notice = text.split('\n').filter((line) => /不会.*记忆|不.*使用.*记忆|won.t.*memor|doesn.t.*memor/i.test(line)).join('\n');
-    if (state?.ready && notice) break;
-    if (Date.now() >= deadline) return { ok: false, failure: 'page', error: '未核对到临时对话不使用记忆提示', durationMs: Date.now() - t0 };
-    await sleep(1000);
-  }
-  for (const args of [['type', '[contenteditable="true"][role="textbox"]', prompt], ['click', 'button[aria-label="发送"]']]) {
-    const r = browser(...args);
-    if (r.status !== 0) return { ok: false, failure: classifyWebSend(r.stderr || r.stdout), error: (r.stderr || r.stdout).trim().slice(-300), durationMs: Date.now() - t0 };
-  }
-  while (Date.now() < deadline) {
-    const r = browser('eval', `JSON.stringify((() => {
-      const text = document.body.innerText;
-      const answer = [...document.querySelectorAll('[data-markdown-text-style="assistant-message"]')].pop();
-      const busy = !!document.querySelector('[data-testid="stop-button"],button[aria-label*="Stop"],button[aria-label*="停止"]');
-      const links = answer ? [...answer.querySelectorAll('a[href^="http"]')].map(a => ({url:a.href,title:a.innerText,via:'dom-link'})) : [];
-      return {text:answer?.innerText || '',links,busy,blocked:/验证码|captcha|verify you are human|too many requests|usage limit|reached the limit|达到.*上限/i.test(text),auth:!document.querySelector('[contenteditable="true"][role="textbox"]') && /登录|log in|sign in/i.test(text),model:document.querySelector('button[aria-label="选择 ChatGPT 模型"]')?.innerText || null};
-    })())`);
-    const got = parseEvalJson(r.stdout);
-    if (got?.blocked || got?.auth) return { ok: false, failure: got.auth ? 'auth' : 'rate-limit', error: '临时页出现登录、验证码或限流提示', durationMs: Date.now() - t0 };
-    if (got?.text && !got.busy && got.text.includes('---PROBE---')) {
-      const cited = [...new Map(got.links.map(c => [c.url, {...c, domain:regDomain(c.url)}])).values()];
-      return { ok: true, text:got.text, cited, durationMs:Date.now()-t0,
-        web:{is_temporary_chat:true,temporaryNotice:notice,memory_scope:null,model:got.model,conversationUrl:'https://chatgpt.com/?temporary-chat=true',citedCount:cited.length,payloadVerified:false},
-        ev:{searches:cited.length ? [{queries:[],preSited:false,resultCount:cited.length}] : [],retrieved:[],usage:null} };
+  const turns = [];
+  let first = null; let last = null;
+  try {
+    for (const [i, prompt] of prompts.entries()) {
+      if (i) await sleep(8000);
+      last = await runTemporaryChat({ prompt, timeoutS, web, continuation: i > 0, natural: true });
+      first ||= last;
+      turns.push({ n: i + 1, prompt, answer: last.text || '',
+        citedDomains: uniq((last.cited || []).map(c => c.domain)),
+        textDomains: extractReco({ answer: last.text || '' }).linkDomains,
+        cited: last.cited || [], durationMs: last.durationMs || 0, ok: last.ok,
+        searched: !!last.searched, ...(last.ok ? {} : { failure: last.failure, error: last.error, pageText: last.pageText, pageUrl: last.pageUrl }) });
+      if (!last.ok) break;
     }
-    await sleep(Math.min(3000, Math.max(0, deadline-Date.now())));
+    return { ...first, ok: last.ok, failure: last.failure, error: last.error, ...(!last.ok ? { pageText: last.pageText, pageUrl: last.pageUrl } : {}), turns, durationMs: Date.now() - t0 };
+  } finally {
+    if (web.opened && !web.keepOpen) closeSession(web);
   }
-  return { ok:false,failure:'timeout',error:`临时对话在 ${timeoutS} 秒内未读到完整回答`,durationMs:Date.now()-t0 };
 }
 
 async function runChatgptWebOnce({ prompt, timeoutS, web }) {
@@ -507,7 +454,7 @@ async function runChatgptWebOnce({ prompt, timeoutS, web }) {
   if (!sent.ok) return { ok: false, failure: sent.failure, error: sent.error, durationMs: Date.now() - t0 };
   const conv = sent.conv;
   const conversationUrl = `https://chatgpt.com/c/${conv}`;
-  const fail = (failure, error, extra = {}) => ({ ok: false, failure, error, conversationId: conv, durationMs: Date.now() - t0, ...extra });
+  const fail = (failure, error, extra = {}) => ({ ...(['rate-limit', 'auth', 'page', 'timeout'].includes(failure) ? failedPage(web) : {}), ok: false, failure, error, conversationId: conv, durationMs: Date.now() - t0, ...extra });
   const pollDeadline = Date.now() + timeoutS * 1000;
   let got = null; let last = null; let fails = 0; let reopens = 0; let lastErr = '';
   while (Date.now() < pollDeadline) {
@@ -647,15 +594,23 @@ function slotHint({ top1Modal, consistency, kinds, listicleShare, topicMatch }) 
 
 // ───────────────────────── 主流程 ─────────────────────────
 
-const HELP = 'ai-probe.mjs --topic <词> --need-prompt <文本> --out <目录> [--keyword-prompt <文本>] [--reps 3] [--google-top a.com,b.com | --google-serp-file f | --fetch-google] [--channel codex|chatgpt-web [--temporary] [--memory-clean]] [--kinds N,K,C] [--followup-prompt <文本>] [--dry-run] [--resume]（详见文件头注释）';
+const HELP = 'ai-probe.mjs --topic <词> --need-prompt <文本> --out <目录> [--keyword-prompt <文本>] [--reps 3] [--google-top a.com,b.com | --google-serp-file f | --fetch-google] [--channel codex|chatgpt-web [--temporary] [--memory-clean]] [--kinds N,K,C] [--followup-prompt <文本>] [--multi-turn [--turns <整数>] [--turn2-prompt <文本>] [--turn3-prompt <文本>] [--followup <文本> ...]] [--keep-open] [--dry-run] [--resume]（详见文件头注释）';
 
 async function main() {
   const args = parseArgs();
   if (args.help || args.h) { console.log(HELP); return 0; }
-  for (const k of ['topic', 'need-prompt', 'out']) if (!args[k] || args[k] === true) { console.error(`缺少 --${k}\n${HELP}`); return 2; }
+  for (const k of ['topic', 'out']) if (!args[k] || args[k] === true) { console.error(`缺少 --${k}\n${HELP}`); return 2; }
   const channel = args.channel || 'codex';
   if (!['codex', 'chatgpt-web'].includes(channel)) { console.error('--channel 只能是 codex 或 chatgpt-web'); return 2; }
   const webChannel = channel === 'chatgpt-web';
+  const multiTurn = !!args['multi-turn'];
+  if (multiTurn && !webChannel) { console.error('--multi-turn 仅网页通道 chatgpt-web 支持'); return 2; }
+  const turnCount = Number(args.turns || 3);
+  if (multiTurn && (!Number.isInteger(turnCount) || turnCount < 1)) { console.error('--turns 必须是 1 及以上整数'); return 2; }
+  if ((!args.kinds || String(args.kinds).split(',').includes('N')) && (!args['need-prompt'] || args['need-prompt'] === true)) { console.error(`缺少 --need-prompt\n${HELP}`); return 2; }
+  const customFollowups = args.followup && args.followup !== true ? [].concat(args.followup).map(String) : [];
+  const defaults = [String(args['turn2-prompt'] || 'Why did you recommend that one first, and what are its weak points?'), String(args['turn3-prompt'] || "Is there anything better out there that you'd recommend instead? What would a better product need to do?")];
+  const followupPrompts = Array.from({ length: turnCount - 1 }, (_, i) => customFollowups[i] ?? defaults[i % 2]);
   const memoryFlag = args['memory-clean'] !== undefined && args['memory-clean'] !== false && args['memory-clean'] !== 'false';
   // 网页通道：默认 unknown；只有用户明确传 --memory-clean 才记 user-confirmed。codex 通道用空 CODEX_HOME，不存在账号记忆问题
   const memoryClean = webChannel ? (memoryFlag ? 'user-confirmed' : 'unknown') : 'n/a-isolated-codex-home';
@@ -663,6 +618,8 @@ async function main() {
   const topic = String(args.topic);
   const keyword = String(args.keyword || topic);
   const reps = Number(args.reps || 3);
+  const keepOpen = !!args['keep-open'];
+  if (keepOpen && (!webChannel || reps > 1)) { console.error('--keep-open 仅 chatgpt-web 且 --reps 1 支持'); return 2; }
   const model = String(args.model || 'gpt-6-sol');
   const effort = String(args.effort || 'low');
   const timeoutS = Number(args['timeout-s'] || (webChannel ? 150 : 300));
@@ -690,13 +647,13 @@ async function main() {
   const jobs = [];
   for (let i = 1; i <= reps; i++) jobs.push({ kind: 'N', rep: i, body: String(args['need-prompt']) });
   for (let i = 1; i <= reps; i++) jobs.push({ kind: 'K', rep: i, body: kPrompt });
-  if (args.followup !== false && args['no-followup'] !== true) {
+  if (!multiTurn && args.followup !== false && args['no-followup'] !== true) {
     if (top.length >= 1) jobs.push({ kind: 'C', rep: 1, body: followupBody(keyword, top) });
     else log('没有 Google 前 10，跳过 C 型追问（传 --google-top / --google-serp-file / --fetch-google）');
   }
-  if (args['followup-prompt']) { const c = jobs.find(j => j.kind === 'C'); if (c) c.body = String(args['followup-prompt']); else jobs.push({kind:'C',rep:1,body:String(args['followup-prompt'])}); }
+  if (!multiTurn && args['followup-prompt']) { const c = jobs.find(j => j.kind === 'C'); if (c) c.body = String(args['followup-prompt']); else jobs.push({kind:'C',rep:1,body:String(args['followup-prompt'])}); }
   if (args.kinds) { const selected = String(args.kinds).split(','); for (let i=jobs.length-1;i>=0;i--) if (!selected.includes(jobs[i].kind)) jobs.splice(i,1); }
-  for (const j of jobs) { j.prompt = wrap(j.kind, j.body, channel); j.label = `${j.kind}-${j.rep}`; }
+  for (const j of jobs) { j.prompt = multiTurn ? j.body : wrap(j.kind, j.body, channel); if (multiTurn) j.prompts = [j.prompt, ...followupPrompts]; j.label = `${j.kind}-${j.rep}`; }
 
   if (args.resume) {
     for (const job of jobs) {
@@ -710,7 +667,7 @@ async function main() {
     }
   }
 
-  if (args['dry-run']) { console.log(`channel=${channel} memoryClean=${memoryClean}${webChannel && !memoryFlag ? `（${MEMORY_UNCONFIRMED}）` : ''} timeout=${timeoutS}s`); for (const j of jobs) console.log(`\n===== ${j.label} =====\n${j.prompt}`); return 0; }
+  if (args['dry-run']) { console.log(`channel=${channel} memoryClean=${memoryClean}${webChannel && !memoryFlag ? `（${MEMORY_UNCONFIRMED}）` : ''} timeout=${timeoutS}s`); for (const j of jobs) for (const [i, prompt] of (j.prompts || [j.prompt]).entries()) console.log(`\n===== ${j.label}${multiTurn ? ` turn ${i + 1}` : ''} =====\n${prompt}`); return 0; }
 
   const results = [];
   const queue = args['summarize-only'] ? [] : [...jobs];
@@ -721,7 +678,7 @@ async function main() {
   }
   let lastStart = 0; let abortAll = null;
   // 读会话数据用的 opencli browser 会话：描述性名字（不用 $$/随机串，方便一眼认出、也避免同名并发——同名会话别给两个任务用）
-  const webState = webChannel ? { session: String(args['web-session'] || 'ai-probe-web'), ready: false, opened: false, temporary: args['no-temporary'] !== true && args.temporary !== false } : null;
+  const webState = webChannel ? { session: String(args['web-session'] || 'ai-probe-web'), ready: false, opened: false, keepOpen, ...(keepOpen ? { idleTimeout: process.env.OPENCLI_BROWSER_IDLE_TIMEOUT || 86400 } : {}), temporary: multiTurn || (args['no-temporary'] !== true && args.temporary !== false) } : null;
 
   async function worker() {
     while (queue.length && !abortAll) {
@@ -737,6 +694,7 @@ async function main() {
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         res = channel === 'codex'
           ? await runCodexOnce({ prompt: job.prompt, model, effort, timeoutS, rawBase })
+          : multiTurn ? await runMultiTurnChat({ prompts: job.prompts, timeoutS, web: webState })
           : await runChatgptWebOnce({ prompt: job.prompt, timeoutS, web: webState });
         if (res.ok) break;
         const fatal = ['quota-402', 'auth', 'model', 'no-codex', 'no-opencli'].includes(res.failure); // 这些重试没用，交回人
@@ -744,17 +702,18 @@ async function main() {
         if (fatal) break;
         if (attempt < maxAttempts) await sleep(30000);
       }
-      const { answer, probe, probeError } = res.ok ? splitProbe(res.text) : { answer: res.text || '', probe: null, probeError: res.error || null };
+      const { answer, probe, probeError } = multiTurn ? { answer: res.text || '', probe: null, probeError: null } : res.ok ? splitProbe(res.text) : { answer: res.text || '', probe: null, probeError: res.error || null };
       const ev = res.ev || { searches: [], retrieved: [], usage: null };
       const rec = {
         label: job.label, kind: job.kind, rep: job.rep, channel, topic, ok: !!res.ok, failure: res.ok ? null : res.failure, error: res.ok ? null : res.error,
+        ...(!res.ok && res.pageText !== undefined ? { pageText: res.pageText, pageUrl: res.pageUrl } : {}),
         prompt: job.prompt, startedAt: new Date(lastStart).toISOString(), durationMs: res.durationMs || null, model: channel === 'codex' ? model : res.web?.model, effort: channel === 'codex' ? effort : null,
         memoryClean,
-        searched: ev.searches.length > 0, searches: ev.searches, retrieved: ev.retrieved, usage: ev.usage, web: res.web || null, conversationId: res.conversationId || null,
-        answer, probe, probeError,
+        searched: multiTurn ? !!res.searched : ev.searches.length > 0, searches: ev.searches, retrieved: ev.retrieved, usage: ev.usage, web: res.web || null, conversationId: res.conversationId || null,
+        answer, probe, probeError, ...(multiTurn ? { turns: res.turns } : {}),
       };
       // 引用来源：网页通道=最终答案的 content_references（via=marker|item|safe_url）；codex=答案正文里的链接（via=answer-link）
-      rec.cited = res.ok ? (webChannel ? (res.cited || []) : answerLinkSources(answer)) : [];
+      rec.cited = (res.ok || rec.turns?.[0]?.ok) ? (webChannel ? (res.cited || []) : answerLinkSources(answer)) : [];
       rec.memoryScopeConflict = !!(webChannel && memoryFlag && rec.web?.memory_scope === 'global_enabled');
       if (rec.memoryScopeConflict) log(`[警告] ${job.label}：你传了 --memory-clean，但会话 payload 显示 memory_scope=global_enabled（账号记忆是开着的）——声明与页面矛盾，这批结果仍可能被账号记忆污染。`);
       rec.reco = extractReco(rec);
@@ -763,11 +722,14 @@ async function main() {
       fs.writeFileSync(`${rawBase}.answer.md`, `${answer}\n`);
       results.push(rec);
       log(`${job.label} ${rec.ok ? 'ok' : 'FAIL'} ${rec.durationMs ? (rec.durationMs / 1000).toFixed(0) + 's' : ''} 联网=${rec.searched} 检索命中=${rec.retrieved.length} 引用=${rec.cited.length} 名单=${rec.reco.list.map((x) => x.domain).join(',') || '（空）'}${rec.conversationId ? ` 会话=${rec.conversationId}` : ''}`);
-      if (!rec.ok && ['quota-402', 'auth', 'model', 'no-codex', 'no-opencli', 'rate-limit'].includes(rec.failure)) { abortAll = rec.failure; log(`遇到 ${rec.failure}：停止后续提问，交回人处理（不硬试）`); }
+      if (!rec.ok && ['quota-402', 'auth', 'model', 'no-codex', 'no-opencli', 'rate-limit', 'privacy-switch'].includes(rec.failure)) { abortAll = rec.failure; log(`遇到 ${rec.failure}：停止后续提问，交回人处理（不硬试）`); }
     }
   }
   await Promise.all(Array.from({ length: concurrency }, () => worker()));
-  if (webState?.opened) oc(['browser', webState.session, 'close', '--window', 'background'], { timeoutS: 30 });
+  if (webState?.opened) {
+    if (keepOpen) console.log(`会话保持打开：${webState.session}`);
+    else closeSession(webState);
+  }
 
   // 汇总
   const by = (k) => results.filter((r) => r.kind === k).sort((a, b) => a.rep - b.rep);
@@ -783,13 +745,13 @@ async function main() {
     memoryClean: summaryMemoryClean, memoryScopesSeen,
     topic, keyword, channel: summaryChannel, model: summaryChannel === 'codex' ? model : null, effort: summaryChannel === 'codex' ? effort : null, generatedAt: new Date().toISOString(),
     aliases: ALIASES,
-    caveat: 'n 很小，只是一次探针，不是统计结论；探针尾巴会让模型多讲弱点；codex 通道≠网页版 ChatGPT；网页通道拿不到搜索词（firstQueryNamesPickShare 恒为 null）。',
+    caveat: 'n 很小，只是一次探针，不是统计结论；' + (multiTurn || results.some(r => r.turns) ? '多轮自然提问不带探针尾巴；域名只按引用/文本链接计数，不等于确认推荐；' : '探针尾巴会让模型多讲弱点；') + 'codex 通道≠网页版 ChatGPT；网页通道拿不到搜索词（firstQueryNamesPickShare 恒为 null）。',
     google: { top10: googleDomains, source: args['google-serp-file'] ? 'file' : args['google-top'] ? 'arg' : args['fetch-google'] ? 'opencli-google' : 'none' },
     N: summarizeGroup(by('N'), googleDomains, tokens),
     K: summarizeGroup(by('K'), googleDomains, tokens),
     C: by('C').map((r) => ({ ok: r.ok, searched: r.searched, verdicts: r.probe?.verdicts || null, firstPick: r.probe?.my_first_pick || null, newProductWinsIf: r.probe?.new_product_wins_if || null, marketGap: r.probe?.market_gap || null })),
     marketGaps: uniq(results.map((r) => r.probe?.market_gap).filter(Boolean)),
-    failures: results.filter((r) => !r.ok).map((r) => ({ label: r.label, failure: r.failure, error: r.error, conversationId: r.conversationId || null })),
+    failures: results.filter((r) => !r.ok).map((r) => ({ label: r.label, failure: r.failure, error: r.error, ...(r.pageText !== undefined ? { pageText: r.pageText.slice(0, 120), pageUrl: r.pageUrl } : {}), conversationId: r.conversationId || null })),
     aborted: abortAll,
   };
   fs.writeFileSync(path.join(outDir, 'summary.json'), JSON.stringify(summary, null, 2));
@@ -813,6 +775,29 @@ function renderMd(s, results) {
       `- 引用来源（cited）：${Object.entries(g.citedDomainFrequency).map(([d, c]) => `${d}×${c}`).join('、') || '（无）'}；有引用的占比 ${g.citedShare}；引用里在 Google 前 10 的：${g.googleOverlap.citedInGoogleTop10.join('、') || '无'}`,
       `- AI 自标类型计数：${JSON.stringify(g.kindsCount)}；推荐名单之外的检索/引用 URL 里博客榜单占比 ${g.listicleShareOfUrls}`, `- 推荐位提示：${g.slotHint}`, '');
   }
+  const multi = results.filter(r => r.turns);
+  if (multi.length) {
+    const domains = t => uniq([...(t?.citedDomains || []), ...(t?.textDomains || [])].map(canon));
+    const freq = entries => {
+      const counts = {};
+      for (const ds of entries) for (const d of ds) counts[d] = (counts[d] || 0) + 1;
+      return Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([d, n]) => `${d}×${n}`).join('、') || '（无）';
+    };
+    const excerpt = (t, pattern) => {
+      const lines = (t?.answer || '').split('\n').map(l => l.trim()).filter(Boolean);
+      return (lines.find(l => pattern.test(l)) || lines[0] || '（未完成）');
+    };
+    L.push('## 多轮', '', `- 第 1 轮推荐/引用域名出现次数（引用与文本链接，每样本去重）：${freq(multi.map(r => domains(r.turns[0])))}`, '', '### 第 2 轮不足（逐样本原文摘 1 行）', '');
+    for (const r of multi) L.push(`- ${r.label}：${excerpt(r.turns.find(t => t.n === 2 && t.ok), /weak|downside|limit|drawback|不足|缺点|缺陷|局限|слаб|недостат|Schwäch|Nachteil/i)}`);
+    L.push('', '### 第 3 轮其他产品', '', '- 是否改荐由原文判断；新增域名只表示相对第 1 轮首次出现，不自动判定推荐。');
+    for (const r of multi) {
+      const third = r.turns.find(t => t.n === 3 && t.ok);
+      L.push(`- ${r.label}：${excerpt(third, /recommend|instead|better|推荐|更好|рекоменд|besser|empfehl/i)}；新增域名：${third ? domains(third).filter(d => !domains(r.turns[0]).includes(d)).join('、') || '（无）' : '（未完成）'}`);
+    }
+    L.push(`- 第 3 轮域名出现次数：${freq(multi.map(r => domains(r.turns.find(t => t.n === 3 && t.ok))))}`);
+    const completed = multi.map(r => r.turns.filter(t => t.ok).length);
+    L.push('', `- 完成轮次分布：3 轮 ${completed.filter(n => n === 3).length}；2 轮 ${completed.filter(n => n === 2).length}；1 轮 ${completed.filter(n => n === 1).length}；失败（0 轮）${completed.filter(n => n === 0).length}；中途失败 ${multi.filter(r => !r.ok).length}`, '');
+  }
   L.push('## C 型（追问：把 Google 前 3 摆给它）', '');
   for (const c of s.C) {
     L.push(`- 联网=${c.searched}；第一推荐：${c.firstPick ? `${c.firstPick.name} (${c.firstPick.domain})` : '（无）'}`);
@@ -823,7 +808,7 @@ function renderMd(s, results) {
   L.push('## 逐次明细', '', '| 次 | 成功 | 联网 | 检索命中 | 引用 | 耗时 | 名单（按序） |', '|---|---|---|---|---|---|---|');
   for (const r of results.sort((a, b) => a.label.localeCompare(b.label))) L.push(`| ${r.label} | ${r.ok ? 'ok' : r.failure} | ${r.searched} | ${(r.retrieved || []).length} | ${(r.cited || []).length} | ${r.durationMs ? (r.durationMs / 1000).toFixed(0) + 's' : '-'} | ${r.reco.list.map((x) => x.domain + (x.verified ? '' : '?')).join(' > ') || '（空）'} |`);
   L.push('', '域名后带 `?` 表示模型自报、未在文本链接或检索命中里核实到。');
-  if (s.failures.length) L.push('', `失败：${JSON.stringify(s.failures)}`);
+  if (s.failures.length) L.push('', ...s.failures.map(f => `- 失败 ${f.label}（${f.failure}）：${f.error}；pageText：${(f.pageText || '').replace(/\s+/g, ' ')}`));
   return L.join('\n') + '\n';
 }
 
