@@ -186,6 +186,8 @@ opencli browser "$S" eval '(async()=>{ /* fetch(..., {credentials:"include"}) */
 
 ## 五、浏览器与取数：规则在 `opencli` Skill，这里只留判据
 
+浏览器窗口默认只落副屏/虚拟屏并自动铺开（无副屏才回主屏），规则见 [opencli Skill](../../opencli/SKILL.md#专用窗口与可见性)；不要因窗口池满就提前排队等槽位，实际收到 `dedicated-pool-exhausted` 后再等，也不要改用 Playwright 类沙箱浏览器。
+
 **一切浏览器动作（含测试、验收、E2E、截图和公开 SERP）一律用 OpenCLI 驱动用户本机的 Chrome（dedicated 窗口）；沙箱浏览器不作为本机选项。**
 沙箱没有用户的 cookie：要登录的目标要么跳登录页，要么以匿名身份返回**看起来正常但内容不同**的结果
 （配额更低、字段更少、国家库不同）。这种失败会伪装成「这个工具没有这项数据」，真相是「你没登录」。

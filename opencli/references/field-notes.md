@@ -140,18 +140,17 @@ UA 不含 `Headless`、`plugins.length` 为 5。
 `background`，其余四种模式行为逐字节不变。它是"专门给自动化用、但仍在用户**同一个 Chrome、同一份 profile**
 里"的窗口——不是另开一个 Chrome 实例，也不是另建 user-data-dir。
 
-**生命周期**：按 `--window-slot`（或 `OPENCLI_WINDOW_SLOT`，默认 `default`）分窗口——一个 slot 一个专用窗口，
-slot 名满足 `^[A-Za-z0-9_.-]{1,40}$`。需要并发可见的多个会话，各起一个 slot（比如 `semrush`、`similarweb`）
-即可各占一个窗口。专用窗口被用户关掉 → 这个 slot 被遗忘、其下所有租约释放，下一条 `dedicated` 命令按同样的
-定位规则重建窗口。slot 里最后一个租约释放时，窗口不关，标签退化成占位标签。窗口 id 记在
-`chrome.storage.session` 里，扛得住 MV3 worker 重启，但随浏览器会话消失。
+**生命周期**：不指定 slot 时自动分配/复用窗口池；`--window-slot`（或 `OPENCLI_WINDOW_SLOT`）可钉住具名窗口，slot 名满足 `^[A-Za-z0-9_.-]{1,40}$`。并发可见的多个会话用各自会话或不同 slot。最后一个租约释放后窗口保留、标签退回占位页，默认空闲 15 分钟回收；手动关闭后 slot 被遗忘、其下租约释放，下一条命令按定位规则重建。窗口 id 记在 `chrome.storage.session` 里，支持 MV3 worker 重启。
 
-**定位**：优先级 显式 bounds > 按虚拟屏名匹配的分格 > 都不给（Chrome 默认位置）。分格算法：每格
-1280×900（按显示器边界裁切），这块显示器上的列数 = `floor(宽/1280)`、行数 = `floor(高/900)`，放得下时
-0 号格再整体偏移 `(+80,+60)`；一个 slot 占该显示器上最低的空闲格。扩展用 `chrome.system.display` 探测有
-哪些显示器，坐标系与 `chrome.windows` 是同一套。`--window-display`/`OPENCLI_WINDOW_DISPLAY` 是显示器名
-pattern（`/正则/` 或大小写不敏感子串）；给了 pattern 但没匹配到任何显示器时，不会为了它去建/挪窗口——
-`ensure` 返回里 `placement.displayFound=false`（如果窗口本来不存在，仍可能被创建但不定位，看 `created` 字段）。
+**定位与窗口池**：显式 bounds > 指定屏幕匹配分格 > 自动跨副屏网格。
+
+默认有副屏/虚拟屏时，自动化窗口只用副屏，不占主屏、不抢焦点；没有副屏才回主屏。池跨所有副屏自动铺开：外接屏优先、按 id 排序，先填满一块屏的动态网格再用下一块，各屏使用自己的工作区坐标（支持负坐标）；自然容量内互不遮挡，全部副屏自然容量用完后才在最后一块屏层叠。层叠窗口可能被 Chrome 判为 `hidden`，懒加载报表要避免超过自然容量。
+
+池上限为 10；`window status -f json` 的 `pool.capacity` 是上限，`pool.naturalCapacity` 是所有自动化副屏的非重叠容量总和，`pool.automationDisplays` 列出各屏 id、name、area 和 naturalCapacity；兼容字段 `automationDisplay` 仅指第一块屏。建议配置大分辨率虚拟屏（如 5120×2880 约 20 格，池仍最多 10）或多块虚拟屏；`--window-display <名称片段>` / `OPENCLI_WINDOW_DISPLAY` 可钉到指定屏，显式指定时沿用匹配屏的旧分格规则，不跨到其他屏。
+
+并行任务直接用各自会话，不提前排队等槽位；`dedicated-pool-exhausted` 只在 `live>=10` 时出现，出现后再等任务释放或关闭空闲窗口。扩展改动需在 `chrome://extensions` reload 才生效；reload 会中断正在运行的会话，须等任务空闲再做。
+
+指定屏幕时沿用旧分格：每格 1280×900、按 bounds 裁切，列数 `floor(宽/1280)`、行数 `floor(高/900)`，放得下时 0 号格偏移 `(+80,+60)`，一个 slot 占最低空闲格；扩展通过 `chrome.system.display` 探测屏幕，与 `chrome.windows` 使用同一坐标系。pattern 支持 `/正则/` 或大小写不敏感子串。没匹配到时 `placement.displayFound=false`，已有窗口不挪；不存在的窗口仍可能创建但不定位。自动布局在窗口减少时也重新铺开，工作区不可用则使用 bounds。
 
 **隔离**：会话标签页只活在自己 slot 的专用窗口里，绝不出现在用户窗口——创建时就是
 `chrome.windows.create({focused:false, left, top, width, height})`，之后永不聚焦。不是 OpenCLI 开的
@@ -161,11 +160,7 @@ pattern（`/正则/` 或大小写不敏感子串）；给了 pattern 但没匹�
 窗口（不刷新页面）。反过来，用户把会话标签页手动拖出专用窗口，这个标签就归用户了——租约释放，标签不关。
 
 **可见性**：autoSelect 默认对 `dedicated` 开启——每条页面相关命令执行前，把该会话的标签设成专用窗口的
-活动标签（只调 `chrome.tabs.update({active:true})`，不调 `chrome.windows.update({focused:true})`），所以
-这条标签的 `visibilityState` 会是 `visible`，但从来不会去抢 OS 焦点。不想要这个行为用
-`OPENCLI_WINDOW_AUTOSELECT=0` 关掉。并发需要可见的多个会话，做法是各开一个 slot、分别摆在虚拟屏不同的
-空闲分格上，而不是排队抢同一把"可见性锁"——跨进程的可见性锁得有持有者、TTL、僵尸进程回收这一整套机制，
-目前没做，所以设计上选的是"分 slot 并存"而不是"抢锁排队"。
+活动标签（只调 `chrome.tabs.update({active:true})`，不调 `chrome.windows.update({focused:true})`），不抢 OS 焦点；`OPENCLI_WINDOW_AUTOSELECT=0` 可关闭。自然容量内有利于保持 `visible`；层叠遮挡时，选中标签也不能保证可见。多会话由窗口池跨副屏自动摆格。
 
 **可观测**：两个新的、与会话无关的命令：
 
@@ -203,9 +198,7 @@ activeTab、标签统计、sessions、autoSelect、foreignTabPolicy、evictedTab
 | `OPENCLI_WINDOW_AUTOSELECT` | `1/0/true/false/on/off`，默认 on |
 | `OPENCLI_DEDICATED_FOREIGN_TABS` | `evict` / `tolerate` |
 
-**升级后要手动 reload 一次扩展**：manifest 这版新增了 `system.display` 权限，装上新版扩展后如果没去
-`chrome://extensions` 手动点一次 reload，`window status`/`ensure` 拿不到这个新权限——表现为 `displays`
-是 `null`、带 `displaysError`。
+**扩展改完需 reload**：在 `chrome://extensions` 手动 reload 才采用新构建；reload 会中断正在跑的会话，要等任务空闲。新增 `system.display` 权限的升级若未 reload，可能表现为 `displays=null` 并带 `displaysError`。
 
 **待实测（还没验证过，别当结论用）**：
 - `chrome.windows.update` 挪动窗口位置这一步，会不会顺带把窗口激活——"不抢焦点"这条还需要专门验证；

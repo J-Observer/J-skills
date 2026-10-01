@@ -45,6 +45,8 @@ opencli browser site-acceptance close
 
 ---
 
+opencli 自带的 chatgpt adapter 在新版页面读不到回答；需要网页 ChatGPT 问答时，用 [agent-fleet](../agent-fleet/skill/SKILL.md#网页版-chatgpt-通道) 的 `fleet web start/say/close/list`（`chatgpt-web-ask.mjs`）：不限轮次，默认留页，用完显式 close。
+
 ## 一、开工前：doctor
 
 ```bash
@@ -258,6 +260,12 @@ browser 与 adapter 都借不到时只建**一个**替身窗口共用；用户�
 ### 专用窗口与可见性
 
 `dedicated` 用专用 slot 窗口保持页面可见，适合懒加载报表、网站验收和截图；仍使用用户同一 Chrome 与登录态。扩展 ≥ 1.2.0、CLI ≥ 1.10.0；先用 `opencli browser window status -f json` 确认 `supported` 和 `dedicated-window` capability。用 `--window-slot` 将需同时可见的会话分开；窗口定位、环境变量、外来标签策略和旧版 `isolated` + 虚拟屏方案见 [`references/field-notes.md`](references/field-notes.md#专用窗口与旧版可见性方案)。
+
+默认有副屏/虚拟屏时，自动化窗口只用副屏，不占主屏、不抢焦点；没有副屏才回主屏。池跨所有副屏自动铺开：外接屏优先、按 id 排序，先填满一块屏的动态网格再用下一块，各屏使用自己的工作区坐标（支持负坐标）；自然容量内互不遮挡，全部副屏自然容量用完后才在最后一块屏层叠。层叠窗口可能被 Chrome 判为 `hidden`，懒加载报表要避免超过自然容量。
+
+池上限为 10；`window status -f json` 的 `pool.capacity` 是上限，`pool.naturalCapacity` 是所有自动化副屏的非重叠容量总和，`pool.automationDisplays` 列出各屏 id、name、area 和 naturalCapacity；兼容字段 `automationDisplay` 仅指第一块屏。建议配置大分辨率虚拟屏（如 5120×2880 约 20 格，池仍最多 10）或多块虚拟屏；`--window-display <名称片段>` / `OPENCLI_WINDOW_DISPLAY` 可钉到指定屏，显式指定时沿用匹配屏的旧分格规则，不跨到其他屏。
+
+并行任务直接用各自会话，不提前排队等槽位；`dedicated-pool-exhausted` 只在 `live>=10` 时出现，出现后再等任务释放或关闭空闲窗口。扩展改动需在 `chrome://extensions` reload 才生效；reload 会中断正在运行的会话，须等任务空闲再做。
 
 ```bash
 opencli browser <session> --window dedicated --window-slot <slot> open <url>
