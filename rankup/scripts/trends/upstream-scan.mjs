@@ -125,7 +125,7 @@ const sources = [
 ].filter(s => !opts.sources || opts.sources.split(',').includes(s.id));
 const seenFile = join(base, 'upstream_seen.json'), seen = readJson(seenFile, {});
 const tracked = new Set(readJson(join(root, 'hot_tracker.json'), { terms: [] }).terms.map(t => normalize(t.term)));
-const rejectedFile = '/Users/kcsx/Project/kcsx/macmini/.rankup/rejected.md';
+const rejectedFile = opts.rejected ? resolve(opts.rejected) : join(root, '..', 'rejected.md'); // 默认：数据目录同级 .rankup/rejected.md，可用 --rejected 指定
 const rejected = existsSync(rejectedFile) ? normalize(readFileSync(rejectedFile, 'utf8')) : '';
 const health = [], all = [], newRows = [], jumps = [];
 const snapshotRoot = join(base, 'snapshots');
