@@ -2,7 +2,7 @@
 name: rankup
 description: 独立开发者的项目全生命周期管理：需求验证、选词选品、建站或做原生 App、上线接入、SEO/GEO 获客、支付变现、监控迭代与跨会话接力。以下情况使用：用户提到 rankup 或 /rankup（check、review、init；doctor 仅指整理项目 .rankup 记录）；当前目录或工作区有 .rankup/，或要读取、续做、整理项目计划、路线图、待办、PRD、交接或进度文档；在这些项目记录上下文里说「继续」「接着做」「上次做到哪」「下一步做什么」；以及项目规划、需求验证、关键词调研与 SERP、独立 Google Trends 热度查询或对比、AI 搜索推荐（GEO）、网站体检、sitemap/IndexNow/Search Console、流量、建站、上线、支付（Stripe、Anyway、PayPal）、变现与增长。SEO/GEO 是主要手段，不是适用边界，非 SEO 的项目计划与 macOS、iOS、iPad 原生 App 同样适用。纯文案（含 SEO 趋势博客等主题写作）、纯视觉设计、与项目管理无关的通用开发及基础设施排错（含 Cloudflare 部署报错、普通 CLI doctor）不触发；目录内有 .rankup/ 时仅叠加项目记录维护义务；外链执行交 backlink，浏览器驱动交 opencli，配图生成交 imagegen，多模型派单交 agent-fleet。
 metadata:
-  version: "3.34.0"
+  version: "3.35.0"
 ---
 
 # Rankup
@@ -49,6 +49,7 @@ SEO 与 GEO 是最主要的获客与验证手段，**不是适用边界**：项�
 | 「App 有没有需求」「找 iOS/iPad/macOS 产品」 | 1–2 | [`research.md` App 分支](references/playbooks/research.md#app-市场验证分支) → [段 2](references/lifecycle/stage-2-positioning.md) 2.2 |
 | 「谁在赚钱」「反查这个站」「帖子说月入 X 是真的吗」 | 1 | `research.md` P4 + [`demand-sources/validation-chain.md`](references/demand-sources/validation-chain.md) |
 | 「筛这批 AITDK 报告」「只看竞品异常」 | 1 | [`seo-box.md`](references/seo-box.md#aitdk-研究报告离线分流)：`aitdk-triage.mjs` 离线分流 |
+| 「运行趋势监控」「扫描种子 Rising」「美日韩趋势追踪」 | 1–2 | [`trends-system.md`](references/trends-system.md)：三区串行扫描、去重、健康台账与追踪复查 |
 | 「XX 和 YY 哪个更火」「今天美国在搜什么」「这个词有没有量」 | 1–2 | [`trends.md`](references/trends.md)（[gpts 基线判读](references/trends.md#gpts-基线判读到底怎么才算有搜索量唯一判据源)），`scripts/gt.py` |
 | 「这个词在 AI 里有多大需求」「ChatGPT 会不会推荐我们」「竞品为什么被 AI 推荐」 | 1 / 4 复测 | [`seo-geo.md`](references/seo-geo.md)；面板 AI 侧数据见 [`provider-capabilities.md`](references/provider-capabilities.md)「三·五」 |
 | 「有什么游戏站能做」「小游戏机会采集 / 决策」 | 1–2 | [`game-sites.md`](references/game-sites.md)：平台监控、sitemap 差分、新标题筛选；旧每日决策协议仅部分覆盖 |
