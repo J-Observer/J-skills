@@ -77,6 +77,8 @@ BACKLINK=<backlink-skill-dir>
 | **站→词** | 这个站在打哪些词、怎么称呼这个需求 | 官方 Skill 调用 `site_keywords` · `domain_overview`；sitemap slug 词频只作补充 | API 按实时报价，sitemap 零配额 | 新词根（很可能不含原种子字面串） |
 | **站→站** | 还有哪些站在做同一件事 | 官方 Skill 调用 `search_known_sites` · `domain_overview`，SERP 共现域名 | API 按实时报价，共现域名零配额 | 新站清单，回「站→词」 |
 
+**拓词后的意图初筛**：合并去重后、进入 P2 阶段 4 筛子前，加载官方 `gefei-keywords` / `gefei` Skill，按需调用 `search_intent --keywords "<词1>,<词2>,…" --hl <语种>`；每批最多 200 词，一批一次调用，取得信息 / 导航 / 商业 / 交易、次意图与置信度，按页面承接目标筛选。分类标签只作辅助，阶段 6 仍以真实 SERP 页面类型与社区原话核验；价格以实时 `tools` 目录为准，保存原始结果与 `credits.charged`。
+
 脚本能力据实标注，不存在的没有写进上表：**Semrush 没有独立的「关键词 → 排名域名列表」报表**，
 词→站只能靠 SERP 通道（`serp-query.mjs` / 官方 Skill 的 `serp` / 人眼），不冒称有等效面板报表；
 上表每个脚本与参数已逐个用 `--help` 或读源码核实真实存在。

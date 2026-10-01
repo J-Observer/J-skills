@@ -203,6 +203,8 @@ Semrush / Similarweb / seo.web.cafe 这些面板给的月量，是**过去 28–
 
 #### 主流水线
 
+**阶段 2 扩树合并去重后、阶段 4 筛选前**：按需加载官方 `gefei-keywords` / `gefei` Skill，调用 `search_intent --keywords "<词1>,<词2>,…" --hl <目标语种>`；每批最多 200 词，一批一次调用，将信息 / 导航 / 商业 / 交易、次意图与置信度补入候选词表，辅助筛选页面可承接的词。价格以实时 `tools` 目录为准，保存原始结果与 `credits.charged`；不把分类当需求量或真实意图定论，阶段 6 仍并排核验 SERP、社区原话与意图标签。
+
 | 阶段 | 并行/串行 | 跑什么 | 拿到什么 | 卡住了怎么办 |
 |---|---|---|---|---|
 | **0 · 档位 + 定国家与语种** | 串行，主线 | [阶段 0](../research.md#阶段-0-开工前-30-秒每条流水线都以它开头) 之后紧接着：<br>`python3 $RANKUP/scripts/gt.py region "<词根>" --time 12m --top 15`<br>对每个 over-index 的国家：`python3 $RANKUP/scripts/gt.py compare "<本地语词>" "<英语词>" "gpts" --geo <国>`（新词例外见 trends.md）<br>把词根翻成该国语种（agent 自己翻，不用脚本） | 一张 `(gl, hl, db)` 三元组清单：**逐国查，每个国家一组**；每国一个「用本地语还是英语搜」的结论；每国一个本地语词根 | **市场是全球，不默认 us。** `--db` / `--gl` / `--hl` 三个参数后面每一步都要带，漏了会默默落到错误市场（`semrush-keyword` 不传 `--db` 落 `jp`）。region 空 → 词太冷或太新，先跑阶段 5 看社区，再定国家。判据 [`trends.md`](../../trends.md) W1「印尼用户搜英语 remove background 压过本地语」 |

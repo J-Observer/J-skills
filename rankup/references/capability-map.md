@@ -131,6 +131,9 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 |---|---|---|---|
 | 关键词难度 + Top10 盘面 | 哥飞版 KD、进入前十的链接预算、竞争页画像 | 官方 Skill 调用 `keyword_difficulty` | 「这个词难不难做」 |
 | SERP 排名归因 | 原始搜索结果与逐位点评分开取 | 官方 Skill 调用 `serp` / `serp_review` | 「为什么是他排第一」 |
+| 趋势曲线付费备选 | `google_trends`：共享缓存、最多 5 词对比与趋势面判断；W1/W2/W3 复核时省浏览器会话，不替代 `gt.py` | 官方 `gefei` Skill；`--range 7d/30d/90d/12m/5y`、`--geo`，单词可 `--related true`；价格以实时 `tools` 目录为准，保存原始结果与 `credits.charged` | 「交叉核验这几个词的曲线」 |
+| 批量新词挖掘 | `trends_rising`：合并排序上升相关查询；W3 先挖候选再复核曲线 | 官方 `gefei` Skill；`--roots` 最多 20 或 `--preset default/ai`，`--range 7d/30d/90d`、`--geo`、`--max_fetch` 最多 8；价格以实时 `tools` 目录为准，保存原始结果与 `credits.charged` | 「批量找 rising 新词」 |
+| 批量搜索意图 | `search_intent`：拓词去重后、筛选前分信息/导航/商业/交易及次意图；不替代 SERP 核验 | 官方 `gefei-keywords` / `gefei` Skill；`--keywords` 每批最多 200 词、`--hl`；价格以实时 `tools` 目录为准，保存原始结果与 `credits.charged` | 「这批词分别想找什么」 |
 | 本地零配额计算 | `kgr` / `string`（TDK 长度）/ `money`（收入目标拆解）/ `email`，支持 `--batch`，**只出数值不出评级** | `scripts/seo-webcafe.mjs kgr\|string\|money\|email` | 「算下 KGR」「TDK 超长没」 |
 | 需求翻译 / 拓词 / 起名核域名 | `translate_demand`、`keyword_ideas`、`brand_naming`、`domain_availability` | 按官方 `gefei` Skill 选择工具 | 「帮我想个站名」「这词换成英文怎么搜」 |
 | Google Trends | 热度对比、地区分布、相关飙升词、每日热搜；含 1h/4h/1d 短时窗口（小时级曲线，验证刚出现的新词）；2026-09-09 切到新版 Explore UI（`trends.google.com/explore`）路由，零 venv；旧版（`/trends/explore` + pytrends）归档在 `scripts/archive/gt-v1/`，不算独立能力入口 | `scripts/gt.py`（取数层 `scripts/gt-browser.mjs`） | 「XX 和 YY 哪个更火」「今天在搜什么」 |
