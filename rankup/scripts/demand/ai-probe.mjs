@@ -34,6 +34,9 @@
  *   --google-serp-file <f>  可选。opencli google search -f json 的输出文件（带标题，追问更自然）。
  *   --fetch-google          没给上面两项时，用 `opencli google search` 现抓一次前 10（只读，需 Chrome）。
  *   --channel <c>           codex（默认）| chatgpt-web。见下方「通道」。
+ *   --temporary             chatgpt-web 默认开启：dedicated 临时页发送，DOM 读取回答与来源；--no-temporary 用旧路径。
+ *   --kinds <N,K,C>         仅执行指定类型，默认 N,K,C；单措辞采样可用 --kinds N，避免 reps 翻倍。
+ *   --followup-prompt <文本> C 型完整提问，替代 Google 前三模板。
  *   --memory-clean          仅 chatgpt-web：**用户已确认**该账号关闭了记忆/是干净账号才传。不传则记 memoryClean=unknown，
  *                           summary.json / summary.md / 每条 raw 顶部都标「未确认无记忆污染，仅供参考」。脚本不会替你改账号设置。
  *   --followup / --no-followup  是否做 C 型追问（默认做 1 次）。
@@ -61,7 +64,9 @@
  *                ≠ 网页版 ChatGPT 产品；只能说「Codex/GPT 侧联网推荐」。
  *   chatgpt-web  经 OpenCLI 驱动用户**已登录**的 chatgpt.com。需要用户先在 Chrome 里登录网页版；
  *                本脚本不登录、不输入任何凭据、不改账号设置、不点「不个性化」。
- *                **注意：不是记忆隔离的**——账号开了全局记忆时普通聊天与临时聊天都会读记忆
+ *                默认临时页路径（2026-10-01）：每样本重新打开 ?temporary-chat=true，核对页面不使用记忆声明，
+ *                经 browser type/click 发送、DOM 读完整答案与直接引用链接；未做 payload 核验。
+ *                以下是 --no-temporary 旧路径的历史说明：账号开了全局记忆时普通聊天会读记忆
  *                （实测 memory_scope=global_enabled，一个「你记得我什么」的探测原样吐出了用户的居住地/职业/持仓等个人信息）。
  *                所以脚本启动时会打印显式警告；没传 --memory-clean 时，输出 memoryClean=unknown 并在 summary.md / summary.json
  *                顶部标「未确认无记忆污染，仅供参考」。要做正式采样，请用未开记忆的干净账号并由用户确认后再传 --memory-clean。
@@ -452,7 +457,51 @@ async function sendChatgptPrompt(prompt) {
  * 发送 → 页内轮询会话数据 → 取回答与引用。总硬超时 timeoutS（从发送成功起算），不重发、不无限重试。
  * web = { session, ready, opened }：读数据用的 opencli browser 会话（描述性名字）、「已在 chatgpt.com」标记、是否开过（收尾要 close），跨提问复用。
  */
+async function runTemporaryChat({ prompt, timeoutS, web }) {
+  const t0 = Date.now();
+  const deadline = t0 + timeoutS * 1000;
+  const browser = (...args) => oc(['browser', web.session, ...args, '--window', 'dedicated'], { timeoutS: Math.max(1, Math.floor((deadline - Date.now()) / 1000)) });
+  web.opened = true;
+  const opened = browser('open', 'https://chatgpt.com/?temporary-chat=true');
+  if (opened.status !== 0) return { ok: false, failure: 'page', error: (opened.stderr || opened.stdout).trim(), durationMs: Date.now() - t0 };
+  let notice = '';
+  for (;;) {
+    const state = parseEvalJson(browser('eval', `JSON.stringify({text:document.body.innerText,ready:!!document.querySelector('[contenteditable="true"][role="textbox"]')})`).stdout);
+    const text = state?.text || '';
+    if (/验证码|captcha|verify you are human|too many requests|usage limit|reached the limit|达到.*上限/i.test(text)) return { ok: false, failure: 'rate-limit', error: '临时页出现验证码或限流提示', durationMs: Date.now() - t0 };
+    if (!state?.ready && /登录|log in|sign in/i.test(text)) return { ok: false, failure: 'auth', error: '临时页出现登录门', durationMs: Date.now() - t0 };
+    notice = text.split('\n').filter((line) => /不会.*记忆|不.*使用.*记忆|won.t.*memor|doesn.t.*memor/i.test(line)).join('\n');
+    if (state?.ready && notice) break;
+    if (Date.now() >= deadline) return { ok: false, failure: 'page', error: '未核对到临时对话不使用记忆提示', durationMs: Date.now() - t0 };
+    await sleep(1000);
+  }
+  for (const args of [['type', '[contenteditable="true"][role="textbox"]', prompt], ['click', 'button[aria-label="发送"]']]) {
+    const r = browser(...args);
+    if (r.status !== 0) return { ok: false, failure: classifyWebSend(r.stderr || r.stdout), error: (r.stderr || r.stdout).trim().slice(-300), durationMs: Date.now() - t0 };
+  }
+  while (Date.now() < deadline) {
+    const r = browser('eval', `JSON.stringify((() => {
+      const text = document.body.innerText;
+      const answer = [...document.querySelectorAll('[data-markdown-text-style="assistant-message"]')].pop();
+      const busy = !!document.querySelector('[data-testid="stop-button"],button[aria-label*="Stop"],button[aria-label*="停止"]');
+      const links = answer ? [...answer.querySelectorAll('a[href^="http"]')].map(a => ({url:a.href,title:a.innerText,via:'dom-link'})) : [];
+      return {text:answer?.innerText || '',links,busy,blocked:/验证码|captcha|verify you are human|too many requests|usage limit|reached the limit|达到.*上限/i.test(text),auth:!document.querySelector('[contenteditable="true"][role="textbox"]') && /登录|log in|sign in/i.test(text),model:document.querySelector('button[aria-label="选择 ChatGPT 模型"]')?.innerText || null};
+    })())`);
+    const got = parseEvalJson(r.stdout);
+    if (got?.blocked || got?.auth) return { ok: false, failure: got.auth ? 'auth' : 'rate-limit', error: '临时页出现登录、验证码或限流提示', durationMs: Date.now() - t0 };
+    if (got?.text && !got.busy && got.text.includes('---PROBE---')) {
+      const cited = [...new Map(got.links.map(c => [c.url, {...c, domain:regDomain(c.url)}])).values()];
+      return { ok: true, text:got.text, cited, durationMs:Date.now()-t0,
+        web:{is_temporary_chat:true,temporaryNotice:notice,memory_scope:null,model:got.model,conversationUrl:'https://chatgpt.com/?temporary-chat=true',citedCount:cited.length,payloadVerified:false},
+        ev:{searches:cited.length ? [{queries:[],preSited:false,resultCount:cited.length}] : [],retrieved:[],usage:null} };
+    }
+    await sleep(Math.min(3000, Math.max(0, deadline-Date.now())));
+  }
+  return { ok:false,failure:'timeout',error:`临时对话在 ${timeoutS} 秒内未读到完整回答`,durationMs:Date.now()-t0 };
+}
+
 async function runChatgptWebOnce({ prompt, timeoutS, web }) {
+  if (web.temporary) return runTemporaryChat({ prompt, timeoutS, web });
   const t0 = Date.now();
   const sent = await sendChatgptPrompt(prompt);
   if (!sent.ok) return { ok: false, failure: sent.failure, error: sent.error, durationMs: Date.now() - t0 };
@@ -598,7 +647,7 @@ function slotHint({ top1Modal, consistency, kinds, listicleShare, topicMatch }) 
 
 // ───────────────────────── 主流程 ─────────────────────────
 
-const HELP = 'ai-probe.mjs --topic <词> --need-prompt <文本> --out <目录> [--keyword-prompt <文本>] [--reps 3] [--google-top a.com,b.com | --google-serp-file f | --fetch-google] [--channel codex|chatgpt-web [--memory-clean]] [--dry-run] [--resume]（详见文件头注释）';
+const HELP = 'ai-probe.mjs --topic <词> --need-prompt <文本> --out <目录> [--keyword-prompt <文本>] [--reps 3] [--google-top a.com,b.com | --google-serp-file f | --fetch-google] [--channel codex|chatgpt-web [--temporary] [--memory-clean]] [--kinds N,K,C] [--followup-prompt <文本>] [--dry-run] [--resume]（详见文件头注释）';
 
 async function main() {
   const args = parseArgs();
@@ -626,7 +675,7 @@ async function main() {
   const log = (m) => { const l = `[${new Date().toISOString().slice(11, 19)}] ${m}`; logLines.push(l); console.error(l); };
 
   if (webChannel) {
-    log('[警告] chatgpt-web 通道不是记忆隔离的：账号开了「记忆」时，普通聊天与临时聊天都会读取账号记忆，推荐结果会被用户本人的上下文污染（曾实测原样吐出居住地、职业、持仓等个人信息）。');
+    log('[提示] 临时路径核对页面不使用记忆声明，未做 payload 核验；旧普通对话路径仍可能读取账号记忆。');
     log(memoryFlag
       ? '[警告] 已传 --memory-clean：视为用户已确认该账号关闭了记忆或是干净账号。脚本无法替你验证，只会用会话 payload 里的 memory_scope 做矛盾检查。'
       : `[警告] 未传 --memory-clean：所有输出与摘要顶部会标「${MEMORY_UNCONFIRMED}」。要做正式采样，请用未开记忆的干净账号，用户确认后再传 --memory-clean。本脚本不会改账号设置，也不会去点「不个性化」。`);
@@ -645,6 +694,8 @@ async function main() {
     if (top.length >= 1) jobs.push({ kind: 'C', rep: 1, body: followupBody(keyword, top) });
     else log('没有 Google 前 10，跳过 C 型追问（传 --google-top / --google-serp-file / --fetch-google）');
   }
+  if (args['followup-prompt']) { const c = jobs.find(j => j.kind === 'C'); if (c) c.body = String(args['followup-prompt']); else jobs.push({kind:'C',rep:1,body:String(args['followup-prompt'])}); }
+  if (args.kinds) { const selected = String(args.kinds).split(','); for (let i=jobs.length-1;i>=0;i--) if (!selected.includes(jobs[i].kind)) jobs.splice(i,1); }
   for (const j of jobs) { j.prompt = wrap(j.kind, j.body, channel); j.label = `${j.kind}-${j.rep}`; }
 
   if (args.resume) {
@@ -670,7 +721,7 @@ async function main() {
   }
   let lastStart = 0; let abortAll = null;
   // 读会话数据用的 opencli browser 会话：描述性名字（不用 $$/随机串，方便一眼认出、也避免同名并发——同名会话别给两个任务用）
-  const webState = webChannel ? { session: String(args['web-session'] || 'ai-probe-web'), ready: false, opened: false } : null;
+  const webState = webChannel ? { session: String(args['web-session'] || 'ai-probe-web'), ready: false, opened: false, temporary: args['no-temporary'] !== true && args.temporary !== false } : null;
 
   async function worker() {
     while (queue.length && !abortAll) {
