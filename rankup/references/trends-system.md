@@ -70,3 +70,19 @@ python3 "$RANKUP_SKILL/scripts/trends/sitemap_diff.py"
 ```
 
 sitemap 首日建基线，后续输出新增 URL 的 slug 候选；codes/wiki/tier list/guide 标高价值模式。来源配置由项目维护：公开 sitemap 只有静态页则无增量价值，无 lastmod 且子 sitemap 过多的来源需评估采集成本。聪明钱与竞品反查见 [通用方法](trends.md#趋势候选的验证与反查)。
+
+## 上游信号（TikTok/YouTube/X）
+
+`node upstream-scan.mjs --data-dir <数据目录>`
+建议每天一次；定时由运营方自行设置，本脚本不自带调度。
+数据目录按 `--data-dir` → `RANKUP_TRENDS_DIR` → 当前目录 `.rankup/trends`，产物均在其下 `upstream/`。
+产物：`snapshots/YYYY-MM-DD/HHmmss-来源id.json`、`upstream_seen.json`、`reports/YYYY-MM-DD-HHmmss.md`、`candidates.json`；每次运行产生独立快照与报告（同名加序号），数据目录内有锁文件，另一轮在跑时本次退出。
+`--sources a,b,c` 选来源；`--dry-run` 真实抓取，只打印摘要，不写快照或 seen。
+来源：trends24-us / getdaytrends-us（X 美国）、kworb-yt-us（YouTube 美国）、yt-charts-shorts-us（美国音乐）、kym-newest（全球梗）、tokchart-audios（全球 TikTok 音乐免费页）、heyorca-tiktok（全球 TikTok 模板/梗/声音，人工整理博客，extra.source=editorial，rank 为页面顺序，简述与原帖/声音链接在 extra；非实时榜）。
+Shorts 请求最多尝试两次格式，未复现记 skipped；trends24 失败重试一次（间隔 ≥2 秒）；kym-newest 与 tokchart-audios 每次请求超时 20 秒，失败最多重试 2 次，间隔 3 秒、6 秒；其他来源独立记 ok/fail，失败不填 0；heyorca-tiktok 解析无条目记 fail: 解析 0 条。
+名次较同来源上次提升 ≥10 位视为大涨；首次作为新上榜；每词每轮 appearances 加 1；跨来源可来自同一平台。
+追踪库和否决词只读，命中打标签不删候选；候选只是上游信号，还需 Google Trends 验证。
+`--verify-gt N` 默认关闭：串行验证前 N 词美国 7 天，每词间隔 ≥10 秒，429 沿用 gt.py 内置退避，结束关闭自有会话；超时、槽位满、验证码停止。
+GT 原始证据在 `upstream/gt/`，摘要写候选 `gt7d`；可测日期不足七天时两组比值记未知。
+已知缺口：全球音乐并非美国特效榜，KYM newest 并非热度榜，HTML 缓存/改版可能失败；X 两站重复不代表跨平台。
+TikTok 美国热门榜仍是缺口（Creative Center 本机连不上）。
