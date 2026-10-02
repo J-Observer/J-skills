@@ -108,17 +108,27 @@ export async function apiGet(pathname, query = {}) {
     url.searchParams.set(k, String(v));
   }
 
+  // Node fetch to merchant-api-*.anyway.sh can fail intermittently
+  // (ECONNRESET during TLS via a proxy, 2026-10-02); retry transient network failures.
   let res;
-  try {
-    res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'X-API-Key': apiKey,
-        Accept: 'application/json',
-      },
-    });
-  } catch (err) {
-    throw new ApiError(`Network error calling ${url.pathname}: ${err.message}`, { status: 0 });
+  let lastErr;
+  for (let attempt = 0; attempt < 8 && !res; attempt++) {
+    try {
+      res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-API-Key': apiKey,
+          Accept: 'application/json',
+        },
+      });
+    } catch (err) {
+      lastErr = err;
+      await new Promise((r) => setTimeout(r, Math.min(400 * (attempt + 1), 2500)));
+    }
+  }
+  if (!res) {
+    const c = lastErr?.cause;
+    throw new ApiError(`Network error calling ${url.pathname}: ${lastErr?.message}${c ? ` (${c.code || ''} ${c.message || ''})` : ''}`, { status: 0 });
   }
 
   const text = await res.text();
