@@ -16,7 +16,7 @@ import { lint as lintDocs } from "./maintain/doc-lint.mjs";
 const execFileAsync = promisify(execFile);
 
 const skillRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const expectedVersion = "3.35.0";
+const expectedVersion = "3.36.0";
 const requiredReferences = [
   "discipline.md",
   "monetization.md",
