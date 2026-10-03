@@ -59,8 +59,8 @@ opencli doctor
 
 ### 行为和这份文档对不上时，第一件事是查扩展版本
 
-**本 Skill 描述的默认行为全部住在扩展里**——后台默认、`opencli browser` 与 adapter 命令
-都在用户当前窗口开标签页、不切走活动标签页、每个会话一个以会话名命名的标签页组、
+**本 Skill 描述的默认行为全部住在扩展里**——扩展 1.5.x 起默认 dedicated，`opencli browser` 与 adapter 命令
+默认使用不抢焦点的专用窗口；background 要显式指定，不切走活动标签页、每个会话一个以会话名命名的标签页组、
 `--window isolated`、`sessions` 报 windowId / groupTitle / windowFallbackReason。
 装成 Chrome 应用商店那个版本的话，**每条命令都照样成功，只是行为回到上游**：
 默认前台、自己开一个窗口、抢走用户正在看的标签页、`isolated` 被忽略。
@@ -189,11 +189,11 @@ await reconcileSessions(before, { prefix: 'tm-' });   // 只关自己那批
 
 | `--window` | 行为 | 什么时候用 |
 |---|---|---|
-| `background` | **默认**。在用户当前那个 normal 窗口里开标签页，不抬窗口、不切活动标签页。**`opencli browser` 与 adapter 命令（`opencli <site> …`）都是这样**——1.0.33 起 adapter 不再自己开窗口 | 几乎所有情况 |
+| `background` | **须显式指定**。在用户当前那个 normal 窗口里开标签页，不抬窗口、不切活动标签页。**显式指定 background 时，`opencli browser` 与 adapter 命令（`opencli <site> …`）都是这样**——1.0.33 起 adapter 不再自己开窗口 | 几乎所有情况 |
 | `active` | 把标签页设为它所在窗口的活动标签（扩展只调 `chrome.tabs.update({active:true})`，不调 `chrome.windows.update({focused:true})`），不抬 OS 窗口，标签页不被节流。**落点和 `background` 一样**：用户开着自己的 Chrome 窗口时，标签页会被放进用户窗口，于是会切走他正在看的标签页；窗口被别的应用完全遮挡时仍读成 `hidden` | 要"选中/可见"又不能抢 OS 焦点，且确认用户没在用那个窗口；要稳定可见见下面「要可见又不抢焦点」 |
 | `foreground` | 抬起窗口（`chrome.windows.update({focused:true})`，把 Chrome 带到 OS 前台）并选中标签页 | **只有**需要用户亲自完成验证码、或他明确说要看着的时候 |
 | `isolated` | 后台，但不在用户那个窗口里——自动化自己的独立窗口（多个 isolated 会话共用这一个独立窗口，各自仍是自己的标签页组） | 长时间批量作业，不想在用户标签栏里堆东西 |
-| `dedicated` | 具名 slot 的专用窗口：`focused:false` 创建，永不聚焦；autoSelect 默认让会话标签在每条命令执行前都变成该窗口的活动标签（`visible`）；不是 OpenCLI 开的"外来标签"默认会被移出（evict） | 长时间批量作业，或者懒加载报表需要真正渲染出来，但又不能打扰用户正在用的窗口 |
+| `dedicated` | **扩展 1.5.x 起默认**，不抢焦点。具名 slot 的专用窗口：`focused:false` 创建，永不聚焦；autoSelect 默认让会话标签在每条命令执行前都变成该窗口的活动标签（`visible`）；不是 OpenCLI 开的"外来标签"默认会被移出（evict） | 长时间批量作业，或者懒加载报表需要真正渲染出来，但又不能打扰用户正在用的窗口 |
 
 标志位置在**会话名和子命令之间**（放在子命令后面也能工作）：
 
@@ -230,7 +230,7 @@ browser 与 adapter 都借不到时只建**一个**替身窗口共用；用户�
 
 | 错误做法 | 正确做法 | 为什么错 |
 |---|---|---|
-| `--window foreground`（除非用户要亲自操作） | 什么都不加（默认就是 background） | 实测会把用户的**活动标签页切走**（从第 1 个跳到第 3 个）。2026-08-23 那次测量里最前端**应用**不变；但之后的扩展在建标签页租约时会 `chrome.windows.update({focused:true})`，2026-09-13 起有用户反馈被反复抬到前台——「foreground 不换前台应用」已经不成立，别再据此放行 |
+| `--window foreground`（除非用户要亲自操作） | 什么都不加（扩展 1.5.x 起默认 dedicated，不抢焦点）；只取数时显式 `--window background` | 实测会把用户的**活动标签页切走**（从第 1 个跳到第 3 个）。2026-08-23 那次测量里最前端**应用**不变；但之后的扩展在建标签页租约时会 `chrome.windows.update({focused:true})`，2026-09-13 起有用户反馈被反复抬到前台——「foreground 不换前台应用」已经不成立，别再据此放行 |
 | 调 adapter 时用前台「方便看页面」 | `--keep-tab true` + `screenshot` / `state` | 调试是高频动作，一轮能打断十几次。标签页留着，用户想看自己切过去 |
 | 在旧扩展（< 1.0.33）上省略 `--window background` | 先看 `doctor` 的扩展版本；旧版就每条命令都显式带 | 旧版两层默认都是前台，省略等于每条命令都抬一次窗口 |
 | 给 `PUBLIC` / `LOCAL` 命令加 `--window` | 不加 | 它们不接受这个标志，会报 `unknown option '--window'`；这类命令本来也不开浏览器 |
@@ -255,13 +255,26 @@ browser 与 adapter 都借不到时只建**一个**替身窗口共用；用户�
 
 **怎么确认自己拿到的是修好的版本**：`opencli doctor` 的 Extension 那行 ≥ 1.0.33；
 再跑 `opencli browser <s> --window isolated open <url>` 之后 `opencli browser sessions`，
-它那一行的 `windowId` 应该与默认模式会话的不同，且默认模式那行**没有** `[new window: …]`。
+它那一行的 `windowId` 应该与显式 `--window background` 会话的不同；background 借到用户窗口时**没有** `[new window: …]`。
 
 ### 专用窗口与可见性
 
+| 场景 | 必须用 | 禁止 |
+|---|---|---|
+| 只取数、不需要页面真正渲染 | 必须显式 `--window background` | 禁止加 foreground / active |
+| 网站验收、截图、E2E、懒加载报表需要真渲染 | 必须用 `--window dedicated` | 禁止手写 `--window-slot`、`--window-display` 指向主屏、手算位置 |
+| 看手机 / H5 版式 | 必须用 `--window dedicated --half` | 禁止靠改 bounds 宽度模拟 |
+| 需要指定窗口宽高（如 390 / 1360 视口对比） | 必须用 `--window dedicated --window-bounds 0,0,<宽>,<高>`：仅当 bounds 中心点落在用户当前屏时才迁到自动宫格，保留宽高（不超过目标屏工作区）；0,0 不保证迁移，见表后例外 | 禁止把 left/top 写成主屏以外的坐标来“挑位置”（挑位置交给宫格） |
+| 多个页面需同时可见 | 必须每个页面各用一个独立会话名，各自 `--window dedicated` | 禁止一个会话里 tab new / tab select |
+| 用户要亲自过验证码 | 必须用 `--window foreground`，并告诉用户去哪个标签页点什么 | 禁止其他任何情况用 foreground |
+| 配额站（Semrush/Similarweb 等） | 必须固定站点会话名 + 一次访问一个 batch（沿用本 Skill 配额站一节） | 禁止并行多开 |
+
+显式 bounds 的中心点落在用户当前屏时才迁到自动宫格；自动选屏会排除用户当前屏，优先用其他外接/虚拟屏，只有一块屏时回主屏。用户当前屏在负坐标副屏时，`0,0,…` 的中心若在主屏，原 bounds 会被保留，窗口可出现在主屏。当前屏探测不可用时以主屏为迁移判断的备用。
+出现主屏位置时先看 `window status -f json` 的 `placement.source`、`relocatedFrom` 和当前屏是否就是主屏，再结合屏幕数量判断；需要迁移却未迁移时再查扩展版本是否 ≥ 1.5.3。
+
 `dedicated` 用专用 slot 窗口保持页面可见，适合懒加载报表、网站验收和截图；仍使用用户同一 Chrome 与登录态。扩展 ≥ 1.2.0、CLI ≥ 1.10.0；先用 `opencli browser window status -f json` 确认 `supported` 和 `dedicated-window` capability。用 `--window-slot` 将需同时可见的会话分开；窗口定位、环境变量、外来标签策略和旧版 `isolated` + 虚拟屏方案见 [`references/field-notes.md`](references/field-notes.md#专用窗口与旧版可见性方案)。
 
-默认有副屏/虚拟屏时，自动化窗口只用副屏，不占主屏、不抢焦点；没有副屏才回主屏。池跨所有副屏自动铺开：外接屏优先、按 id 排序，先填满一块屏的动态网格再用下一块，各屏使用自己的工作区坐标（支持负坐标）；自然容量内互不遮挡，全部副屏自然容量用完后才在最后一块屏层叠。层叠窗口可能被 Chrome 判为 `hidden`，懒加载报表要避免超过自然容量。
+默认自动选屏会排除用户当前屏，优先用其他外接/虚拟屏，不抢焦点；没有其他屏时回主屏。当前屏在副屏时可用主屏，显式 bounds 另按上面的中心点规则处理。池跨所有副屏自动铺开：外接屏优先、按 id 排序，先填满一块屏的动态网格再用下一块，各屏使用自己的工作区坐标（支持负坐标）；自然容量内互不遮挡，全部副屏自然容量用完后才在最后一块屏层叠。层叠窗口可能被 Chrome 判为 `hidden`，懒加载报表要避免超过自然容量。
 
 默认空闲 15 秒回收，`OPENCLI_DEDICATED_IDLE_MS` 可覆盖；lease 结束时 setTimeout 检查，alarm 与每次获取/创建前的惰性回收兜底。池上限随显示器自适应（所有自动化副屏 naturalCapacity 之和，下限 4，不再是固定值）；`window status -f json` 的 `pool.capacity` 是当前上限，`pool.naturalCapacity` 是所有自动化副屏的非重叠容量总和，`pool.automationDisplays` 列出各屏 id、name、area 和 naturalCapacity；兼容字段 `automationDisplay` 仅指第一块屏。建议配置大分辨率虚拟屏（如 5120×2880 约 20 格，池上限随之变大）或多块虚拟屏；`--window-display <名称片段>` / `OPENCLI_WINDOW_DISPLAY` 可钉到指定屏，显式指定时沿用匹配屏的旧分格规则，不跨到其他屏。
 
@@ -316,7 +329,7 @@ opencli <site> <command> --help    # 位置参数、专属标志、输出列
 | `-f, --format <fmt>` | `table`（TTY 默认）· `yaml`（非 TTY 默认）· `json` · `plain` · `md` · `csv`。**agent 基本都要 `-f json`** |
 | `--trace <mode>` | `off`（默认）· `on` · `retain-on-failure`。排障和写 adapter 时用 |
 | `-v, --verbose` | 调试日志 + 失败栈 |
-| `--window <mode>` | `background`（默认）/ `active` / `foreground` / `isolated` / `dedicated`（语义见上面「五个窗口模式」）。`dedicated` 的定位/隔离参数（slot、bounds、display）走 env 或 `--window-slot` / `--window-bounds` / `--window-display`，不是这个标志本身管。**`PUBLIC` / `LOCAL` 策略的命令不接受它**——加了直接报 `unknown option '--window'`，读起来像装坏了，其实是这类命令根本不开浏览器（实测 342 个 public + 25 个 local 命令）。先看 `strategy` 再决定加不加 |
+| `--window <mode>` | `background`（须显式指定）/ `active` / `foreground` / `isolated` / `dedicated`（扩展 1.5.x 起默认；语义见上面「五个窗口模式」）。`dedicated` 的定位/隔离参数（slot、bounds、display）走 env 或 `--window-slot` / `--window-bounds` / `--window-display`，不是这个标志本身管。**`PUBLIC` / `LOCAL` 策略的命令不接受它**——加了直接报 `unknown option '--window'`，读起来像装坏了，其实是这类命令根本不开浏览器（实测 342 个 public + 25 个 local 命令）。先看 `strategy` 再决定加不加 |
 | `--site-session <mode>` | `ephemeral`（默认）/ `persistent`。**同一站点批量调用一律 `persistent`**：复用 `site:<x>` 一个标签页、已在域内就跳过站点根预导航；默认模式每次新开标签页并先导航站点根，看起来像「一直刷新首页」。见 [session-laws](references/session-laws.md#site-session) |
 | `--keep-tab <bool>` | 结束后是否保留标签页租约 |
 
@@ -528,8 +541,8 @@ npm i -g https://github.com/yan-labs/OpenCLI/releases/download/v1.9.0-yan.3/open
 opencli doctor
 ```
 
-**为什么不能用应用商店那个版本**：本 Skill 描述的默认行为——后台模式默认、
-browser 与 adapter 都在用户当前窗口开标签页、不切走活动标签页、每会话一个标签页组、
+**为什么不能用应用商店那个版本**：本 Skill 描述的默认行为——扩展 1.5.x 起默认 dedicated，background 须显式指定、
+browser 与 adapter 默认用不抢焦点的专用窗口、不切走用户活动标签页、每会话一个标签页组、
 `--window isolated`、`sessions` 报 windowId / groupTitle / windowFallbackReason——
 **全都只存在于我们的构建里**。商店版默认是前台，装了它本 Skill 的规则会与实际行为不符。
 两个同时装还会一起连上守护进程互相打架。
