@@ -35,6 +35,8 @@ function saveMeta(web, meta) {
 function existing(session) {
   if (!sessions().some(row => row.session === session && row.surface === 'browser')) throw new Error(LOST);
   const web = webFor(session);
+  activeWeb = web;
+  manageSession(web);
   const meta = readMeta(web);
   if (!meta) throw new Error(LOST);
   web.temporaryNotice = meta.temporaryNotice;
@@ -80,8 +82,6 @@ async function main() {
   const turns = [];
   if (command === 'say') {
     ({ web, meta } = existing(rest[0]));
-    activeWeb = web;
-    manageSession(web);
     if (!rest[1]) throw new Error('需要追问。\n' + HELP);
     turns.push(await ask(web, meta, rest[1]));
   } else {
