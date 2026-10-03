@@ -42,7 +42,7 @@
  * 已验证：2026-08-21；auto_install 默认关闭复验：2026-09-12；
  * verify 三件套（token 比对 / 重复注入判定 / GraphQL count）：2026-09-13
  */
-import { readFileSync, existsSync } from "node:fs"
+import { readFileSync, writeFileSync, existsSync } from "node:fs"
 import { join } from "node:path"
 import { realpath } from "node:fs/promises"
 import path from "node:path"
@@ -331,6 +331,8 @@ async function doStatusOrEnable(cmd, domain) {
   })
   console.log(`✅ 已启用 Web Analytics（auto_install: false，需手动嵌延迟加载的 snippet）\n`)
   reportSite(site)
+  console.log(`\n关闭边缘注入（auto_install=false 并不阻止注入，见 doDisableEdge 注释）…`)
+  await doDisableEdge(domain)
 }
 
 /** verify：只读三件套核验，不改任何 CF 配置。 */
@@ -364,13 +366,57 @@ async function doVerify(domain) {
   if (!diag.ok) process.exitCode = diag.status === "fail" ? 1 : 2
 }
 
+/** disable-edge：关掉边缘自动注入。
+ * 【实测 2026-10-03，新站及账号内其余十余个 zone 站点】只设 auto_install=false 并不阻止注入：
+ * zone 关联的 site_info 会带一条 ruleset（host * paths *），ruleset.enabled=true 时边缘照样往每个 HTML
+ * 响应里塞 <script ... beacon.min.js/v… data-cf-beacon>，与站内手嵌的延迟 beacon 并存即一页两份
+ * （账号里多个站已是 1/2 并存状态）。可行做法：PUT site_info 的 {auto_install:false, enabled:false}
+ * 一并停掉 ruleset（规则随之 is_paused），约 15–30 秒后 HTML 不再有注入；手嵌 beacon 只依赖 site_token，
+ * 不依赖 ruleset（dont-look-up 同配置下 beacon 实测 POST 204、GraphQL 有事件）。
+ * 单独暂停规则（rum/v2 rule is_paused）不够，ruleset.enabled 仍为 true 时注入继续。
+ * 注意 PUT body 只放这两个字段，多带 zone_tag 会 400。*/
+async function doDisableEdge(domain) {
+  const { accountId, site: hit } = await findSite(domain)
+  if (!hit) { console.error(`${domain} 尚未启用 Web Analytics，先跑 enable`); process.exit(1) }
+  const updated = await cf(`/accounts/${accountId}/rum/site_info/${hit.site_tag}`, {
+    method: "PUT", body: JSON.stringify({ auto_install: false, enabled: false }),
+  })
+  console.log(`auto_install=${updated.auto_install}；ruleset.enabled=${updated.ruleset?.enabled}；规则暂停=${(updated.rules || []).every(r => r.is_paused)}`)
+  const deadline = Date.now() + 120_000
+  while (Date.now() < deadline) {
+    try {
+      const html = (await fetchHtmlEvidence(`https://${domain}`)).html
+      const injected = /static\.cloudflareinsights\.com\/beacon\.min\.js\/v/.test(html)
+      if (!injected) { console.log("首页 HTML 已无边缘注入的 beacon（Accept: text/html 实测）。"); return }
+    } catch { /* 重试 */ }
+    await new Promise((r) => setTimeout(r, 10_000))
+  }
+  console.log("120 秒内首页仍有边缘注入 beacon，传播较慢或另有来源；稍后再跑 verify。")
+  process.exitCode = 2
+}
+
+/** export-id：把公开的 site_token 经受控 API 通道合并写进 JSON 文件的 cfWebAnalyticsToken 键，
+ * 终端不打印 token（它是前端公开值，但不从截图/记忆抄，见 discipline.md 十八）。 */
+async function doExportId(domain, file) {
+  const { site: hit } = await findSite(domain)
+  if (!hit?.site_token) { console.error(`${domain} 未启用 Web Analytics 或 API 未返回 site_token`); process.exit(1) }
+  let data = {}
+  if (existsSync(file)) data = JSON.parse(readFileSync(file, "utf8"))
+  data.cfWebAnalyticsToken = hit.site_token
+  writeFileSync(file, JSON.stringify(data, null, 2) + "\n")
+  console.log(`已把 cfWebAnalyticsToken 写入 ${file}（值不打印）`)
+}
+
 function usage() {
-  console.log(`用法: cf-analytics-setup.mjs <status|enable|verify> <domain>
+  console.log(`用法: cf-analytics-setup.mjs <status|enable|verify|export-id|disable-edge> <domain> [--json-file <路径>]
 
   status <domain>   查询是否已启用，打印配置状态（token/snippet 脱敏）
   enable <domain>   启用（auto_install 默认 false，需手动嵌延迟加载的 snippet）
   verify <domain>   只读核验：抓线上 HTML 比对 data-cf-beacon token、判断是否与
-                    实际 beacon 路径重复、查 GraphQL 近 7 天 pageload 数`)
+                    实际 beacon 路径重复、查 GraphQL 近 7 天 pageload 数
+  disable-edge <domain>  关边缘自动注入（auto_install=false+ruleset.enabled=false），回读 HTML 确认；enable 会自动调用
+  export-id <domain> --json-file <路径>
+                    把 site_token 合并写入该 JSON 的 cfWebAnalyticsToken（不打印值）`)
 }
 
 async function main() {
@@ -385,13 +431,19 @@ async function main() {
     usage()
     process.exit(2)
   }
-  if (!["status", "enable", "verify"].includes(cmd)) {
+  if (!["status", "enable", "verify", "export-id", "disable-edge"].includes(cmd)) {
     usage()
     process.exit(2)
   }
 
   if (cmd === "verify") await doVerify(domain)
-  else await doStatusOrEnable(cmd, domain)
+  else if (cmd === "disable-edge") await doDisableEdge(domain)
+  else if (cmd === "export-id") {
+    const i = process.argv.indexOf("--json-file")
+    const file = i === -1 ? null : process.argv[i + 1]
+    if (!file) { usage(); process.exit(2) }
+    await doExportId(domain, file)
+  } else await doStatusOrEnable(cmd, domain)
 }
 
 // argv[1] 保留调用时写的路径，import.meta.url 已经过符号链接解析——两边取真实路径

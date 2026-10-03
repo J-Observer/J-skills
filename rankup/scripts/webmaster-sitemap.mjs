@@ -18,7 +18,7 @@
  * 标志：
  *   --property <id>   GSC 资源 ID（`sc-domain:example.com` 或 `https://example.com/`）
  *   --site <url>      Bing / Yandex 站点（协议 + 主机，例如 https://example.com）
- *   --sitemap <值>    GSC 要相对路径（`sitemap.xml`）；Bing / Yandex 要完整 URL
+ *   --sitemap <值>    GSC 网址前缀资源用相对路径（`sitemap.xml`），sc-domain 网域资源要完整 URL（脚本自动补全）；Bing / Yandex 要完整 URL
  *   --session <名>    opencli 会话名（默认 webmaster-sitemap-<每对话唯一后缀>，不用 pid）
  *   --keep-session    完成后不关闭会话
  *   --lang <zh|en>    界面语言，默认 auto（两套文案都试）
@@ -112,6 +112,12 @@ if ((platform === "bing" || platform === "yandex") && !site) { console.error(`�
 if (action === "submit" && !sitemap) {
   sitemap = platform === "gsc" ? "sitemap.xml" : `${site}/sitemap.xml`
   console.log(`未给 --sitemap，用默认值：${sitemap}`)
+}
+// 2026-10-03：sc-domain 网域资源没有 URL 前缀，输入相对路径 sitemap.xml 点提交后列表仍为空
+// （2026-10-03 新站实测，改完整 URL 才入列）；网址前缀资源才吃相对路径。这里自动补全。
+if (platform === "gsc" && action === "submit" && property.startsWith("sc-domain:") && !/^https?:\/\//.test(sitemap)) {
+  sitemap = `https://${property.slice("sc-domain:".length)}/${sitemap.replace(/^\/+/, "")}`
+  console.log(`网域资源，sitemap 补全为完整 URL：${sitemap}`)
 }
 
 // 文案表。界面语言跟平台账号语言走，两套都试，命中即用。

@@ -37,7 +37,15 @@ function browser(...parts) {
 }
 function evalJs(source) { return browser("eval", `(()=>{${source}})()`) }
 function open(url) { opened = true; browser("open", url) }
-function text() { return evalJs("return document.body.innerText.slice(0,10000)") }
+function text() {
+  // 2026-10-02：页面跳转瞬间 document.body 为 null，原写法会抛 TypeError；最多等 10 秒重取。
+  for (let i = 0; i < 10; i++) {
+    const t = evalJs("return document.body ? document.body.innerText.slice(0,10000) : '__NO_BODY__'")
+    if (t !== "__NO_BODY__") return t
+    browser("wait", "time", "1")
+  }
+  return ""
+}
 function guard() {
   const body = text()
   if (/请登录|登录以继续|sign in to continue|验证码|captcha|recaptcha/i.test(body)) {

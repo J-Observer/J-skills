@@ -112,7 +112,8 @@ function cli(action_, { timeout = 30000 } = {}) {
     throw new Error(`opencli 失败: ${action_}\n  ${err}`)
   }
 }
-function evalJs(js) { return cli(`eval '${`(()=>{${js}})()`.replace(/'/g, "'\\''")}'`) }
+// 2026-10-03：片段里含 await 时必须包 async IIFE，否则 SyntaxError（status 的 /api-board/list 读取一直报这个）。
+function evalJs(js) { const head = /\bawait\b/.test(js) ? "(async()=>{" : "(()=>{"; return cli(`eval '${`${head}${js}})()`.replace(/'/g, "'\\''")}'`) }
 function open(url) { cli(`open "${url}"`) }
 function pageText(max = 4000) {
   return evalJs(`return (document.querySelector('main')||document.body).innerText.replace(/\\n{2,}/g,'\\n').slice(0,${max})`)

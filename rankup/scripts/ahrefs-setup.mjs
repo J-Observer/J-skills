@@ -74,6 +74,7 @@
  */
 import { execSync } from "node:child_process"
 import { newEvidenceDir, captureScene, writeManifest, sessionSuffix } from "./lib-scene.mjs"
+import { cfAuthHeaders } from "./lib-cf-auth.mjs"
 
 // ── 参数 ──────────────────────────────────────────────────
 const argv = process.argv.slice(2)
@@ -85,6 +86,8 @@ let projectId = null
 let gscAccount = null
 let session = `ahrefs-setup-${sessionSuffix()}`
 let keepSession = false
+let verifyDns = false
+let jsonFile = null
 
 for (let i = 1; i < argv.length; i++) {
   const a = argv[i]
@@ -94,6 +97,8 @@ for (let i = 1; i < argv.length; i++) {
   if (a === "--gsc-account" && argv[i + 1]) { gscAccount = argv[++i]; continue }
   if (a === "--session" && argv[i + 1]) { session = argv[++i]; continue }
   if (a === "--keep-session") { keepSession = true; continue }
+  if (a === "--dns") { verifyDns = true; continue }
+  if (a === "--json-file" && argv[i + 1]) { jsonFile = argv[++i]; continue }
   if (a === "-h" || a === "--help") { usage(); process.exit(0) }
   console.error(`未知参数: ${a}`); usage(); process.exit(1)
 }
@@ -101,9 +106,10 @@ for (let i = 1; i < argv.length; i++) {
 function usage() {
   console.log(`用法:
   node ahrefs-setup.mjs status [--site <域名>] [--project-id <ID>]
-  node ahrefs-setup.mjs create --site <域名> [--name <项目名>]
-  node ahrefs-setup.mjs verify --site <域名> [--project-id <ID>] [--gsc-account <邮箱>]
-  node ahrefs-setup.mjs enable-wa --site <域名> [--project-id <ID>]`)
+  node ahrefs-setup.mjs create --site <域名> [--name <项目名>] [--dns]
+  node ahrefs-setup.mjs verify --site <域名> [--project-id <ID>] [--gsc-account <邮箱>] [--dns]
+  （--dns：所有权用 DNS TXT 验证——从页面 DOM 读 ahrefs-site-verification_… 值，经 Cloudflare API 写入 apex TXT 后点「重新检查状态」；不授权任何账号）
+  node ahrefs-setup.mjs enable-wa --site <域名> [--project-id <ID>] [--json-file <路径>]  （--json-file：把 data-key 合并写入该 JSON 的 ahrefsWaDataKey，终端仍打印）`)
 }
 
 if (!["status", "create", "verify", "enable-wa"].includes(action)) { usage(); process.exit(1) }
@@ -140,7 +146,7 @@ function waitFor(js, seconds = 15) {
 }
 /** 打开后等页面真的可读，代替原来的 settle(5000/8000) 赌秒数。 */
 function waitPageReady(seconds = 20) {
-  return waitFor(`return document.readyState==='complete' && ((document.body&&document.body.innerText)||'').length>50`, seconds)
+  return waitFor(`return document.readyState==='complete' && ((document.body&&(document.body?.innerText||''))||'').length>50`, seconds)
 }
 
 /**
@@ -275,10 +281,10 @@ async function doStatus() {
   if (projectId || site) {
     const id = findProjectId()
     open(`https://app.ahrefs.com/project-settings/${id}/ownership`)
-    if (!waitFor(`return /所有权已验证[。.]|所有权未验证[。.]|Ownership (?:verified|not verified)/i.test(document.body.innerText)`, 30)) {
+    if (!waitFor(`return /所有权已验证[。.]|所有权未验证[。.]|Ownership (?:verified|not verified)/i.test((document.body?.innerText||''))`, 30)) {
       bail("ownership-not-loaded", "所有权页面未出现可确认的验证状态。")
     }
-    const status = evalJs(`return (document.body.innerText.match(/所有权(?:已|未)验证[。.]|Ownership (?:verified|not verified)[.!]?/i)||[])[0]||''`)
+    const status = evalJs(`return ((document.body?.innerText||'').match(/所有权(?:已|未)验证[。.]|Ownership (?:verified|not verified)[.!]?/i)||[])[0]||''`)
     console.log(`${site || id} | ${id} | ${status}`)
     return
   }
@@ -287,7 +293,7 @@ async function doStatus() {
 
   // Dashboard shell renders before project cards; reading it early silently reports navigation as projects.
   // Ahrefs may show project settings without Site Explorer links (frozen projects).
-  waitFor(`return !!document.querySelector('a[href*="projectId="],a[href*="/project-settings/"]') || /无符合搜索条件的项目|No projects/i.test(document.body.innerText)`, 30)
+  waitFor(`return !!document.querySelector('a[href*="projectId="],a[href*="/project-settings/"]') || /无符合搜索条件的项目|No projects/i.test((document.body?.innerText||''))`, 30)
   const url = evalJs(`return location.href`)
   if (/\/(?:login|sign-in|signin)(?:[/?#]|$)/i.test(url)) {
     bail("redirected-to-login", "Ahrefs 已跳转登录页，请先在浏览器中登录 app.ahrefs.com")
@@ -314,7 +320,7 @@ async function doStatus() {
     }
     return [...items.values()].join('\\n');
   `)
-  const pageInfo = evalJs(`return location.href + ' | ' + (document.body.innerText.match(/每页\\d+个结果|\\d+ results per page/i)?.[0] || '')`)
+  const pageInfo = evalJs(`return location.href + ' | ' + ((document.body?.innerText||'').match(/每页\\d+个结果|\\d+ results per page/i)?.[0] || '')`)
   if (!projects) bail("projects-not-rendered", "Dashboard 未解析到项目链接；不把侧栏文本误报为项目列表。请检查现场截图。")
   console.log("── Ahrefs 项目列表（当前页；搜索和分页结果不代表全工作区）──")
   console.log(pageInfo)
@@ -331,12 +337,12 @@ async function doCreate() {
   // 先看工作区有没有冻结项目。有的话新建会被拒，报出名字后停，不删除。
   open("https://app.ahrefs.com/dashboard")
   waitPageReady(25)
-  waitFor(`return !!document.querySelector('a[href*="projectId="],a[href*="/project-settings/"]') || /无符合搜索条件的项目|No projects/i.test(document.body.innerText)`, 30)
+  waitFor(`return !!document.querySelector('a[href*="projectId="],a[href*="/project-settings/"]') || /无符合搜索条件的项目|No projects/i.test((document.body?.innerText||''))`, 30)
   const frozen = frozenProjectNames()
   if (frozen.length) {
     bail("frozen-project-blocks-create", `工作区存在冻结项目，Ahrefs 不允许添加新项目：${frozen.join("、")}。预览域名（*.workers.dev / *.pages.dev）要先删掉；本脚本不删除任何项目。`)
   }
-  const blocked = evalJs(`return /工作区存在冻结项目|此功能已关闭|frozen projects/i.test(document.body.innerText)`)
+  const blocked = evalJs(`return /工作区存在冻结项目|此功能已关闭|frozen projects/i.test((document.body?.innerText||''))`)
   if (blocked === "true") {
     reportFrozenProject()
   }
@@ -347,7 +353,9 @@ async function doCreate() {
     bail("create-chooser-not-opened", "点击创建后没有进入添加项目页面。")
   }
   if (evalJs(`return location.pathname.includes('/new-project')`) === "true") {
-    reactClick(`[...document.querySelectorAll('a,button')].find(el=>(el.innerText||'').trim()==='手动添加')`, "手动添加")
+    // 2026-10-03：新版卡片整块是 <a>，innerText 含说明文字，不再等于「手动添加」；改为按前缀匹配。
+    waitFor(`return [...document.querySelectorAll('a,button')].some(el=>/^手动添加(\\s|$)/.test((el.innerText||'').trim()))`, 20)
+    reactClick(`[...document.querySelectorAll('a,button')].find(el=>/^手动添加(\\s|$)/.test((el.innerText||'').trim()))`, "手动添加")
     if (!waitFor(`return !!document.querySelector('input[placeholder="域或路径"]')`, 15)) {
       bail("scope-not-opened", "手动添加后没有进入范围步骤。")
     }
@@ -414,10 +422,10 @@ async function doCreate() {
 
   // 第 3 步：所有权验证。页面加载时会先「检查验证」，已验证的项目无需再选账户。
   if (evalJs(`return location.pathname.endsWith('/ownership')`) === "true") {
-    waitFor(`return !/检查验证[.…]?/.test(document.body.innerText)`, 35)
-    let result = selectGscAccount()
+    waitFor(`return !/检查验证[.…]?/.test((document.body?.innerText||''))`, 35)
+    let result = verifyDns ? await dnsOwnership() : selectGscAccount()
     if (result === "not-found") bail("gsc-section-not-found", "创建向导找不到 GSC 验证区域。")
-    if (result === "selected" && !waitFor(`return /所有权已验证|Ownership verified|已通过谷歌搜索控制台验证/.test(document.body.innerText)`, 35)) {
+    if (result === "selected" && !waitFor(`return /所有权已验证|Ownership verified|已通过谷歌搜索控制台验证/.test((document.body?.innerText||''))`, 35)) {
       bail("gsc-verification-pending", "创建向导未显示 GSC 所有权已验证；待 GSC 就绪后重试，不自动写 DNS。")
     }
     scene("create-gsc-verified")
@@ -428,10 +436,10 @@ async function doCreate() {
   // 第 4 步：保持默认每周审计并完成向导。完成按钮走表单 onSubmit，普通点击不会落库。
   if (evalJs(`return location.pathname.endsWith('/site-audit')`) === "true") {
     submitFinish("完成按钮")
-    if (!waitFor(`return location.pathname.startsWith('/dashboard') || /工作区存在冻结项目|frozen projects/i.test(document.body.innerText)`, 25)) {
+    if (!waitFor(`return location.pathname.startsWith('/dashboard') || /工作区存在冻结项目|frozen projects/i.test((document.body?.innerText||''))`, 25)) {
       bail("project-creation-unconfirmed", "提交完成后仍在向导；项目未确认创建。")
     }
-    if (evalJs(`return /工作区存在冻结项目|frozen projects/i.test(document.body.innerText)`) === "true") {
+    if (evalJs(`return /工作区存在冻结项目|frozen projects/i.test((document.body?.innerText||''))`) === "true") {
       reportFrozenProject()
     }
   }
@@ -500,7 +508,7 @@ function findProjectId() {
 
 // ── verify：通过 GSC 验证所有权 ─────────────────────────────
 function selectGscAccount() {
-  const verified = `return /所有权已验证[。.]|Ownership verified[.!]?/i.test(document.body.innerText)`
+  const verified = `return /所有权已验证[。.]|Ownership verified[.!]?/i.test((document.body?.innerText||''))`
   if (evalJs(verified) === "true") return "verified"
   const heading = `[...document.querySelectorAll('[class*="itemHeader"]')].find(el=>/谷歌搜索控制台|Google Search Console/i.test(el.textContent))`
   if (evalJs(`return !!(${heading})`) !== "true") return "not-found"
@@ -522,6 +530,54 @@ function selectGscAccount() {
   return "selected"
 }
 
+
+// ── DNS TXT 所有权验证（2026-10-03 新站实测）──────────────
+// Ahrefs 新版向导里「谷歌搜索控制台」要求连接 Google 账号（OAuth 授权，必须用户本人点），
+// 未连接时选账户后一直「所有权未验证」。--dns 走等价路径：值从页面 DOM 读，经 Cloudflare API
+// 写 apex TXT（只加验证记录，不碰别的记录），再点「重新检查状态」回读。
+async function cfDns(path, options = {}) {
+  const res = await fetch(`https://api.cloudflare.com/client/v4${path}`, {
+    ...options, headers: { ...cfAuthHeaders(), "Content-Type": "application/json" },
+  })
+  const json = await res.json()
+  if (!json.success) throw new Error(`Cloudflare HTTP ${res.status}: ${(json.errors || []).map(e => e.message).join("; ")}`)
+  return json.result
+}
+async function ensureApexTxt(content) {
+  const apex = site.replace(/^https?:\/\//, "").replace(/\/.*$/, "")
+  const zone = (await cfDns(`/zones?name=${encodeURIComponent(apex)}`)).find(z => z.name === apex)
+  if (!zone) throw new Error(`Cloudflare 找不到 ${apex} zone（DNS 验证只支持 apex 在本账号 zone 内）`)
+  const records = await cfDns(`/zones/${zone.id}/dns_records?type=TXT&name=${encodeURIComponent(apex)}`)
+  const hit = records.find(r => r.content.replace(/^"|"$/g, "") === content)
+  if (hit) return { added: false, id: hit.id }
+  const created = await cfDns(`/zones/${zone.id}/dns_records`, {
+    method: "POST", body: JSON.stringify({ type: "TXT", name: apex, content, ttl: 1 }),
+  })
+  return { added: true, id: created.id }
+}
+async function dnsOwnership() {
+  const verified = `return /所有权已验证[。.]|Ownership verified[.!]?/i.test((document.body?.innerText||''))`
+  waitFor(`return !/检查验证[.…]?/.test((document.body?.innerText||''))`, 35)
+  if (evalJs(verified) === "true") return "verified"
+  const tokenRe = /ahrefs-site-verification_[a-f0-9]{16,}/
+  let token = pageText(30000).match(tokenRe)?.[0]
+  if (!token) {
+    // 令牌区块可能折叠在「DNS记录」标题后
+    try { reactClick(`[...document.querySelectorAll('[class*="itemHeader"]')].find(el=>/DNS记录|DNS record/i.test(el.textContent))`, "DNS记录标题") } catch {}
+    settle(1500)
+    token = pageText(30000).match(tokenRe)?.[0]
+  }
+  if (!token) bail("dns-token-not-found", "页面里读不到 ahrefs-site-verification_ 令牌；看现场截图。")
+  const txt = await ensureApexTxt(token)
+  console.log(`Cloudflare 验证 TXT ${txt.added ? "已新增" : "已存在"}，record id ${txt.id}（值不打印）。`)
+  for (let attempt = 0; attempt < 16; attempt++) {
+    try { reactClick(`[...document.querySelectorAll('button')].find(b=>/重新检查状态|Recheck status/i.test(b.textContent||''))`, "重新检查状态") } catch {}
+    if (waitFor(verified, 20)) return "verified"
+    settle(10000)
+  }
+  bail("dns-verification-pending", "约 6 分钟内 Ahrefs 未确认 DNS TXT；记录已在 Cloudflare，稍后用 verify --dns 重试。")
+}
+
 async function doVerify() {
   const projectId = findProjectId()
   await doVerifyWithId(projectId)
@@ -535,7 +591,7 @@ async function doVerifyWithId(projectId) {
   settle(5000)
 
   // Default to the first linked Google account; only --gsc-account overrides it.
-  const selected = selectGscAccount()
+  const selected = verifyDns ? await dnsOwnership() : selectGscAccount()
   if (selected === "not-found") bail("gsc-section-not-found", "找不到 GSC 验证区域；看现场截图。")
   if (selected === "verified") {
     console.log(`${site}：页面已显示所有权已验证，无需再次选择账户。`)
@@ -577,7 +633,7 @@ async function doEnableWa() {
       const m = codeBlock.textContent.match(/data-key="([^"]+)"/);
       if (m) return m[1];
     }
-    const text = document.body.innerText;
+    const text = (document.body?.innerText||'');
     const m2 = text.match(/data-key="([^"]+)"/);
     if (m2) return m2[1];
     const m3 = text.match(/数据密钥值[：:] *([A-Za-z0-9+/=]+)/);
@@ -589,6 +645,14 @@ async function doEnableWa() {
   }
 
   console.log(`   data-key: ${dataKey}`)
+  if (jsonFile) {
+    // 公开前端 ID，直接由 DOM 取值落盘，不经人手抄（discipline.md 十八）。
+    const { readFileSync, writeFileSync, existsSync } = await import("node:fs")
+    const data = existsSync(jsonFile) ? JSON.parse(readFileSync(jsonFile, "utf8")) : {}
+    data.ahrefsWaDataKey = dataKey
+    writeFileSync(jsonFile, JSON.stringify(data, null, 2) + "\n")
+    console.log(`   已写入 ${jsonFile}（ahrefsWaDataKey）`)
+  }
 
   // 3. 点击「保存」按钮
   stampAndClick(

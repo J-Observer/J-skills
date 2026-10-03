@@ -79,7 +79,7 @@ Firebase 项目可以关联这个 GA4 媒体资源（下一节），但纯 Web �
 ### 脚本
 
 `scripts/ga4-setup.mjs`：`status` / `create --domain --name [--country 冰岛|巴西] [--timezone UTC]`。
-`--timezone-country` 仍可用，是 `--country` 的别名。时区列表没有 UTC 时用 `--country` /
+`--timezone-country` 仍可用，是 `--country` 的别名。 **2026-10-03 实测：`--country 英国` 会自动把时区设成 `(GMT+00:00) GMT+00:00`（等同 UTC），此时不要再传 `--timezone UTC`（列表里没有这个文字会报「找不到: 时区选项」）；GA 后台偶发「正在加载...」卡住，同参数重跑一次即可。**时区列表没有 UTC 时用 `--country` /
 `--timezone` 显式指定界面文字（例如 `--country 英国 --timezone UTC` 或 `--timezone GMT+00:00`）。
 专用 OpenCLI 窗口（`--window-slot ga4-setup`）。hash URL `open` 常报 Navigation rejected，
 脚本改开 `/analytics/web/` 再点「管理」。`waitPageReady` 等目标元素出现或网络空闲，
@@ -101,6 +101,15 @@ HTML 响应经过时把 beacon 塞进去，等于白做。
 beacon snippet（写法同 GA4 的 gtag 那条规则）。`cf-analytics-setup.mjs` 的
 `enable` 子命令默认即以 `auto_install: false` 创建站点记录；`status` 子命令对已存在
 且 `auto_install` 为 `true` 的站点会打印告警，提示改回手动延迟注入。
+
+**【实测 2026-10-03】只设 `auto_install=false` 并不阻止边缘注入。** zone 关联的 site_info 自带一条 ruleset
+（host `*`、paths `*`），`ruleset.enabled=true` 时边缘照样往每个 HTML 响应塞 `beacon.min.js/v<hash>` +
+`data-cf-beacon`；新站刚 `enable` 一分钟内线上首页就有了，账号内多个 zone 站点也处于「边缘 1 份 +
+手嵌 1 份」并存状态。**`cf-analytics-setup.mjs enable` 现在会在创建后自动调用 `disable-edge`**
+（PUT site_info `{"auto_install":false,"enabled":false}`，ruleset 停用、规则暂停，约 15–30 秒后线上 HTML
+不再有注入，脚本轮询回读确认）；已有站点手动跑 `disable-edge <domain>`。只暂停规则（rum/v2 的 rule
+`is_paused`）不够，必须同时停 ruleset。手嵌 beacon 只依赖 site_token，不依赖 ruleset。`export-id <domain> --json-file <路径>`
+把 site_token 经 API 通道写进 `.rankup/analytics-ids.json` 的 `cfWebAnalyticsToken`，终端不打印。
 
 ### 接入步骤
 
@@ -273,6 +282,13 @@ Rankup 负责项目初始化和维持监控覆盖。
 先用 `status` 查域名和工作区冻结项目。工作区存在冻结项目时，禁止新建任何项目；废弃的预览域名项目应及时删除。创建前后都按域名回查，向导「完成」可能重复建项，只留一个目标域名项目。
 
 优先在所有权设置用「谷歌搜索控制台」关联验证：按[搜索平台的账户选择规则](search-platforms.md#账户与授权页面)选择 Google 账户，点「重新检查状态」并回读验证结果。数分钟未通过再用 DNS TXT。
+
+**2026-10-03 实测更新**：创建向导现在先出「从GSC导入 / 手动添加」二选一卡片（脚本已适配）；所有权步骤里「谷歌搜索控制台」
+要求先**连接 Google 账号（OAuth，必须用户本人授权）**，未连接时选了账户也一直「所有权未验证」。此时用
+`ahrefs-setup.mjs create|verify --site <域名> --dns`：令牌从页面 DOM 读（`ahrefs-site-verification_…`），经 Cloudflare API
+给 apex 加一条 TXT（记 record id），再点「重新检查状态」直到「所有权已验证」，不授权任何账号。新项目建成后默认带
+Site Audit（每周排程，首抓取在向导完成时开始）。`enable-wa ... --json-file <路径>` 把 data-key 写进 `.rankup/analytics-ids.json`
+的 `ahrefsWaDataKey`。
 
 ```bash
 # 查看 Dashboard 上的项目列表

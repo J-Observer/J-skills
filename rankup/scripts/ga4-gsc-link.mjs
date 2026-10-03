@@ -187,7 +187,10 @@ function judge(resultText) {
     writeFileSync(questions, JSON.stringify({ created: { type: "noul", instructions: "关联是否已成功创建？" } }))
     const out = JSON.parse(execFileSync("fleet", ["judge", state, questions, "--json"], { encoding: "utf8", timeout: 60000, stdio: ["ignore", "pipe", "pipe"] }))
     if (!out.ok) throw new Error(out.error || "JEV 未返回结果")
-    return Number(out.answers?.created?.confidence ?? out.answers?.created?.value)
+    const value = Number(out.answers?.created?.confidence ?? out.answers?.created?.value)
+    // 2026-10-03：JEV 未返回数值时 Number(undefined)=NaN，原先会把已成功的关联误报为失败；
+    // 非有限值按「无判断」处理，成败以 linked() 回读为准。
+    return Number.isFinite(value) ? value : null
   } catch (e) {
     console.error(`JEV 不可用，改用 status 回读：${e.message}`)
     return null
