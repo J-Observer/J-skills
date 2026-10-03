@@ -65,9 +65,9 @@ fleet web close chatgpt-web-research-signatures
 fleet web "问题" --followup "追问1" --followup "追问2" --out answer.md --json
 ```
 
-- 不设轮次上限，不会自动关页；用完请 `close`。兼容问答命令加 `--close` 才在成功结束后关闭。追问间至少隔 8 秒。
-- 常驻临时聊天占一个窗口池位（池容量 10），默认 dedicated，副屏优先、自动铺开；`AI_PROBE_WEB_WINDOW` 可覆盖。保活依赖 `OPENCLI_BROWSER_IDLE_TIMEOUT`（秒），默认 86400（24 小时），并非永久保存；页面丢失须重新 start，临时聊天无法找回。
-- 不产生 API token 费用，但消耗订阅额度；高频可能触发验证或限流（探针遇过一次，原因未确认）。限流、验证码或登录失效立即停，保存 pageText 和 pageUrl，不关页，留给人看。
+- 不设轮次上限，不会自动关页；用完请 `close`。兼容问答命令加 `--close` 在结束后关闭；失败、报错或中断也关闭，页面文字保留在输出中。追问间至少隔 8 秒。
+- 常驻临时聊天占一个窗口池位（池容量 10），默认 dedicated，副屏优先、自动铺开；`AI_PROBE_WEB_WINDOW` 可覆盖。常驻对话打开时使用 `--keep-alive`，不自动回收，需显式 `fleet web close`；一次性问答（无追问且带 `--close`）仍默认 10 分钟空闲回收；旧 CLI 不认识该参数时提示并退回原 env 保活方案；页面丢失须重新 start，临时聊天无法找回。
+- 不产生 API token 费用，但消耗订阅额度；高频可能触发验证或限流（探针遇过一次，原因未确认）。限流、验证码或登录失效立即停，保存 pageText 和 pageUrl 后关闭会话，供人工核查。
 - 须用户确认账号已关闭记忆；脚本发送前读取临时页「不使用记忆」声明及页首模式；若是「个性化」会自动切到「不个性化」（该选择对后续新临时聊天持续生效）并回读确认，无法确认就停止并保存 pageText/pageUrl。已开路径已验证；自动切换路径未做真实切换实测。
 - 内容发给 OpenAI，不放密钥或未公开资料；答案当线索，域名与数字需核对来源。输出 DOM 引用域名，未做 payload 核验。
 - `start/say` 支持 `--json`、`--out file`；会话名、回答和引用一起输出。直接调用脚本与 `fleet web` 等价。窗口机制见 [opencli Skill](../../opencli/SKILL.md)。
