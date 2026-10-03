@@ -127,6 +127,7 @@ Web组件、Cloudflare和后续URL/SEO检查仅适用Web面；原生App按[`life
 | 检查项 | 客观通过条件 | 证据落点 | 怎么做 | 复查 |
 |---|---|---|---|---|
 | **UI 只来自组件库** | 业务代码里没有手写的基础控件（下拉框 / 弹窗 / 日期选择 / 表格分页 / Toast / Tabs）；每个控件能指出它来自 `components/ui/` 的哪个文件或哪个已安装的 shadcn / React 生态包；库里没有的先 `shadcn add` 或安装再用 | 本轮 diff 与 `components/ui/` 目录清单 | `grep -rn 'role="dialog"\|role="listbox"\|role="combobox"\|<select' apps/` 逐条核来源；命中在业务目录的就是手写 | 每轮 |
+| **设计走 `/design` 且带获奖标准 prompt** | 本轮设计任务记录里有 `/design` 画布链接（无画布时为 `frontend-design` 的调用记录），且任务描述原文包含「Awwwards、Webby Awards、FWA」「Dribbble、Behance」「通过自我检查不断优化，直至符合这个标准」；journal 里有至少一轮自检记录（对照该标准列出的差距与修改）；配图风格与站内设计语言一致 | 设计任务记录 + journal + 截图 | 对照 [`stage-3-build.md`](lifecycle/stage-3-build.md) 硬规则「设计一律走 `/design`」；缺调用记录或缺自检记录即不通过 | 每次整站设计 / 改版 / 新增页面类型 |
 | **多功能工具站侧栏模式** | 采用该模式时，[侧栏统一规范](design-references.md#多功能工具站侧栏统一规范)的结构、交互、工具覆盖与跨模板回归均通过；不适用则说明原因 | 本轮截图、导航对账与浏览器回归记录 | 按权威段落逐项核验，不以单张首页截图代替 | 动了共享布局 / 导航 / 图标样式 |
 | **用的是 shadcn monorepo 命令** | journal 里有命令原文且就是 `pnpm dlx shadcn@latest init --preset … --template start --monorepo`；**没有 `create-next-app` / `create-vite` 或其他脚手架的痕迹** | 项目仓库 + journal | 命令原文在 [`lifecycle/stage-3-build.md`](lifecycle/stage-3-build.md) 段 3 · 3.1 第 1 条；任何规模都用它 | 一次 |
 | 脚手架真实可运行 | Monorepo 被包管理器识别，dev/build 脚本真实跑通，用户已有文件没被覆盖 | 项目仓库 | 真跑一遍，不看脚手架的成功输出 | 一次 |

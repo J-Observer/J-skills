@@ -58,7 +58,7 @@ SEO 与 GEO 是最主要的获客与验证手段，**不是适用边界**：项�
 | 「做不做」「做哪个语种」「要不要多语言」「做成工具还是内容站」 | 2 | [`lifecycle/stage-2-positioning.md`](references/lifecycle/stage-2-positioning.md) |
 | 「我们做个网站吧」「帮我搭起来」 | 2→3 | 先过段 2 立项，再段 3 初始化；手上没有词树先回段 1 |
 | 「做个功能」「加个 X」 / 开发中「按 rankup 规范来」 | 3–4 | [`lifecycle/stage-3-build.md`](references/lifecycle/stage-3-build.md)：UI 一律来自 shadcn 组件库，多功能工具站导航先读[侧栏统一规范](references/design-references.md#多功能工具站侧栏统一规范)；做完段 4 全套体检 |
-| 「做个好看的页面」「Hero 怎么设计」「找个组件参考」 | 3 | [`design-references.md`](references/design-references.md) 选 2–3 个案例再实现 |
+| 「做个好看的页面」「Hero 怎么设计」「找个组件参考」 / 任何整站设计、改版 | 3 | **必须走 `/design` 并逐字带上获奖标准 prompt**（全文见 [`stage-3-build.md`](references/lifecycle/stage-3-build.md) 硬规则「设计一律走 `/design`」），再用 [`design-references.md`](references/design-references.md) 选 2–3 个案例再实现 |
 | 「我们做个内页吧」「关键词没问题了，做成内页」 | 4 | 见「强制流程」做内页一行 |
 | 「看一下 SEO / GEO 有没有问题」「能不能上线」「TDK」「密度」 | 4 | `checklists.md` 段 4 + [`seo-box.md`](references/seo-box.md)；第三方复核加载官方 `gefei-page`（[`seo-webcafe.md`](references/seo-webcafe.md)） |
 | 「怎么被 AI 引用」「llms.txt」「对 AI 代理友好吗」 | 4 | [`seo-ai-search.md`](references/seo-ai-search.md)；推荐位做法见 `seo-geo.md`；SEO 专题索引 [`seo-growth.md`](references/seo-growth.md) |

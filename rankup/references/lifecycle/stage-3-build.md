@@ -17,6 +17,7 @@
 | **GitHub 私有仓强制**：`gh repo create <name> --private`；要公开必须用户明说 | 未上线项目的仓库里带着选题、竞品调研与定价策略，公开等于把选题送人 |
 | **不重复造轮子**——功能层面先查三方库、现成服务、工具包，再自写 | 自写的登录、支付、邮件、图片处理一定比现成的差，且要自己维护；能力缺口先 `find-skills` |
 | **做页面级设计时先浏览外部组件库参考站**（[`design-references.md`](../design-references.md)），选 2–3 个案例参考后再实现 | 脚手架搭架子，shadcn 出基础控件，但 Hero / landing page / 动画动效的视觉设计两者都不管；参考真人设计工程师的现成案例再适配，比凭空画省时间且质量稳定 |
+| **设计一律走 `/design`，并逐字带上「获奖标准 prompt」**：做整站设计、首页/落地页/内页视觉、改版、配图方案时，先开 `/design` 画布（Design 类型 Artifact，把设计做在画布上；环境里没有该画布就用 `frontend-design` Skill），任务描述里**原文**附上：「整站要达到能在 Awwwards、Webby Awards、FWA 获奖的水平；配图要达到 Dribbble、Behance 精选作品的水准，并且和产品整体风格完全保持一致。通过自我检查不断优化，直至符合这个标准」；配图仍用 `/imagegen` 生成，prompt 风格与站内设计语言一致 | 脚手架和 shadcn 只保证结构与基础控件，视觉水准靠设计环节把关；不写明标准，设计就停在「能用」；配图与整站风格不一致会让页面像拼出来的 |
 | **域名做成一处配置留位**：一个常量或环境变量（如 `SITE_ORIGIN`），canonical / `og:url` / sitemap / robots / JSON-LD / 邮箱地址全部从它读；**开发期不接正式域名**，预览域 `noindex` | 域名在段 5 才定稿；散落在代码里的域名字面量换域名时一定漏；预览域被索引会让正式域名上线时撞上重复内容 |
 | **无占位红线**：任何页面任何地方不得出现占位链接（`#`、`example.com`、`javascript:void(0)`）、占位文案（lorem ipsum、「待补充」、`Project ready!`、`Hello world`）、占位图片（灰块、`placeholder.png`、`via.placeholder`） | Google 据此判垃圾站，一旦判了整站连坐；而这些东西没人会专门回来改，会一路活到上线 |
 | **邮箱唯一约定 `hello@<domain>`**，走 Cloudflare Email Routing（段 5 接） | 站内三处（JSON-LD `contactPoint`、`/about`、外链联络）要用同一个地址，允许多种写法就会出现三处不一致 |
