@@ -272,6 +272,14 @@ opencli browser <session> --window dedicated --window-slot <slot> open <url>
 opencli browser window status -f json
 ```
 
+**自动选屏与半宽（扩展 ≥ 1.5.0、CLI ≥ 1.13.0）**：不显式给 `--window-display` / `--window-bounds` 时，CLI 会探测你当前所在的屏（鼠标所在屏），新建或重排窗口时避开它，优先用其他外接/虚拟屏；只剩这一块屏时退回原行为，不报错。已存在的窗口不迁移。`window status` 的 placement 里有 `excludedDisplayBounds` 说明本次避开了哪块屏。调用方不需要关心屏幕和格子，也不要手动算位置或改窗口宽度。
+
+要看手机 / H5 版式时加 `--half`：窗口仍占一个完整格位，宽度只有格宽的一半，靠格内左侧；会话结束归还池后自动恢复整宽，`window status` / `window list` 的 `half` 字段可查。其余情况不要加。这只缩窗口宽度，不模拟手机 UA、触控或 DPR。
+
+```bash
+opencli browser <session> --window dedicated --half open <url>
+```
+
 ---
 
 ## 四、发现能力：不要背命令表，去问
