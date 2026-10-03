@@ -10,7 +10,7 @@ import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { pathToFileURL } from 'node:url';
-import { oc, regDomain, sendTurn, closeSession, sleep } from './demand/_chatgpt_web.mjs';
+import { oc, regDomain, sendTurn, closeSession, sleep, manageSession } from './demand/_chatgpt_web.mjs';
 
 const { defaultSession } = await import(pathToFileURL(join(homedir(), '.agents/skills/opencli/scripts/opencli-core.mjs')));
 const { values: args } = parseArgs({ options: {
@@ -39,7 +39,8 @@ if (!pitch && !args.smoke && !args['no-pitch']) {
   const description = meta.match(/\bcontent=(["'])(.*?)\1/is)?.[2] || '';
   pitch = `${title}；${description}`;
 }
-const web = { session: defaultSession('geo-recommendation-loop'), opened: false };
+const web = { session: defaultSession('geo-recommendation-loop'), opened: false, keepAlive: !args.smoke };
+manageSession(web);
 const data = { domain, url, round: Number(args.round), mode: args.smoke ? 'smoke' : args.recheck ? 'informed-recheck' : 'natural',
   pitch: pitch || '', pitchSource, startedAt: new Date().toISOString(), channel: 'chatgpt-web', privacy: '临时聊天 + 不个性化，由共享驱动逐样本核对；未做 payload 核验', samples: [], status: 'running' };
 const why = '你为什么推荐这几个？分别适合什么情况，有什么不足？最后只根据你刚才第一次回答，把实际推荐的产品按出现顺序记成一段 JSON，格式是 {"recommendations":[{"name":"产品名","domain":null,"position":1,"quote":"首次回答的原话摘录"}]}。知道官网域名才填写 domain，不知道就留 null；不要把来源网站或只是提到的名字算作推荐，也不要补充首次回答里没有的产品。';

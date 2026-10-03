@@ -45,9 +45,26 @@ export function classifyWebSend(text) {
 
 export const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 export function browserCommand(web, args, options = {}) {
-  const env = web.idleTimeout ? { ...process.env, OPENCLI_BROWSER_IDLE_TIMEOUT: String(web.idleTimeout) } : process.env;
-  return oc(['browser', web.session, ...args, '--window', process.env.AI_PROBE_WEB_WINDOW || 'dedicated'], { ...options, env });
+  const command = ['browser', web.session, ...args, '--window', process.env.AI_PROBE_WEB_WINDOW || 'dedicated'];
+  if (!web.keepAlive || args[0] !== 'open') return oc(command, options);
+  if (!web.legacyKeepAlive) {
+    const result = oc([...command, '--keep-alive'], options);
+    if (result.status === 0 || !/unknown option[^\n]*--keep-alive/i.test(result.stderr + result.stdout)) return result;
+    web.legacyKeepAlive = true;
+    console.error('[提示] OpenCLI 不支持 --keep-alive，退回旧版 24 小时保活；用完仍需 close。');
+  }
+  return oc(command, { ...options, env: { ...process.env, OPENCLI_BROWSER_IDLE_TIMEOUT: '86400' } });
 }
+
+/** 成功常驻可显式移交；其余退出及可捕获中断都关闭任务会话。 */
+export function manageSession(web) {
+  const cleanup = () => { if (web.opened && !web.retained) closeSession(web); };
+  const interrupt = signal => { web.retained = false; cleanup(); process.exit(signal === 'SIGINT' ? 130 : 143); };
+  process.once('exit', cleanup);
+  process.once('SIGINT', () => interrupt('SIGINT'));
+  process.once('SIGTERM', () => interrupt('SIGTERM'));
+}
+
 export function closeSession(web) {
   const result = browserCommand(web, ['close'], { timeoutS: 30 });
   if (result.status === 0) web.opened = false;
