@@ -263,9 +263,9 @@ browser 与 adapter 都借不到时只建**一个**替身窗口共用；用户�
 
 默认有副屏/虚拟屏时，自动化窗口只用副屏，不占主屏、不抢焦点；没有副屏才回主屏。池跨所有副屏自动铺开：外接屏优先、按 id 排序，先填满一块屏的动态网格再用下一块，各屏使用自己的工作区坐标（支持负坐标）；自然容量内互不遮挡，全部副屏自然容量用完后才在最后一块屏层叠。层叠窗口可能被 Chrome 判为 `hidden`，懒加载报表要避免超过自然容量。
 
-池上限为 10；`window status -f json` 的 `pool.capacity` 是上限，`pool.naturalCapacity` 是所有自动化副屏的非重叠容量总和，`pool.automationDisplays` 列出各屏 id、name、area 和 naturalCapacity；兼容字段 `automationDisplay` 仅指第一块屏。建议配置大分辨率虚拟屏（如 5120×2880 约 20 格，池仍最多 10）或多块虚拟屏；`--window-display <名称片段>` / `OPENCLI_WINDOW_DISPLAY` 可钉到指定屏，显式指定时沿用匹配屏的旧分格规则，不跨到其他屏。
+默认空闲 15 秒回收，`OPENCLI_DEDICATED_IDLE_MS` 可覆盖；lease 结束时 setTimeout 检查，alarm 与每次获取/创建前的惰性回收兜底。池上限随显示器自适应（所有自动化副屏 naturalCapacity 之和，下限 4，不再是固定值）；`window status -f json` 的 `pool.capacity` 是当前上限，`pool.naturalCapacity` 是所有自动化副屏的非重叠容量总和，`pool.automationDisplays` 列出各屏 id、name、area 和 naturalCapacity；兼容字段 `automationDisplay` 仅指第一块屏。建议配置大分辨率虚拟屏（如 5120×2880 约 20 格，池上限随之变大）或多块虚拟屏；`--window-display <名称片段>` / `OPENCLI_WINDOW_DISPLAY` 可钉到指定屏，显式指定时沿用匹配屏的旧分格规则，不跨到其他屏。
 
-并行任务直接用各自会话，不提前排队等槽位；`dedicated-pool-exhausted` 只在 `live>=10` 时出现，出现后再等任务释放或关闭空闲窗口。扩展改动需在 `chrome://extensions` reload 才生效；reload 会中断正在运行的会话，须等任务空闲再做。
+并行任务直接用各自会话，不提前排队等槽位；池满（`live>=pool.capacity`）时先按空闲时间回收无 holder/lease 的窗口（具名 slot 与 pool-N 都算），全部忙才报 `dedicated-pool-exhausted`，此时等任务释放。扩展改动需在 `chrome://extensions` reload 才生效；reload 会中断正在运行的会话，须等任务空闲再做。
 
 ```bash
 opencli browser <session> --window dedicated --window-slot <slot> open <url>

@@ -140,15 +140,15 @@ UA 不含 `Headless`、`plugins.length` 为 5。
 `background`，其余四种模式行为逐字节不变。它是"专门给自动化用、但仍在用户**同一个 Chrome、同一份 profile**
 里"的窗口——不是另开一个 Chrome 实例，也不是另建 user-data-dir。
 
-**生命周期**：不指定 slot 时自动分配/复用窗口池；`--window-slot`（或 `OPENCLI_WINDOW_SLOT`）可钉住具名窗口，slot 名满足 `^[A-Za-z0-9_.-]{1,40}$`。并发可见的多个会话用各自会话或不同 slot。最后一个租约释放后窗口保留、标签退回占位页，默认空闲 15 分钟回收；手动关闭后 slot 被遗忘、其下租约释放，下一条命令按定位规则重建。窗口 id 记在 `chrome.storage.session` 里，支持 MV3 worker 重启。
+**生命周期**：不指定 slot 时自动分配/复用窗口池；`--window-slot`（或 `OPENCLI_WINDOW_SLOT`）可钉住具名窗口，slot 名满足 `^[A-Za-z0-9_.-]{1,40}$`。并发可见的多个会话用各自会话或不同 slot。最后一个租约释放后窗口保留、标签退回占位页，默认空闲 15 秒回收（`OPENCLI_DEDICATED_IDLE_MS` 仍可覆盖；lease 结束时 setTimeout 检查，alarm 与每次获取/创建前的惰性回收兜底）；手动关闭后 slot 被遗忘、其下租约释放，下一条命令按定位规则重建。窗口 id 记在 `chrome.storage.session` 里，支持 MV3 worker 重启。
 
 **定位与窗口池**：显式 bounds > 指定屏幕匹配分格 > 自动跨副屏网格。
 
 默认有副屏/虚拟屏时，自动化窗口只用副屏，不占主屏、不抢焦点；没有副屏才回主屏。池跨所有副屏自动铺开：外接屏优先、按 id 排序，先填满一块屏的动态网格再用下一块，各屏使用自己的工作区坐标（支持负坐标）；自然容量内互不遮挡，全部副屏自然容量用完后才在最后一块屏层叠。层叠窗口可能被 Chrome 判为 `hidden`，懒加载报表要避免超过自然容量。
 
-池上限为 10；`window status -f json` 的 `pool.capacity` 是上限，`pool.naturalCapacity` 是所有自动化副屏的非重叠容量总和，`pool.automationDisplays` 列出各屏 id、name、area 和 naturalCapacity；兼容字段 `automationDisplay` 仅指第一块屏。建议配置大分辨率虚拟屏（如 5120×2880 约 20 格，池仍最多 10）或多块虚拟屏；`--window-display <名称片段>` / `OPENCLI_WINDOW_DISPLAY` 可钉到指定屏，显式指定时沿用匹配屏的旧分格规则，不跨到其他屏。
+池上限随显示器自适应（所有自动化副屏 naturalCapacity 之和，下限 4，不再是固定值）；`window status -f json` 的 `pool.capacity` 是当前上限，`pool.naturalCapacity` 是所有自动化副屏的非重叠容量总和，`pool.automationDisplays` 列出各屏 id、name、area 和 naturalCapacity；兼容字段 `automationDisplay` 仅指第一块屏。建议配置大分辨率虚拟屏（如 5120×2880 约 20 格，池上限随之变大）或多块虚拟屏；`--window-display <名称片段>` / `OPENCLI_WINDOW_DISPLAY` 可钉到指定屏，显式指定时沿用匹配屏的旧分格规则，不跨到其他屏。
 
-并行任务直接用各自会话，不提前排队等槽位；`dedicated-pool-exhausted` 只在 `live>=10` 时出现，出现后再等任务释放或关闭空闲窗口。扩展改动需在 `chrome://extensions` reload 才生效；reload 会中断正在运行的会话，须等任务空闲再做。
+并行任务直接用各自会话，不提前排队等槽位；池满（`live>=pool.capacity`）时先按空闲时间回收无 holder/lease 的窗口（具名 slot 与 pool-N 都算），全部忙才报 `dedicated-pool-exhausted`，此时等任务释放。扩展改动需在 `chrome://extensions` reload 才生效；reload 会中断正在运行的会话，须等任务空闲再做。
 
 指定屏幕时沿用旧分格：每格 1280×900、按 bounds 裁切，列数 `floor(宽/1280)`、行数 `floor(高/900)`，放得下时 0 号格偏移 `(+80,+60)`，一个 slot 占最低空闲格；扩展通过 `chrome.system.display` 探测屏幕，与 `chrome.windows` 使用同一坐标系。pattern 支持 `/正则/` 或大小写不敏感子串。没匹配到时 `placement.displayFound=false`，已有窗口不挪；不存在的窗口仍可能创建但不定位。自动布局在窗口减少时也重新铺开，工作区不可用则使用 bounds。
 
