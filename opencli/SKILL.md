@@ -121,6 +121,29 @@ profile 和同一个登录身份，所以如果站点把「当前选中的项目
 **判据：在站点里切换目标之后 URL 变不变？** 不变就先验证再并行，
 细节见 [`references/session-laws.md`](references/session-laws.md)。
 
+### 自动回收与临时保活
+
+browser 会话默认空闲 10 分钟自动回收；释放后的空白占位窗口在 15 秒内关闭。
+在飞命令也有硬上限：默认 10 分钟，命令自身 timeout 更长时尊重该 timeout；
+卡死超过上限会在回收检查时被强制释放。`OPENCLI_INFLIGHT_MAX_MS` 可覆盖默认上限（正整数毫秒）。
+
+```bash
+opencli browser captcha-help open https://example.com --keep-alive
+opencli browser long-review --idle-timeout 1800 open https://example.com
+opencli browser captcha-help close
+```
+
+`--keep-alive` 取消空闲回收；`--idle-timeout <秒>` 设置正整数秒数。两者也可放在会话名与子命令之间。
+`OPENCLI_BROWSER_IDLE_TIMEOUT` 兼容秒数，也接受 `never`；命令行参数优先于环境变量，再是默认值。
+两个命令行参数不要同时用；`close` 和 `opencli browser cleanup` 都能释放保活会话。
+
+仅在等用户人工过验证码、需要长时间挂着的人机协同页、或配额站连续采集间需要保留页面的短暂停顿时使用；
+除此之外几乎都不该用。**使用者负责最终 `close`**。brief 或脚本使用 keep-alive 时，
+必须在报告里写明会话名与原因；**子 agent 默认不得使用，必须由主线程在 brief 中明确授权**。
+
+用 `opencli browser sessions` 查看占用者、`[keep-alive]` 标记和回收剩余时间（JSON 有 `keepAlive`、`idleDeadlineAt`）；
+用 `scripts/orphan-windows.mjs` 只读检查空白窗口残留。
+
 ### 配额站例外
 
 Semrush / Similarweb 等同账号限额站使用固定的站点会话名，并且**一次访问放进一个 batch**；单条 batch 由 daemon 串行，跨多条命令的整轮采集还要持有 `yan-tools-share-<tool>.lock`。不要让多个 agent 并行采集：一个采集者顺序抓取并落盘，分析者读文件。开工前先运行：
