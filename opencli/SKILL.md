@@ -486,6 +486,7 @@ node <opencli-skill-dir>/scripts/access-report.mjs --degraded
 | `scripts/pressure.mjs` | **开工前的自查：现在能不能动手。** 配额站各有几个标签页（分「我的 / 共享 / 别人的」）、到没到线、tools-share 锁被哪个 pid 拿着多久、那个进程还活着吗，裁决 `go` / `wait` / `stale-lock` / `unknown` 并给出具体动作。`--tool <key>` 只看一个工具，`--json` 机读，退出码 0/2/3/4 可以直接当闸门。**陈旧锁只报告不删**——删别人的锁比等更危险 |
 | `scripts/daemon-restart-safe.mjs` | 重启守护进程的安全版：有采集任务在跑就拒绝（`--force` 可强行），重启后确认桥真的回来，没回来就唤醒 service worker |
 | `scripts/access-report.mjs` | 读 `site-access.jsonl` 做复盘：按路由看频次与 p50/p95、按调用方看是谁开的标签页、`--suspicious` 挑可疑行、`--degraded` 只看 `detectDegradation` 判出的限流/降级 |
+| `scripts/orphan-windows.mjs` | 只读诊断专用窗口残留：对照 Chrome 里的空白 `about:blank#opencli-dedicated=<slot>` 窗口与 `window status`，分 `held` / `idle-ok` / `idle-overdue`（回收失效）/ `untracked`（扩展不认识，不会自动回收）；有后两类时退出码 2。不关任何窗口 |
 | `tests/quota-sites.test.mjs` | 上面那些护栏的纯函数测试，不碰浏览器：`node --test opencli/tests/quota-sites.test.mjs` |
 | `tests/pressure.test.mjs` | `pressure.mjs` 的纯函数测试，会话列表和锁状态全部注入，不碰浏览器 |
 | `scripts/receiver.mjs` | 本地接收端：页面把数据 POST 进项目目录，绕开下载目录。端口按项目根派生、占用即崩、`/ping` 回报 root、`/script` 按白名单喂提取器源码 |
