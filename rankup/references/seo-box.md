@@ -24,6 +24,8 @@
 **下次再遇到同类导航站（工具聚合页、awesome 列表、"100 个 SEO 工具"贴），
 按同一个套路处理：不接入，只对账，把结论写成「已覆盖 / 接了 / 不接 + 裁决依据」三态。**
 
+关键词研究的顺序与裁决只见 [entry.md](playbooks/entry.md)；问法链路见 [seo-geo.md](seo-geo.md)，逐问法 Google 读法见 [seo-serp.md](seo-serp.md)，官方工具调用见 [seo-webcafe.md](seo-webcafe.md)。
+
 ## 对账结果：28 条逐条判定
 
 判定口径与 `.rankup/integrations.md` 一致：**✅ 已覆盖**（rankup 里已有等价或更好的路径）/
@@ -33,7 +35,7 @@
 
 | 工具 | 判定 | 依据 |
 |---|---|---|
-| Google Search | ✅ | [`demand-sources.md`](demand-sources.md) 第一·五节的「亲眼看首页」已经是段 1 硬 check，且规定了地区与语言必须显式指定 |
+| Google Search | ✅ | 逐问法盘面取证与判读见 [seo-serp.md「逐问法 Google 读法」](seo-serp.md#逐问法-google-读法) |
 | Similarweb | ✅ | `backlink/scripts/similarweb-query.mjs` / `similarweb-batch.mjs`，能力边界见 [`provider-capabilities.md`](provider-capabilities.md) |
 | Semrush | ✅ | `backlink/scripts/semrush-*.mjs` 一组 |
 | Ahrefs（主站） | ✅ **且被低估了** | 见下方「会员实测」一节：免费 AWT 档的 Site Audit 是完整的，`scripts/ahrefs-site-audit.mjs` 取它 |
@@ -122,7 +124,7 @@ bash <rankup-skill-dir>/scripts/aitdk-batch.sh [--concurrency N] [--out-dir DIR]
 
 ### AITDK 研究报告离线分流
 
-用于 P2 关键词竞争与 P4 竞品研究：先用现有 `aitdk-opencli.sh` 保存完整报告，再离线筛选已有文件；不重新采集有效报告。
+用于 [P2 关键词竞争与竞品页面证据](playbooks/research/p2-keyword-root.md#关键词竞争与竞品页面证据p2--p4-共用)与 P4 竞品研究；研究顺序见 [entry.md](playbooks/entry.md)。先用现有 `aitdk-opencli.sh` 保存完整报告，再离线筛选已有文件；不重新采集有效报告。
 
 ```bash
 bash "$RANKUP/scripts/aitdk-opencli.sh" '<目标URL>' '<独有会话>' report1.json
@@ -135,7 +137,7 @@ node "$RANKUP/scripts/aitdk-triage.mjs" report1.json report2.json --out '<output
 命令 stdout 仅输出统计和产物路径。退出码 `0` 表示处理完成，`2` 表示已写报告但有输入/采集缺口，`1` 表示参数或输出错误；都不代表网站质量评分。`review` 是待判读线索，`reported-defect` 是原采集器明确记录的错误，`capture` 是取证缺口。体积统计使用 UTF-8 字节与 Unicode 字符数，未测 tokenizer 时不声称精确 token 节省。输入文件保持原样，输出不得与输入或另一输出互为同文件/符号链接/硬链接。
 
 - 正常项只统计数量，不逐条推送。先看采集状态：15 面板仅部分完成、采集错误、必要字段缺失均须显式保留；未知/采集错误不能算通过或竞品缺陷。
-- `meta keywords` 缺失、固定字数或关键词密度不作为**研究筛选**的硬失败。AITDK 分数不等于 Google 评分或 KD；机械异常只能产生复核线索，不能穷尽页面承诺与真实功能不符的问题。
+- `meta keywords` 缺失、固定字数或关键词密度不作为**研究筛选**的硬失败。AITDK GEO 分是页面结构观察，不是 ChatGPT 自然推荐证据（采样与三清单见 [seo-geo.md](seo-geo.md)）；AITDK 分数不等于 Google 评分或 KD；机械异常只能产生复核线索，不能穷尽页面承诺与真实功能不符的问题。
 - **本脚本只做研究分流，不做上线放行。** 无异常不等于全站合格；段 4 / `rankup review` 仍按现有闸门检查完整报告，所有标红/标黄及未满分项的修复、复跑与解释要求不变。
 
 **解析器短板（消费这份 JSON 之前必须知道）：**

@@ -237,7 +237,7 @@ async function ensureCloudflareTxt(domain, content) {
 /* ── OpenCLI 封装（execSync + eval + stampAndClick，风格同 naver/clarity-setup.mjs） ── */
 function cli(action_, { timeout = 30000 } = {}) {
   try {
-    return execFileSync("opencli", ["browser", session, "--window", "background", ...action_],
+    return execFileSync("opencli", ["browser", session, "--window", "dedicated", ...action_],
       { encoding: "utf-8", timeout, stdio: ["pipe", "pipe", "pipe"] }).trim()
   } catch (e) {
     const err = (e.stderr?.toString() || e.stdout?.toString() || e.message).trim()

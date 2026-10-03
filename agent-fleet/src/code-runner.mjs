@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 import { snapshotGit, inspectGit } from './brief.mjs';
 import { runsDir } from './progress.mjs';
+import { SCOPE_LOCK } from './scope.mjs';
 
 const REVIEW_REFERENCE = fileURLToPath(new URL('../skill/references/codex-coding.md', import.meta.url));
 
@@ -24,7 +25,7 @@ export function codexFallbackReason(error, log) {
 
 export async function runCode({ prompt, cwd = process.cwd(), low = false, review = false, codexBin = process.env.FLEET_CODEX_BIN || 'codex', codexArgs = [], onFallback }) {
   const workdir = resolve(cwd);
-  const fullPrompt = review ? `${reviewPrompt()}\n\n${prompt}` : prompt;
+  const fullPrompt = review ? `${reviewPrompt()}\n\n${prompt}` : `${SCOPE_LOCK}\n\n${prompt}`;
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   mkdirSync(runsDir(), { recursive: true });
   const base = join(runsDir(), `${stamp}-codex`);
@@ -50,7 +51,7 @@ export async function runCode({ prompt, cwd = process.cwd(), low = false, review
   const log = readFileSync(logPath, 'utf8');
   const reason = outcome.code === 0 ? null : codexFallbackReason(outcome.error, log);
   if (reason) {
-    if (onFallback) return onFallback(reason, fullPrompt);
+    if (onFallback) return onFallback(reason, review ? fullPrompt : prompt); // 网关路径的系统提示已含范围锁
     return { fallbackReason: reason };
   }
   const result = existsSync(resultPath) ? readFileSync(resultPath, 'utf8') : '';

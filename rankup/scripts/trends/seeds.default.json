@@ -1,0 +1,407 @@
+{
+  "geo": "US",
+  "seeds": [
+    {
+      "seed": "tycoon",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "minecraft",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "steam",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "horror game",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "io game",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "idle game",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "ai video generator",
+      "vertical": "AI"
+    },
+    {
+      "seed": "ai image generator",
+      "vertical": "AI"
+    },
+    {
+      "seed": "ai generator",
+      "vertical": "AI"
+    },
+    {
+      "seed": "music",
+      "vertical": "音乐"
+    },
+    {
+      "seed": "movie",
+      "vertical": "电影"
+    },
+    {
+      "seed": "qwen",
+      "vertical": "AI"
+    },
+    {
+      "seed": "gpt",
+      "vertical": "AI"
+    },
+    {
+      "seed": "openai",
+      "vertical": "AI"
+    },
+    {
+      "seed": "claude",
+      "vertical": "AI"
+    },
+    {
+      "seed": "kimi",
+      "vertical": "AI"
+    },
+    {
+      "seed": "copilot",
+      "vertical": "AI"
+    },
+    {
+      "seed": "anthropic",
+      "vertical": "AI"
+    },
+    {
+      "seed": "llama",
+      "vertical": "AI"
+    },
+    {
+      "seed": "ai photo",
+      "vertical": "AI"
+    },
+    {
+      "seed": "gemini",
+      "vertical": "AI"
+    },
+    {
+      "seed": "deepseek",
+      "vertical": "AI"
+    },
+    {
+      "seed": "grok",
+      "vertical": "AI"
+    },
+    {
+      "seed": "midjourney",
+      "vertical": "AI"
+    },
+    {
+      "seed": "chatgpt",
+      "vertical": "AI"
+    },
+    {
+      "seed": "perplexity",
+      "vertical": "AI"
+    },
+    {
+      "seed": "sora",
+      "vertical": "AI"
+    },
+    {
+      "seed": "stable diffusion",
+      "vertical": "AI"
+    },
+    {
+      "seed": "ai photo editor",
+      "vertical": "AI"
+    },
+    {
+      "seed": "background remover",
+      "vertical": "AI"
+    },
+    {
+      "seed": "roblox",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "simulator",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "tower defense",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "survival game",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "puzzle",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "codes",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "cozy game",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "roguelike",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "secrets",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "platformer",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "obby",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "incremental game",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "tracker",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "car driving",
+      "vertical": "AI"
+    },
+    {
+      "seed": "ai chatbot",
+      "vertical": "AI"
+    },
+    {
+      "seed": "kling",
+      "vertical": "AI"
+    },
+    {
+      "seed": "laya",
+      "vertical": "AI"
+    },
+    {
+      "seed": "ai free",
+      "vertical": "AI"
+    },
+    {
+      "seed": "free software",
+      "vertical": "工具"
+    },
+    {
+      "seed": "free ai tools",
+      "vertical": "工具"
+    },
+    {
+      "seed": "free mac apps",
+      "vertical": "工具"
+    },
+    {
+      "seed": "free iphone apps",
+      "vertical": "工具"
+    },
+    {
+      "seed": "gacha",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "mod apk",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "tier list",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "farming sim",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "soulslike",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "battle royale",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "sandbox game",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "speedrun",
+      "vertical": "游戏"
+    },
+    {
+      "seed": "ai agent",
+      "vertical": "AI"
+    },
+    {
+      "seed": "text to speech",
+      "vertical": "AI"
+    },
+    {
+      "seed": "ai avatar",
+      "vertical": "AI"
+    },
+    {
+      "seed": "ai companion",
+      "vertical": "AI"
+    },
+    {
+      "seed": "vibe coding",
+      "vertical": "AI"
+    },
+    {
+      "seed": "comfyui",
+      "vertical": "AI"
+    },
+    {
+      "seed": "ollama",
+      "vertical": "AI"
+    },
+    {
+      "seed": "ai automation",
+      "vertical": "AI"
+    },
+    {
+      "seed": "pdf",
+      "vertical": "工具"
+    },
+    {
+      "seed": "qr code",
+      "vertical": "工具"
+    },
+    {
+      "seed": "image converter",
+      "vertical": "工具"
+    },
+    {
+      "seed": "video converter",
+      "vertical": "工具"
+    },
+    {
+      "seed": "password generator",
+      "vertical": "工具"
+    },
+    {
+      "seed": "resume builder",
+      "vertical": "工具"
+    },
+    {
+      "seed": "ai music",
+      "vertical": "音乐"
+    },
+    {
+      "seed": "anime",
+      "vertical": "电影"
+    },
+    {
+      "seed": "humanoid robot",
+      "vertical": "AI"
+    },
+    {
+      "seed": "neuralink",
+      "vertical": "AI"
+    },
+    {
+      "seed": "spacex",
+      "vertical": "AI"
+    },
+    {
+      "seed": "tarot",
+      "vertical": "工具"
+    },
+    {
+      "seed": "tiktok",
+      "vertical": "AI"
+    },
+    {
+      "seed": "tiktok trend",
+      "vertical": "AI"
+    },
+    {
+      "seed": "tiktok song",
+      "vertical": "音乐"
+    },
+    {
+      "seed": "capcut template",
+      "vertical": "AI"
+    },
+    {
+      "seed": "tiktok filter",
+      "vertical": "AI"
+    },
+    {
+      "seed": "viral trend",
+      "vertical": "AI"
+    },
+    {
+      "seed": "hailuo",
+      "vertical": "AI"
+    },
+    {
+      "seed": "google veo",
+      "vertical": "AI"
+    },
+    {
+      "seed": "kids learning",
+      "vertical": "教育"
+    },
+    {
+      "seed": "ai for kids",
+      "vertical": "教育"
+    },
+    {
+      "seed": "ai fitness",
+      "vertical": "健康"
+    },
+    {
+      "seed": "ai recipes",
+      "vertical": "健康"
+    },
+    {
+      "seed": "ai health",
+      "vertical": "健康"
+    },
+    {
+      "seed": "ai photography",
+      "vertical": "AI"
+    },
+    {
+      "seed": "ai photo enhancer",
+      "vertical": "AI"
+    },
+    {
+      "seed": "ai portrait",
+      "vertical": "AI"
+    },
+    {
+      "seed": "ai beauty filter",
+      "vertical": "AI"
+    },
+    {
+      "seed": "ai camera",
+      "vertical": "AI"
+    },
+    {
+      "seed": "chrome extension",
+      "vertical": "工具"
+    },
+    {
+      "seed": "ai trend",
+      "vertical": "AI"
+    }
+  ],
+  "threshold": "Breakout 或涨幅 >= 1000%",
+  "timeframe": "now 7-d"
+}

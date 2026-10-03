@@ -40,7 +40,7 @@
 | AITDK 全站报告：抽样 URL 的 Issues 清单 + 未满分标签页清单 | `.rankup/evidence/aitdk-full-<date>/` | 逐 URL 一份报告；不满分/有问题的逐条修完重跑，改不动的写明原因 |
 | PageSpeed 报告：抽样页面 × 移动/桌面的实验室 + 现场双读数 | `.rankup/evidence/pagespeed-<date>/`（原始 JSON + 修复前后对照表）+ `.rankup/baseline.md` | 判据见 [`../checklists.md`](../checklists.md) 段 4 闸门 6：性能分 ≥ 90、CWV 达标，opportunity/diagnostic 逐条必修与 A6 同等；现场无数据原样记 |
 | GEO / AI 就绪度分数与逐项结果 | `.rankup/agentic/<domain>/<date>.json` + 结论进 `audit.md` | 每条 partial/failed 都有采纳或驳回理由 |
-| 词表体检 + 长尾扩展 + SERP 盘面 | `.rankup/keywords.md` | 每个词六项证据齐（量/KD/SERP/意图/链接预算/目标页） |
+| 词表、三清单与逐问法 Google 证据覆盖 | `.rankup/keywords.md` + 入口卡指针 | 已存问法、自然样本、追问、三清单与 Google 卡可回读；两路结论只按 [entry.md](entry.md#4--判读) |
 | 哥飞开放 API 的独立页面意见 | `.rankup/audit.md`「外部审阅」一节 | 原始结果、请求号和扣费；每条建议有采纳/拒绝 + 理由 |
 | 市场规模与潜在市场区间 | `.rankup/decisions.md` + `roadmap.md` | 面板真实流量与模型上界并排，倍差有归因 |
 | 接入清单线上实测结果 | `.rankup/integrations.md` | 每行 ✅（证据+日期）/ ⬜ / ❌（裁决依据）|
@@ -170,18 +170,21 @@ E 组依赖 A/B/D 的事实，先完成这些取数再综合判读。开放 API 
 | C2 配分母 | 串行 | `node <rankup>/scripts/cf-agent-baseline.mjs --compare .rankup/agentic/<domain>/<date>.json` | 本站失败项 vs 全网通过率并排 | 需要 Cloudflare 凭据（`--token` / `CLOUDFLARE_API_TOKEN` / Skill 的 `.env` / wrangler 配置）。**两种格式都收**：37 位 Global API Key（还要 `CLOUDFLARE_EMAIL` 或 `--email`）或带 `Radar:Read` 的 API Token——脚本按长度自动判别，报错会分开说「缺邮箱 / 格式不符 / 权限不足」。没有凭据就只报单站分数，**不要把「拿不到基线」写成「本站正常」** |
 | C3 内容侧怎么改 | 并行 | 读 [`../seo-ai-search.md`](../seo-ai-search.md)「2026 AI 搜索范式」；再加载 `ai-seo` Skill 读它的 `references/content-patterns.md` 与 `okf.md` | 「被引用」这件事的内容形态判据、llms.txt / OKF 的现状裁决 | `ai-seo` 未装时按 [`../integrations.md`](../integrations.md) 用 find-skills 装；装不上就只用 `seo-ai-search.md`，**结论不打折但记一句缺了外部对照** |
 | C4 结构化数据模板 | 并行 | 加载外部 `/seo-geo` Skill（不是本仓库的 [`../seo-geo.md`](../seo-geo.md)），只读 `references/schema-templates.md` 与 `references/platform-algorithms.md` | JSON-LD 模板与各 AI 平台取源差异（JSON-LD 对被 ChatGPT 引用无收益证据，见 [`../seo-ai-search.md`](../seo-ai-search.md)，模板按结构卫生项用） | **不要跑 `seo-geo/scripts/*.py`**：它们走 DataForSEO，要 `DATAFORSEO_LOGIN`/`DATAFORSEO_PASSWORD` 付费凭据，且与 D 组的取数口径重复（会制造第三个对不上的数字）。裁决理由同 [`../seo-box.md`](../seo-box.md) 对 Ahrefs KD Checker 的判死 |
+| C5 ChatGPT 推荐证据覆盖 | 串行，依赖 D1–D3 | 先回读入口卡与有效的原问法、自然样本、追问及三清单；缺项、新意图或证据失效才按 [seo-geo.md 步骤 2–3](../seo-geo.md#步骤-2探针采样)补采，已上线整改转 [推荐闭环](../seo-geo-recommendation-loop.md) | 三清单、原始样本与核实记录指针，缺项及自然/知情复审状态 | 采样前提、统计与复测只按 [seo-geo.md](../seo-geo.md)；原证据不可用记待验证，AI 就绪度分数不能替代推荐事实 |
 
 **D 组 · 关键词、长尾与 SERP**
 
+本组先审存量，再按 [entry.md](entry.md#3--流水线)补缺；GT 与量核验后首测 C5，逐问法 Google 跟在三清单之后。有效期分别按 [seo-geo.md 步骤 6](../seo-geo.md#步骤-6复测节奏)与 [seo-serp.md](../seo-serp.md#serp-快照有保质期窗口在关闭必须带复测日期)核对，不全批重采。
+
 | 阶段 | 并行/串行 | 跑什么 | 拿到什么 | 卡住了怎么办 |
 |---|---|---|---|---|
-| D1 现有词表体检 | 串行 | 读 `.rankup/keywords.md`，对「做」的词先查已有原始证据；缺哥飞版精评时通过官方 Skill 调用 `keyword_difficulty "<词>" --gl <cc> --json --out <证据文件>` | KD、Top10 盘面与请求号，逐词补齐六项证据 | `keywords.md` 不存在 → 从 A1 的 title/h1 与 A2 的高频词反推实际目标词 |
-| D2 量与全球口径 | 串行 | 官方 `keyword_ideas` 已给出的同市场量先复用；待推荐词量缺失/存疑或需 12 月曲线时一次 `keyword_volume --keywords <词表> --gl <国或world>` | 月量、CPC 与国家/全球口径 | `gl=world` 才是全球；`keyword_volume` 全球可能加价，先看实时 `tools` |
-| D3 趋势 | 并行 | `python3 <rankup>/scripts/gt.py compare "<词1>" "<词2>" --geo <cc> --time 12m`；方向不明时 `gt.py related "<词>"` | 曲线是涨是跌、相关飙升词（长尾种子的第一来源） | 空曲线**不等于**冷门；脚本会把「没取到」和「没需求」如实标成不可分辨，去 `.rankup/evidence/gt-browser-<ts>/` 看证据 |
-| D4 长尾扩展 | 串行编排 | 官方 Skill 调用 `keyword_ideas "<种子>" --gl <cc>` 拓词；对 SERP 专门站用 `site_keywords <域名> --gl <cc>` 反查新词根；三引擎联想、Trends 与社区原话补充 | 长尾候选池、快照量与新词根 | 种子后缀扩不动时按 `research.md` 五个动作切换到站→词/站→站；未拿到不当零 |
-| D5 长尾怎么分组、怎么排 | 串行（拿到词之后） | 加载 `keyword-research` Skill，按它的 8 个 phase 走 Classify（意图四分类）→ Score（`Opportunity = Volume × Intent Value / Difficulty`）→ GEO-Check → Cluster（pillar + cluster） | 意图标签、优先级排序、主题簇、内容日历 | 这个 Skill **自己不带数据源**（它的 Data Sources 一节写明「没有工具就问用户要种子词」）。**数据全部由 D1–D4 供给它**，不要让它去问用户；缺了这一步，rankup 只有一堆孤词，没有簇 |
-| D6 竞品词库差集 | 串行 | 官方 Skill 调用 `site_keywords <竞品域名> --gl <国> --limit 50`，3–5 个同赛道站与自己的词池做差集；需要独立来源才补 Semrush | 自己漏掉的词根与页面 | `site_keywords` 是月更快照、按国家，空结果先核接口状态 |
-| D7 首页实勘 | 串行 | 用 OpenCLI 在用户 Chrome 的 dedicated 窗口里，把目标词在 Google + Bing（做非英语市场再加本地引擎）各搜一遍，显式指定地区与语言，每个引擎记七样 | 版式、SERP 特性占屏、AI 答案引用了谁、有没有独立站空位 | 二手 SERP 接口（`serp-query.mjs` / 官方 Skill 的 `serp`）看不到版式与 AI 答案，**不能代替这一步**；公开 SERP 也不用沙箱浏览器 |
+| D1 现有词表与原证据盘点 | 串行 | 读 `keywords.md`、入口卡与原始文件；列 GT、三清单、样本、逐问法 Google 卡与页面移交的缺项/有效状态 | 可复用证据清单、补采清单与指针 | `keywords.md` 不存在 → 从 A1 的 title/h1 与 A2 的高频词反推目标词，标待验证；不因缺 KD 精评补采 |
+| D2 量与全球口径 | 串行，先复用 | 回读同市场有效量证据；缺失/存疑时按 [seo-webcafe.md](../seo-webcafe.md)补取 | 月量、市场、日期与口径指针 | 无可用读数记未知，不混用国家与全球量 |
+| D3 趋势与量级 | 依赖 D1，C5 前核对 | 回读 GT 卡；缺项按 [trends.md](../trends.md#gpts-基线判读到底怎么才算有搜索量唯一判据源)补取，`gt.py compare` 默认同框 gpts | 趋势、量级、窗口、锚点及原始读数指针 | 按唯一源记录不可分辨与失败状态，不把空曲线当零需求 |
+| D4 问法与长尾补漏 | 串行，依赖 C5 | 从已有三清单检查新说法、新任务与新竞对；扩词来源与补漏编排按 [P2](research/p2-keyword-root.md) | 问法池差集、新意图补测状态 | 同意图复用有效证据，新意图回 [entry.md](entry.md)补链路 |
+| D5 问法簇与页面规划 | 串行，依赖三清单与 D7 | 核对问法簇→任务→页面映射，按 [stage-2-positioning.md](../lifecycle/stage-2-positioning.md)补缺 | 页面清单、证据关系与规划状态 | 只有孤词时回 C5/D4 补关系；两路裁决只见 [entry.md](entry.md#4--判读) |
+| D6 竞品反查差集 | 串行 | 先回读原竞品词库与差集；只补失效项和新竞对，动作按 [P2 反查](research/p2-keyword-root.md#否决前必须反查只看种子词判不做是禁止的) | 漏词/新任务/页面及原始证据指针 | 空结果先核来源状态，停止原因留日志 |
+| D7 逐问法 Google 核对 | 串行，依赖 C5，D4/D6 新意图增量补测 | 回读每条长尾问法 Google 卡；缺失/失效才按 [seo-serp.md](../seo-serp.md#逐问法-google-读法)补查 | 逐问法盘面、意图、任务缺口与证据指针 | 没有卡的问法列缺项，不用代表词替整簇验收 |
 
 **E 组 · 哥飞开放 API 独立复核**
 
@@ -240,19 +243,19 @@ E 组依赖 A/B/D 的事实，先完成这些取数再综合判读。开放 API 
 |---|---|---|
 | A · 技术与内容 SEO | [`../seo-box.md`](../seo-box.md)「seo-audit 判读指引」的分级表；闸门判据 [`../checklists.md`](../checklists.md) 段 4 闸门 1/2/3，A6 的判据是段 4 闸门 4c | `fetchError` 当成通过；Ahrefs 与自家脚本不一致时忘了看 Ahrefs 那次抓取的**日期**（日期对不上就不是矛盾）；A6 的 Issues/评分**没有满分/零问题就是必修**，不因为 A1–A5 已经全绿就跳过 |
 | B · 速度 | [`../seo-box.md`](../seo-box.md) 一；闸门 6 判据在 [`../checklists.md`](../checklists.md) 段 4「闸门 6」 | 「现场：无数据」被读成 0 或通过；性能分够 90、CWV 达标就不看 opportunity/diagnostic 清单——这两项逐条必修，和 A6 的 Issues 清单同等，不能因为分数已过线就跳过 |
-| C · GEO / AI | [`../seo-ai-search.md`](../seo-ai-search.md)（2026 AI 搜索范式）+ [`../seo-agentic-scan.md`](../seo-agentic-scan.md)（AI Agent 就绪度）；内容形态补 `ai-seo` Skill | 把 AEO/GEO 当成另一套技术——Google 的定论是它就是 SEO；`llms.txt` 已被 Google 明确否定为排名信号（见 `seo-ai-search.md`），别拿它充数；**把缓存报告当即时结果**——`is-agentic scan` 回的是上游缓存，failed 项没用当天的 curl 复核就写成必修项，会凭空造出一条不存在的活 |
-| D · 关键词与长尾 | [`../experiences/webcafe-topics.md`](../experiences/webcafe-topics.md) 一 ~ 二（低 KD ≠ 能做、词龄判据）+ [`demand-sources/validation-chain.md`](../demand-sources/validation-chain.md) 九·六与十·五；分组与优先级用 `keyword-research` 的框架 | 拿低 KD 直接立项，漏掉「排上去值不值」那第四道闸；只扩词不聚簇，产出一堆孤词 |
+| C · GEO / AI | [`../seo-ai-search.md`](../seo-ai-search.md)（2026 AI 搜索范式）+ [seo-geo.md](../seo-geo.md)（自然推荐与采样）+ [`../seo-agentic-scan.md`](../seo-agentic-scan.md)（AI Agent 就绪度）；内容形态补 `ai-seo` Skill | 把 AI 就绪度或知情复审当自然推荐；把 AEO/GEO 当成另一套技术——Google 的定论是它就是 SEO；`llms.txt` 已被 Google 明确否定为排名信号（见 `seo-ai-search.md`），别拿它充数；**把缓存报告当即时结果**——`is-agentic scan` 回的是上游缓存，failed 项没用当天的 curl 复核就写成必修项，会凭空造出一条不存在的活 |
+| D · 关键词与长尾 | [entry.md](entry.md#4--判读)两路裁决；[seo-serp.md](../seo-serp.md)逐问法 Google；[stage-2-positioning.md](../lifecycle/stage-2-positioning.md)页面规划 | 把工具分数、历史词龄或收益经验当裁决；只补词而不关联问法、样本与页面 |
 | E · 哥飞开放 API 数据复核 | [`../seo-webcafe.md`](../seo-webcafe.md)；采纳纪律见 [`../checklists.md`](../checklists.md) 闸门 5 | 把接口建议当定论；每条仍要与本地事实对账，采纳或拒绝均留理由 |
 | F · 市场规模 | [`demand-sources/validation-chain.md`](../demand-sources/validation-chain.md) 十·五（能排上去 ≠ 能赚钱）与 [②·六·四](../demand-sources/validation-chain.md#②六四-semrush-的自然流量什么时候不能信先看它的词库分布再决定信不信总数)（模型流量什么时候高估 4–13 倍）；SKILL.md「地理范围 / 面板页面 / 口径定义」三步 | 把 Semrush 的自然流量和 Similarweb 的总访问量相减或相除；把采集失败读成「这个市场没人」 |
 | G · 接入与记忆 | SKILL.md「接入清单跟踪」的平台表 | 采信清单里已有的 ✅ 而没做线上实测 |
 
 **要不要加载某个兄弟 Skill**（`ai-seo` / `seo-geo` / `keyword-research` / `deep-research` …），
 判据统一看 [`../skill-ecosystem.md`](../skill-ecosystem.md)——**加载有成本，默认答案是不加载**，
-本 playbook 的 C3 / C4 / D5 三处是已经判过「值得接」的那几条。
+本 playbook 的 C3 / C4 是已判过「值得接」的入口；D5 页面规划用本仓库唯一源。
 
 ### 5. 省积分
 
-先用官方 CLI 查 `tools` 看实时价格、`me` 看 API 可用余额。优先批量接口：`domain_traffic`、`domain_dr`、`bulk_keyword_difficulty`、`keyword_volume`；同一批词只查一次。快照里已有可信的同口径月量时不重复买 `keyword_volume`。`load_guide` 按任务只取相关专题，`site_history`、`knowledge_ask` 等较贵接口仅在问题需要时用。每次保存原始 `requestId` 和 `credits.charged`，用 `usage --api` 对账。站内每日赠送额度不适用于开放 API。
+先用官方 CLI 查 `tools` 看实时价格、`me` 看 API 可用余额。优先批量接口：`domain_traffic`、`domain_dr`、`keyword_volume`；同一批词只查一次。快照里已有可信的同口径月量时不重复买 `keyword_volume`。`load_guide` 按任务只取相关专题，`site_history`、`knowledge_ask` 等较贵接口仅在问题需要时用。每次保存原始 `requestId` 和 `credits.charged`，用 `usage --api` 对账。站内每日赠送额度不适用于开放 API。
 
 Semrush / Similarweb / Ahrefs 的独立浏览器面板仍是不同来源：确需交叉验证时各自固定会话串行，不传 `--session`。页面版式、AI 答案、目标国本地引擎和社区原话不由哥飞开放 API 覆盖，按各自来源验证。
 
@@ -262,7 +265,7 @@ Semrush / Similarweb / Ahrefs 的独立浏览器面板仍是不同来源：确�
 |---|---|---|
 | 逐 URL 技术事实、外部审阅结论、AI 就绪度核实结论 | `.rankup/audit.md` | 逐 URL，不是一条总述 |
 | 性能双读数 | `.rankup/baseline.md` | 现场无数据原样保留那句话 |
-| 词表、长尾簇、SERP 快照（带日期） | `.rankup/keywords.md` | SERP 快照 30 天过期 |
+| 词表、三清单、逐问法 Google 与两路结论指针 | `.rankup/keywords.md` + 入口卡；`decisions.md` 只留结论及指针 | 保留原日期；复测按 [seo-geo.md](../seo-geo.md#步骤-6复测节奏)与 [seo-serp.md](../seo-serp.md) |
 | 市场规模区间、潜在市场、放弃条件 | `.rankup/decisions.md` + `.rankup/roadmap.md` | 面板与模型并排，倍差有归因 |
 | 接入清单逐行状态 | `.rankup/integrations.md` | ✅ 带证据+日期 / ⬜ / ❌ 带裁决依据 |
 | 本轮过掉的闸门 | `.rankup/checks.md` | 格式见 [`../checklists.md`](../checklists.md) |

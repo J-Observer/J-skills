@@ -91,6 +91,14 @@ node <rankup-skill-dir>/scripts/google-oauth-client.mjs \
 # 如需同时写本地 .dev.vars，第二步加 --write-dev-vars
 ```
 
+第一步幂等：consent screen 已配置、已发布、client 已存在时各自跳过，可原样重跑；
+失败时脚本保留标签页并打印当前页面文字（不再自动关会话），查完用
+`opencli browser <会话名> close` 关掉。「已获授权的网域」自动折算成可注册域
+（`www.example.com` → `example.com`，`my-app.<account>.workers.dev` → `<account>.workers.dev`），Console 仍拒绝的
+会被删除并跳过。Console 界面语言需为简体中文。2026-10-02 Console 实测
+踩坑（顶栏搜索框被当成表单控件、域名必须是顶级专用域名、创建页偶发「加载失败」
+要点「重试」等）详见脚本头注释。
+
 2026-09-29 实测：自动点击「创建 OAuth 客户端」连续 7 次被拒，用户手点一次
 即成功。因此脚本不自动点击这个按钮；第二步只读取仍打开的成功弹窗，凭据
 通过 stdin 交给 `wrangler secret put`，不打印。第一步默认停在按钮前，

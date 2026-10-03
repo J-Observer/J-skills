@@ -20,3 +20,17 @@ for (const name of ['ahrefs-setup', 'clarity-setup', 'gsc-remove-urls', 'naver-s
     assert.doesNotMatch(source, /\bcli\([`'"]/u, 'all call sites must pass argument arrays');
   });
 }
+
+test('Naver eval executes synchronous and await-bearing snippets without shell quoting', async () => {
+  const source = readFileSync(new URL('../scripts/naver-setup.mjs', import.meta.url), 'utf8');
+  const declaration = source.split(/\r?\n/).find((line) => line.startsWith('function evalJs('));
+  const calls = [];
+  const evalJs = new Function('cli', `${declaration}; return evalJs;`)((args) => {
+    calls.push(args);
+    return new Function(`return ${args[1]}`)();
+  });
+  const expected = "中文 & | 'quotes'";
+  assert.equal(evalJs(`return ${JSON.stringify(expected)}`), expected);
+  assert.equal(await evalJs(`return await Promise.resolve(${JSON.stringify(expected)})`), expected);
+  assert.ok(calls.every((args) => Array.isArray(args) && args[0] === 'eval' && args.length === 2));
+});

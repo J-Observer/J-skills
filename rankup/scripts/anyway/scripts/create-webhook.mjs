@@ -1,8 +1,11 @@
 #!/usr/bin/env node
-// 用途：打开商户后台 webhook 对话框；默认只读 dry-run，--commit 才提交。
-// 参数：--url <endpoint> [--name n] [--events all|标签列表] [--env stg|prod] [--session anyway-dashboard] [--commit]。
+// 用途：在商户后台 Developer → Webhook 页列出现有端点，并用「添加端点」对话框新增一个；默认只读（只列出），--commit 才提交。
+// 参数：--url <endpoint> [--name n] [--events all|标签列表] [--env stg|prod] [--session anyway-dashboard] [--commit] [--no-submit]。--no-submit 配合 --commit：填完对话框但不提交。
 // 登录态：OpenCLI 已连接用户浏览器，且对应环境的商户后台已登录。
 // 已知坑：Merchant API 无端点读取接口；UI 不展示 signing secret。验证日期：2026-09-07（原流程）。
+// 2026-10-02 后台改版：「配置 Webhook 端点」不再直接弹对话框，而是跳 /developer?tab=webhooks，页面里有端点表格和「添加端点」按钮，
+// 对话框本身（名称 / 端点 URL / 事件）未变。脚本改为直达该页、先读现有端点（同 URL 已存在则跳过，不重复创建、不改动任何已有端点）。
+// 登录态过期时 /developer 会跳 /login，脚本以退出码 3 提示需要人工登录。新会话首次 open 会报 Navigation rejected，同会话重试即可。
 
 import { execFileSync } from 'node:child_process';
 
@@ -34,6 +37,7 @@ const NAME = flags.name || '';
 const EVENTS = flags.events || 'all'; // 'all' or comma-separated Chinese labels
 const SESSION = flags.session || 'anyway-dashboard';
 const COMMIT = !!flags.commit;
+const NO_SUBMIT = !!flags['no-submit'];
 const ENV = flags.env || process.env.ANYWAY_ENV || 'stg';
 if (!['stg', 'prod'].includes(ENV)) throw new Error('expected --env stg|prod');
 const DASHBOARD_BASE = ENV === 'stg' ? 'https://stg.anyway.sh' : 'https://app.anyway.sh';
@@ -84,6 +88,50 @@ function checkDoctor() {
   }
 }
 
+function currentUrl() {
+  const r = runOpencliBrowser(['get', 'url'], { allowFail: true });
+  return String(r.raw || r.url || '').trim();
+}
+
+async function openPage(url) {
+  let lastErr;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      runOpencliBrowser(['open', url]);
+      lastErr = null;
+      break;
+    } catch (err) {
+      lastErr = err;
+      log(`[warn] open attempt ${attempt + 1} failed; retrying on the same session`);
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  }
+  if (lastErr) throw lastErr;
+  for (let i = 0; i < 12; i++) {
+    const u = currentUrl();
+    if (/\/login/.test(u)) {
+      const e = new Error(`LOGIN_REQUIRED: ${DASHBOARD_BASE} redirected to ${u}. The ${ENV} dashboard is signed out in the OpenCLI Chrome profile; sign in there once (Google) and rerun.`);
+      e.exitCode = 3;
+      throw e;
+    }
+    const probe = runOpencliBrowser(['find', '--role', 'button', '--name', '添加端点'], { allowFail: true });
+    if (!probe.error && probe.matches_n >= 1) return;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error(`Webhook page did not render at ${currentUrl()} (no 添加端点 button after 6s); the dashboard layout may have changed.`);
+}
+
+// Read the endpoint table as rows of cell texts (name, URL, events, status, created, actions).
+async function readEndpoints() {
+  const js = `JSON.stringify([...document.querySelectorAll('table tbody tr')].map((tr) => [...tr.cells].map((c) => c.innerText.replace(/\\s+/g, ' ').trim())))`;
+  const res = runOpencliBrowser(['eval', js], { allowFail: true });
+  let rows = Array.isArray(res) ? res : [];
+  if (!rows.length && typeof res.raw === 'string') {
+    try { rows = JSON.parse(res.raw); } catch { rows = []; }
+  }
+  return (Array.isArray(rows) ? rows : []).map((cells) => ({ cells }));
+}
+
 async function main() {
   if (!URL) {
     console.error('Usage: create-webhook.mjs --url <endpoint-url> [--name n] [--events all|"a,b"] [--env stg|prod] [--commit]');
@@ -103,32 +151,30 @@ async function main() {
 
   checkDoctor();
 
-  log(`[browser] env="${ENV}" session="${SESSION}" opening ${DASHBOARD_BASE}/settings/setup`);
-  runOpencliBrowser(['open', `${DASHBOARD_BASE}/settings/setup`]);
-  await new Promise((r) => setTimeout(r, 1500));
+  const pageUrl = `${DASHBOARD_BASE}/developer?tab=webhooks`;
+  log(`[browser] env="${ENV}" session="${SESSION}" opening ${pageUrl}`);
+  await openPage(pageUrl);
 
-  log('[browser] opening "配置 Webhook 端点" dialog...');
-  // Two elements match --name "配置 Webhook 端点" (one is the card wrapper
-  // whose accessible name includes the subtitle "实时获取后台信息", one is
-  // the label span itself) and --nth only disambiguates CSS-selector targets,
-  // not semantic --role/--name locators — so resolve via `find` (which picks
-  // the exact-text match at a known index) and click that ref right away.
-  const found = runOpencliBrowser(['find', '--role', 'button', '--name', '配置 Webhook 端点']);
-  const exact = (found.entries || []).find((e) => e.text === '配置 Webhook 端点') || (found.entries || [])[0];
-  if (!exact) throw new Error('Webhook button unavailable; log in to the selected merchant dashboard first.');
-  runOpencliBrowser(['click', String(exact.ref)]);
-  await new Promise((r) => setTimeout(r, 800));
-
-  log('[survey] form fields: 名称 (input), 端点 URL (input), 事件 (radiogroup: 所有活动 / 选择特定事件)');
-  log(`[survey] known events: ${KNOWN_EVENTS.join(', ')}`);
+  let endpoints = await readEndpoints();
+  log(`[endpoints] ${endpoints.length} existing endpoint(s):`);
+  for (const e of endpoints) log(`  - ${e.cells.slice(0, 5).join(' | ')}`);
 
   if (!COMMIT) {
-    log('[dry-run] not filling or submitting — pass --commit to actually create the endpoint.');
-    runOpencliBrowser(['keys', 'Escape']);
-    log('[dry-run] dialog closed, nothing created.');
+    log('[dry-run] listed only; pass --commit to add the endpoint.');
     return;
   }
 
+  const existing = endpoints.find((e) => e.cells.some((c) => c === URL));
+  if (existing) {
+    log(`[skip] an endpoint with URL ${URL} already exists (${existing.cells.slice(0, 4).join(' | ')}). Not creating again.`);
+    return;
+  }
+
+  log('[browser] opening "添加端点" dialog...');
+  runOpencliBrowser(['click', '--role', 'button', '--name', '添加端点']);
+  await new Promise((r) => setTimeout(r, 800));
+
+  log(`[survey] known events: ${KNOWN_EVENTS.join(', ')}`);
   log(`[commit] filling name="${NAME}" url="${URL}" events=${EVENTS}`);
 
   if (NAME) {
@@ -138,29 +184,51 @@ async function main() {
 
   if (selectedEvents) {
     // Switch to "选择特定事件" (2nd radio in the 事件订阅 radiogroup), then
-    // check each requested event button by its visible text.
+    // click each requested event button by its visible text.
     runOpencliBrowser(['click', '[role=radiogroup] button[role=radio]:nth-of-type(2)']);
     await new Promise((r) => setTimeout(r, 400));
     for (const label of selectedEvents) {
-      runOpencliBrowser(['click', '--role', 'button', '--name', label], { allowFail: true });
+      runOpencliBrowser(['click', '--role', 'button', '--name', label]);
     }
   }
   // else: leave default "所有活动" (all events) selected.
 
-  log('[commit] submitting "创建端点"...');
-  const result = runOpencliBrowser(['click', '--role', 'button', '--name', '创建端点']);
-  await new Promise((r) => setTimeout(r, 1500));
-
-  log('[done] endpoint submitted. Verify in the dashboard (Settings → 支付接入 → Webhook) — ');
-  log('the Merchant API is read-only and does not expose webhook endpoints, so there is no API-side check here.');
-  if (result && result.error) {
-    console.error('[warn] the click envelope reported an error — check the browser session for details.');
+  // Read the dialog back before submitting: wrong events cannot be undone from here.
+  const dialogState = runOpencliBrowser(['eval', `JSON.stringify({name:document.querySelector('input[placeholder="例如生产服务器"]')?.value,url:document.querySelector('input[placeholder="https://api.example.com/webhooks/anyway"]')?.value,all:document.querySelector('[role=radiogroup] button[role=radio]')?.getAttribute('aria-checked'),pressed:[...document.querySelectorAll('button[aria-pressed=true]')].map((x)=>x.innerText.trim())})`]);
+  log('[verify-dialog]', JSON.stringify(dialogState));
+  if (dialogState.url !== URL || (NAME && dialogState.name !== NAME)) throw new Error('dialog name/url read-back does not match; not submitting.');
+  if (selectedEvents) {
+    const got = [...(dialogState.pressed || [])].sort().join(',');
+    if (got !== [...selectedEvents].sort().join(',')) throw new Error(`dialog events read-back "${got}" != requested; not submitting.`);
+  } else if (dialogState.all !== 'true') {
+    throw new Error('expected 所有活动 to be selected; not submitting.');
   }
+
+  if (NO_SUBMIT) {
+    log('[no-submit] dialog filled, NOT submitted; closing it.');
+    runOpencliBrowser(['keys', 'Escape']);
+    return;
+  }
+
+  log('[commit] submitting "创建端点"...');
+  runOpencliBrowser(['click', '--role', 'button', '--name', '创建端点']);
+  await new Promise((r) => setTimeout(r, 2000));
+  // Never read or print anything from a signing-secret reveal; just dismiss it if shown.
+  runOpencliBrowser(['keys', 'Escape'], { allowFail: true });
+
+  runOpencliBrowser(['open', pageUrl], { allowFail: true });
+  await new Promise((r) => setTimeout(r, 1500));
+  endpoints = await readEndpoints();
+  const created = endpoints.find((e) => e.cells.some((c) => c === URL));
+  log(`[verify] endpoints now (${endpoints.length}):`);
+  for (const e of endpoints) log(`  - ${e.cells.slice(0, 5).join(' | ')}`);
+  if (!created) throw new Error('endpoint was submitted but is not listed on the Webhook page; check the dialog for a validation error.');
+  log(`[done] endpoint created: ${created.cells.slice(0, 4).join(' | ')}`);
 }
 
 main().catch((err) => {
   console.error('[fatal]', err.message);
-  process.exitCode = 1;
+  process.exitCode = err.exitCode || 1;
 }).finally(() => {
   runOpencliBrowser(['close'], { allowFail: true });
 });

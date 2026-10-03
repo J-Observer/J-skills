@@ -105,14 +105,15 @@ const encodedSiteUrl = encodeURIComponent(siteUrl)
 // ── OpenCLI 封装 ──────────────────────────────────────────
 function cli(action_, { timeout = 30000 } = {}) {
   try {
-    return execFileSync("opencli", ["browser", session, "--window", "background", ...action_],
+    return execFileSync("opencli", ["browser", session, "--window", "dedicated", ...action_],
       { encoding: "utf-8", timeout, stdio: ["pipe", "pipe", "pipe"] }).trim()
   } catch (e) {
     const err = (e.stderr?.toString() || e.stdout?.toString() || e.message).trim()
     throw new Error(`opencli 失败: ${action_}\n  ${err}`)
   }
 }
-function evalJs(js) { return cli(["eval", `(()=>{${js}})()`]) }
+// Await-bearing snippets need an async IIFE; keep browser arguments out of the shell.
+function evalJs(js) { const head = /\bawait\b/.test(js) ? "(async()=>{" : "(()=>{"; return cli(["eval", `${head}${js}})()`]) }
 function open(url) { cli(["open", url]) }
 function pageText(max = 4000) {
   return evalJs(`return (document.querySelector('main')||document.body).innerText.replace(/\\n{2,}/g,'\\n').slice(0,${max})`)

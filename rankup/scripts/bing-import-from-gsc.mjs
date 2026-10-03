@@ -11,7 +11,9 @@
  * 需等可见登录按钮；左侧「选择网站」里才有「添加网站」。GSC 的 sc-domain
  * 在导入预览中显示为 https://domain/；默认预选全部，提交前必须逐项核对勾选。
  * 2026-09-28 五站通过 UI 导入，站点选择器及 sitemap 页面已回读；幂等检查在
- * 五个真实站点上验证。登录掉线恢复、部分缺站及新站批量导入脚本路径未实测。
+ * 五个真实站点上验证。2026-10-02：等待 Google 账户选择器并处理既有关系重新登录继续页；使用 dedicated 窗口。
+ * 2026-10-02：单域名导入、既有权限确认及重复导入检查已实测；sitemap 已入列。
+ * 新增权限同意、密码与验证码仍停止；批量缺站分支未在本轮复测。
  */
 import { execFileSync } from "node:child_process"
 
@@ -29,7 +31,7 @@ if (!sites.length || sites.some(s => !/^[a-z\d-]+(?:\.[a-z\d-]+)+$/i.test(s)) ||
 }
 let opened = false
 function browser(...parts) {
-  return execFileSync("opencli", ["browser", session, "--window", "background", ...parts],
+  return execFileSync("opencli", ["browser", session, "--window", "dedicated", ...parts],
     { encoding: "utf8", timeout: 90000 }).trim()
 }
 function evalJs(source) { return browser("eval", `(()=>{${source}})()`) }
@@ -37,17 +39,22 @@ function open(url) { browser("open", url); opened = true }
 function inspect() {
   return JSON.parse(evalJs(`return {url:location.origin+location.pathname,
     text:(document.body?.innerText||'').slice(0,3000),password:!!document.querySelector('input[type=password]'),
+    permissions:!!document.querySelector('input[type=checkbox],[role=checkbox]'),
     buttons:[...document.querySelectorAll('button,a,[role=button]')].filter(e=>e.offsetParent!==null)
       .map(e=>({text:(e.innerText||e.getAttribute('aria-label')||'').trim().slice(0,90),
         href:e.getAttribute('href')||''})).filter(e=>e.text).slice(0,90),
     dialogs:[...document.querySelectorAll('[role=dialog]')].map(e=>e.innerText.slice(0,2400))}`))
 }
+function existingConsent(page) {
+  return /accounts\.google\.com\/.*consent/.test(page.url) &&
+    /“bing\.com”已拥有部分访问权限|bing\.com.*already has some access/i.test(page.text) && !page.permissions
+}
 function stopIfSensitive(page) {
   if (page.password || /captcha|验证码|人机验证|recaptcha|二次验证|两步验证/i.test(page.text)) {
     throw new Error("遇密码框、二次验证或验证码；停止自动操作")
   }
-  if (/\/consent\b|\/oauth\d*\/.*consent/i.test(page.url) ||
-    /授权同意|请求访问您的 Google|权限请求|选择您允许.*访问|wants access to your Google Account/i.test(page.text)) {
+  if (!existingConsent(page) && (/\/consent\b|\/oauth\d*\/.*consent/i.test(page.url) ||
+    /授权同意|请求访问您的 Google|权限请求|选择您允许.*访问|wants access to your Google Account/i.test(page.text))) {
     throw new Error("遇首次授权同意页；需要用户亲自决定")
   }
 }
@@ -79,11 +86,22 @@ function recoverSession({ preview = false } = {}) {
     if (preview && page.dialogs.some(d => /可导入的网站|Sites available for import/i.test(d))) return
     if (!preview && isDashboard(page)) return
     if (/accounts\.google\.com/.test(page.url)) {
-      if (!/选择帐号|选择账号|Choose an account|Select an account/i.test(page.text)) {
-        throw new Error("Google 页面既非账户选择器也非已登录后台；停止")
+      if (/您正在重新登录|signing back in/i.test(page.text) || existingConsent(page)) {
+        try {
+          clickVisible(`[...document.querySelectorAll('button')].find(e=>e.offsetParent!==null&&/^(继续|Continue)$/i.test(e.innerText.trim()))`, "Google 重新登录继续")
+        } catch (error) {
+          const current = inspect()
+          if (current.url === page.url && current.text === page.text) throw error
+        }
+        browser("wait", "time", "1")
+        continue
       }
-      clickVisible(`[...document.querySelectorAll('[data-identifier],[data-email]')]
-        .find(e=>e.offsetParent!==null)`, "Google 账户选择器第一项")
+      if (!/选择帐号|选择账号|Choose an account|Select an account/i.test(page.text)) {
+        browser("wait", "time", "1")
+        continue
+      }
+      browser("click", "[data-identifier]", "--nth", "0")
+      browser("wait", "time", "1")
     } else if (page.buttons.some(b => /使用 Google 登录|Sign in with Google|Continue with Google/i.test(b.text))) {
       clickVisible(`[...document.querySelectorAll('button,a,[role=button]')]
         .find(e=>e.offsetParent!==null&&/使用 Google 登录|Sign in with Google|Continue with Google/i.test(e.innerText))`, "使用 Google 登录")

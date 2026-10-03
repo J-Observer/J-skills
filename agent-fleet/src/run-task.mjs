@@ -15,6 +15,7 @@ import { snapshotGit, inspectGit, attachArtifacts } from './brief.mjs';
 import { createPromptStream, ensureInbox, watchInbox } from './inbox.mjs';
 import { patchPidRecord, processCommand, readPidRecord, runIdFromLogPath, writePidRecord } from './pid.mjs';
 import { onProcessSignal } from './signals.mjs';
+import { SCOPE_LOCK } from './scope.mjs';
 
 /**
  * 默认追加给每个任务的执行者系统提示。
@@ -38,7 +39,8 @@ export const DEFAULT_EXECUTOR_SYSTEM_PROMPT =
   '那会造成递归嵌套。禁止调用 Agent/Task 工具，禁止转派任务。' +
   '必须自己完成任务并验证结果，不允许只回"已启动/等结果"就结束当轮。' +
   '任何时候都不允许杀死、停止或干预不是你自己这次任务启动的进程。' +
-  '绝不 kill / pkill / killall 任何不是你自己启动的进程。';
+  '绝不 kill / pkill / killall 任何不是你自己启动的进程。' +
+  SCOPE_LOCK;
 
 /**
  * 组装一次 query() 调用的 options。

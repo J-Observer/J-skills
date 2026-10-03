@@ -9,4 +9,8 @@ while [ -L "$script" ]; do
   esac
 done
 dir=$(CDPATH= cd -P "$(dirname "$script")" && pwd -P)
+if [ "${1:-}" = web ]; then
+  shift
+  exec node "$dir/chatgpt-web-ask.mjs" "$@"
+fi
 exec node "$dir/agent-fleet.mjs" "$@"

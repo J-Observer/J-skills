@@ -197,7 +197,7 @@ async function main() {
 
   let payload = null;
   try {
-    await opencli(['browser', o.session, '--window', 'background', 'open', url]);
+    await opencli(['browser', o.session, '--window', 'dedicated', 'open', url]);
     // waitFor 不 sleep：在 --timeout 预算内轮询提取器，出卡片就走，不傻等整个预算。
     const deadline = Date.now() + Math.max(o.timeout, 3000);
     do {

@@ -1,11 +1,11 @@
 # 需求数据源 · 差评、外包、新产品、新词平台与用户原话
 
-> 本文件从 [`demand-sources.md`](../demand-sources.md) 拆出（2026-09-30），含原文 第四至八节。选哪类信号、先亲眼看搜索结果首页、令牌与维护契约仍在主文件。
+> 本文件从 [`demand-sources.md`](../demand-sources.md) 拆出（2026-09-30），含原文 第四至八节。来源分流、令牌与维护契约仍在主文件；候选验证顺序与裁决只见 [`entry.md`](../playbooks/entry.md)。
 
 ## 四、谁做了但没做好（差评矿）
 
-**差评是唯一由用户掏钱之后给出的反馈**，可信度远高于任何免费调研。
-功能列表告诉你他们做了什么，差评告诉你他们做了但没做好的——后者才是机会。
+**差评用于发现未满足的用户任务和候选问法；评论者是否付费、问题是否仍存在要分别核实。**
+功能列表告诉你产品做了什么，差评提供可能的体验缺口。
 
 | 源 | 拿什么 | 取数方式 | 需登录 | 脚本 |
 |---|---|---|---|---|
@@ -28,9 +28,9 @@ node scripts/demand/chrome-ext-gap.mjs \
   --reviews 6 --max-stars 3
 ```
 
-这条命令直接落地经验层 4.4 节那个筛选形状：**用户量大 + 评分低 = Validated Market + Bad Execution**。
-门槛数字（100 万 / 4.1）是**这里的判读指引，不是脚本默认值**——脚本默认不过滤
-（`--min-users` 默认 0，2026-08-30 起），每次按赛道自己给门槛。跑完先看结尾的
+【经验】这条命令沿用经验层 4.4 节的采集示例：用户量大、评分低的产品可补差评候选。
+数字（100 万 / 4.1）只是**示例过滤条件，不是立项门槛或脚本默认值**——脚本默认不过滤
+（`--min-users` 默认 0，2026-08-30 起）。跑完先看结尾的
 「采集状态：N 路成功 / M 路失败」行和 manifest：失败那几路的原始 HTML 在证据目录里，
 「结果少」可能只是「有几路没取到」。
 
@@ -43,6 +43,8 @@ Wish it could…       I love this extension, but…   ← 最值钱的一句
 ```
 
 ### 产品下线 = 强时效刚需
+
+旧标题保留作兼容入口；下线提供替代需求线索，不直接证明刚需。
 
 `chrome-stats.mjs --list obsolete` 给已下架扩展。**折扣要记住**：默认不按用户数排序，
 前排全是几十用户的小扩展，且只有 25 条——**大产品下架不保证当天捞得到**，
@@ -66,7 +68,7 @@ Wish it could…       I love this extension, but…   ← 最值钱的一句
 
 ## 五、谁在为这件事付外包费
 
-**需求具体到能标价，是最不容易自欺的一类证据。**
+**外包报价与岗位描述用于发现具体任务、措辞和预算背景。**
 
 | 源 | 拿什么 | 取数方式 | 需登录 | 脚本 |
 |---|---|---|---|---|
@@ -81,20 +83,19 @@ Wish it could…       I love this extension, but…   ← 最值钱的一句
 页面看起来完全正常，但你拿到的是推荐流不是搜索结果。这正是「沙箱浏览器拿到看似正常
 但内容不同的结果」那条规则的实例。
 
-判据：**「想要」数多、商品数少 = 供不应求**；有人卖 + 有成交 = 有人真掏钱。
-服务类需求（「XX 代做 5 元一张」）直接对应工具站机会。
+「想要」数、商品数和成交记录分别记作供需线索，不据此确认供不应求。
+服务类描述（「XX 代做 5 元一张」）可提炼成工具任务候选。
 
 **本节两类源要分开读**（【经验】）：服务交易平台给的是「**一次任务值多少钱**」，
 招聘平台给的是「**企业愿意长期为这一类工作发工资**」。两者都不等于「他会买软件」——
-从「在为这件事花钱」推到「会为一个自助工具付月费」还隔着三道追问（是否重复发生 / 能否标准化 /
-人工流程里有没有一整段能被工具吃下来），判据见
-[`playbooks/selection/gates.md`](../playbooks/selection/gates.md) 闸门 3「付钱雇人 ≠ 会买软件」，本文件不复述。
+软件化与付费方式的规划观察见
+[`stage-2-positioning.md`](../lifecycle/stage-2-positioning.md)，本文件不另设选词门槛。
 
 ---
 
 ## 六、正在冒出来的新产品
 
-**中等强度信号：曝光 ≠ 留存。** 这一节拿到的域名必须过第十节验证才算数。
+**曝光 ≠ 留存。** 本节发现产品候选；域名背景核对见[第十节](validation-chain.md#十候选验证链路)。
 
 | 源 | 拿什么 | 取数方式 | 需登录 | 脚本 |
 |---|---|---|---|---|
@@ -142,7 +143,7 @@ node scripts/demand/boards.mjs producthunt --date 2026-08-22 --resolve-urls --js
 
 ## 七、持续涌现新词的平台
 
-**新游戏 = 新词 = 新需求，且没有老站霸占。** 新手拿第一次正反馈最快的一条线。
+**新游戏与新模型名用于发现候选词；是否有需求和可做切口不能由上新直接推出。**
 
 推广到 AI 领域同理：**新模型 = 新词**。每个新上榜的模型名都会触发一个可预测的关键词周期：
 `[model] release date` → `[model] vs [competitor]` → `[model] pricing` → `[model] API tutorial`。
@@ -151,12 +152,12 @@ Hugging Face 的新 task tag 领先 Google 搜索 2–6 个月——这是游戏
 | 源 | 拿什么 | 取数方式 | 需登录 | 脚本 |
 |---|---|---|---|---|
 | Steam 商店 | 新上架/即将发布的游戏名、appid、发售日、价格、genres | 公开 JSON（`store/search/results?infinite=1` + `appdetails`） | 否 | `scripts/demand/game-newtitles.mjs --source steam` |
-| SteamDB | 即将发售游戏的 **Follows 关注人数 + 7 日增量**（= 发售前需求强度，Steam 官方没有）、价格、发售日 | OpenCLI 真浏览器（CF 挡纯 HTTP） | 否，但要真浏览器 | `--source steamdb` |
+| SteamDB | 即将发售游戏的 **Follows 关注人数 + 7 日增量**（发售前关注线索，Steam 官方没有）、价格、发售日 | OpenCLI 真浏览器（CF 挡纯 HTTP） | 否，但要真浏览器 | `--source steamdb` |
 | itch.io | 独立游戏名、URL、作者、价格、简介（**无下载量无评分**） | 公开 `?format=json` | 否 | `--source itch` |
 | Poki | web 小游戏名、URL、板块（**仅此三项，播放量不公开**） | 公开 HTML（按 `data-tile-*` 解析） | 否 | `--source poki` |
 | IGDB | 跨平台新作名、首发日、total_rating、genres、platforms | 官方 API（Twitch OAuth） | 需 `IGDB_CLIENT_ID` / `IGDB_CLIENT_SECRET` | `--source igdb` |
 | **Hugging Face Trending** | 新 task tag → 新 AI 能力关键词（领先 Google 搜索 2–6 个月）；Trending Models / Trending Spaces / Trending Papers 三个信号源 | 公开页面 + API（`huggingface.co/api/trending`） | 否 | 暂无脚本——AI 读 trending 页 |
-| **Arena.ai (lmarena.ai)** | 13 个 Leaderboard（Agent/Text/Vision/T2I/T2V 等）上新上榜的模型名 = 潜在高搜索量词（`[model] review/vs/tutorial`）；投票数激增 = 搜索需求正在爆发 | 公开页面 | 否 | 暂无脚本——AI 读 leaderboard 页 |
+| **Arena.ai (lmarena.ai)** | 13 个 Leaderboard（Agent/Text/Vision/T2I/T2V 等）上新上榜的模型名及投票变化 → 候选词（`[model] review/vs/tutorial`） | 公开页面 | 否 | 暂无脚本——AI 读 leaderboard 页 |
 
 ### 已验证的坑（两条会让人白跑一轮）
 
@@ -179,7 +180,7 @@ Hugging Face 的新 task tag 领先 Google 搜索 2–6 个月——这是游戏
 
 ## 八、用户的原话
 
-**用户自己写下来的需求，就是你的页面标题。**
+**用户原话用于补问法池；页面承接见 [`stage-2-positioning.md`](../lifecycle/stage-2-positioning.md)。**
 
 | 源 | 拿什么 | 取数方式 | 需登录 | 脚本 |
 |---|---|---|---|---|
@@ -187,7 +188,7 @@ Hugging Face 的新 task tag 领先 Google 搜索 2–6 个月——这是游戏
 | Hacker News 评论 | Ask HN 下的整棵评论树 | 公开 JSON API | 否 | `scripts/demand/hn-signals.mjs --comments` |
 | **TAAFT 许愿区 `/requests/`** | **用户直接写下来的「我想要一个能做 X 的 AI」+ 票数 + 回答数**，实测 1,526 条 | OpenCLI 真实 Chrome | 否，但要真实浏览器 | `scripts/demand/boards.mjs taaft --board requests`（`--board requests-top` 按票数排） |
 | Google SERP（许愿句式限站搜） | organic 前十 + relatedSearches + peopleAlsoAsk | serper.dev API | 需 `SERPER_API_KEY` | `scripts/demand/serp-query.mjs` |
-| **StackOverflow** | 高票未接受答案 = 没有好的解决方案 = 可做成工具；报错信息就是关键词；tag 热度趋势 = 技术采用信号 | 公开页面 + API | 否 | 暂无脚本——AI 直接搜索判断 |
+| **StackOverflow** | 高票未接受答案的问题、报错信息与 tag 热度变化 → 待核实任务与候选词 | 公开页面 + API | 否 | 暂无脚本——AI 直接搜索判断 |
 | **问答站**（Quora 及各垂直问答社区） | 一个具体到能被回答的问题：用户卡在哪一步、已经试过哪些办法；**问题标题本身常常就是长尾词的原句** | 公开页面 | 否 | 暂无脚本——AI 直接搜索判断 |
 | **半封闭社群**（Discord 服务器、社交平台的兴趣/行业群组、职业社交平台的动态） | 搜索引擎索引不到的日常吐槽与临时解法——同一个痛点在这里出现，通常早于它出现在公开论坛 | 公开或需入群的页面 | 视社群而定 | 暂无脚本——人工探测 |
 | **V2EX** | 中文技术社区的「求推荐」「有没有」「吐槽」类帖子——中文关键词竞争通常比英文低得多 | 公开页面 | 否 | 暂无脚本——AI 直接读页面判断 |
@@ -196,15 +197,10 @@ Hugging Face 的新 task tag 领先 Google 搜索 2–6 个月——这是游戏
 | **行业博客评论** | 评论者措辞 = 他们在 Google 搜索时用的长尾查询词。监控目标：行业领袖博客、教程站（dev.to）、竞品产品博客 | Google Alerts + `site:` 操作符 / RSS | 否 | 暂无脚本——AI 判断 |
 
 **本节信号密度最高的是 TAAFT 许愿区**：别的源要你从吐槽里推断需求，
-它是用户自己写好的一句需求 + 一个票数。**票数就是现成的排序**，
-不需要你再去猜哪条更值钱。
+它是用户自己写好的一句需求 + 一个票数；票数只供安排采集顺序，不说明哪条更值钱。
 
-**本节还是面板 28 天盲区的唯一补位。** Semrush / Similarweb / seo.web.cafe 给的月量是过去 28–30 天的
-滚动窗口，再滞后几天更新——昨天在 X 上炸开、前天 YouTube 出了十条教程的词，面板上要么是 0，
-要么是上个月的老量，它读不到「正在起来」。所以词根调研里社区验证与面板取量是并列的两条腿
-（[`playbooks/research/p2-keyword-root.md`](../playbooks/research/p2-keyword-root.md) P2 阶段 5，必做）：Reddit 用 `reddit-wishes.mjs --time week`
-与 `--time month` 两个窗口对照，X / YouTube / B 站走 `/agent-reach` 取近 14 天与近 30 天；
-口径是**近 14 天有帖且 14 天日均明显高于 30 天日均（≥2 倍）才算新起话题**，此时面板 0 量不构成否决。
+社区原话可补面板更新滞后的候选；新词、低量与缺测口径只见 [`trends.md`](../trends.md#gpts-基线判读到底怎么才算有搜索量唯一判据源)。
+Reddit 可用 `reddit-wishes.mjs --time week` 与 `--time month` 对照，X / YouTube / B 站走 `/agent-reach` 取近 14 天与近 30 天；保留窗口与原文，不另设增速裁决线。补漏编排只见 [P2](../playbooks/research/p2-keyword-root.md)。
 
 ### 句式模板
 
@@ -213,7 +209,7 @@ Hugging Face 的新 task tag 领先 Google 搜索 2–6 个月——这是游戏
 "how do people make"        "alternative to"        "too expensive"
 ```
 
-后两个是**迁移类**——这类用户需求已经明确，只是在换供应商，转化最快。
+后两个是**迁移类**，可用于采集替代关系和用户约束。
 
 ### 已验证的坑
 
@@ -225,7 +221,7 @@ OAuth（要自建 script app，CI 首选）、pullpush 第三方镜像（能出�
 本地句式二次过滤和跨查询去重各丢了多少条也会在 stderr 报出来。
 
 > 中文内容平台（内容社区的搜索下拉与笔记数、短视频的播放量与评论）没有稳定的免登录入口，
-> 属人工探测动作。判据在 [`experiences/demand-discovery.md`](../experiences/demand-discovery.md) 第五节。
+> 属人工探测动作。来源经验在 [`experiences/demand-discovery-sources.md`](../experiences/demand-discovery-sources.md)，不作现行裁决。
 
 ---
 

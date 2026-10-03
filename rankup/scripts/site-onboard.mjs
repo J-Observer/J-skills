@@ -106,13 +106,24 @@ async function wireAnalytics() {
 }
 function existingAnalyticsId(name, code) {
   const currentSession = `${session}-${name}`
-  const window = name === "ga4" ? ["--window", "dedicated", "--window-slot", "ga4-setup"] : ["--window", "background"]
+  const window = name === "ga4" ? ["--window", "dedicated", "--window-slot", "ga4-setup"] : ["--window", "dedicated"]
   try {
     run(`${name}-setup`, "status", ...(name === "ga4" ? ["--domain", domain] : []), ...browser(name), "--keep-session")
     return execFileSync("opencli", ["browser", currentSession, ...window, "eval", code],
       { encoding: "utf8", timeout: 30000, stdio: ["ignore", "pipe", "pipe"] }).trim()
   } finally {
     try { execFileSync("opencli", ["browser", currentSession, ...window, "close"], { stdio: "ignore", timeout: 10000 }) } catch {}
+  }
+}
+function ga4Scope() {
+  try {
+    const out = run("ga4-setup", "status", "--domain", domain, ...browser("ga4"))
+    const m = out.match(/账号[^(\n]*\((\d+)\)[，,]\s*资源[^(\n]*\((\d+)\)/)
+    if (process.env.RANKUP_DEBUG) console.error("ga4Scope:", m ? m.slice(1) : `未匹配：${out.slice(0, 120)}`)
+    return m ? ["--account", m[1], "--property", m[2]] : []
+  } catch (error) {
+    if (process.env.RANKUP_DEBUG) console.error("ga4Scope 失败：", (error.stderr?.toString() || error.message).slice(-200))
+    return []
   }
 }
 let submittedIndexNow = false
@@ -202,8 +213,10 @@ const steps = {
     },
   },
   ga4gsc: {
-    done: () => has("ga4-gsc-link", ["status", "--domain", domain, ...browser("ga4gsc")], /已关联 GA4 Search Console/),
-    apply: () => run("ga4-gsc-link", "link", "--domain", domain, ...browser("ga4gsc")),
+    // 2026-10-03：账号下媒体资源多时 ga4-gsc-link 自己的资源发现会报「选择器未滚动，列表不完整」；
+    // 先用 ga4-setup status 读出账号号与媒体资源号，直接传 --account/--property 绕过发现。
+    done: () => has("ga4-gsc-link", ["status", "--domain", domain, ...ga4Scope(), ...browser("ga4gsc")], /已关联 GA4 Search Console/),
+    apply: () => run("ga4-gsc-link", "link", "--domain", domain, ...ga4Scope(), ...browser("ga4gsc")),
   },
   bing: {
     done: () => sitemap("bing", "--site", site),

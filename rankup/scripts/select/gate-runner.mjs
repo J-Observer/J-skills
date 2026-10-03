@@ -51,6 +51,7 @@ import { parseArgs, asList, die, printTable } from '../demand/_lib.mjs';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const DEMAND_DIR = path.resolve(HERE, '../demand');
 const DEFAULT_DIR = '.rankup/selection';
+const HISTORY = '历史：不再作为选词与立项裁决，仅兼容旧记录';
 
 // ── 七道闸门定义（判据文本照抄任务给的表格，不重新措辞）──────────────────────
 
@@ -227,7 +228,7 @@ export function appendAutoEvidence(record, gateId, entry) {
 /** 渲染成人读 Markdown。纯函数，不做任何文件 I/O。 */
 export function renderMarkdown(record) {
   const L = [];
-  L.push(`# 选品候选：${record.candidate}`);
+  L.push(`# 选品候选：${record.candidate}`, `> ${HISTORY}`);
   L.push('');
   L.push(`- slug: \`${record.slug}\``);
   const statusLine = record.status === 'killed'
@@ -249,7 +250,7 @@ export function renderMarkdown(record) {
     const gg = record.gates[g.id];
     if (gg.status === 'pending' && !gg.auto.length) continue;
     L.push(`## 闸门 ${g.id}：${g.name}`);
-    L.push(`判据：${g.criteria}`);
+    L.push(`历史判据（不参与裁决）：${g.criteria}`);
     if (gg.evidenceLinks.length) {
       L.push('人工附加证据：');
       for (const e of gg.evidenceLinks) L.push(`- ${e}`);
@@ -361,7 +362,7 @@ function renderGateLine(gateDef, gateState) {
  * 追写时原样保留，不影响渲染（HTML 注释）。 */
 export function renderDecisionsEntry(record, relRecordPath) {
   const date = (record.updatedAt || '').slice(0, 10);
-  const lines = [`## ${record.candidate} 选品闸门 (${date})`, `<!-- rankup-selection:${record.slug} -->`];
+  const lines = [`## ${record.candidate} 选品闸门 (${date})`, `> ${HISTORY}`, `<!-- rankup-selection:${record.slug} -->`];
   for (const g of GATES) lines.push(renderGateLine(g, record.gates[g.id]));
   // 判杀理由已经完整写在上面对应闸门那一行——这里不重复整段理由（判杀理由往往是长
   // 段落，重复一遍只会让文件加倍膨胀），只指回是哪一道闸门判杀的。
@@ -383,7 +384,7 @@ export function renderRejectedEntry(record, relRecordPath, revival) {
   const reason = `闸门${record.killedAtGate}（${gateName}）判杀：${record.killReason}`;
   const revivalText = revival && String(revival).trim() ? String(revival).trim() : '未记录，需人工评估后补充';
   const lines = [
-    `## ${record.candidate} 选品闸门判杀 (${date})`,
+    `## ${record.candidate} 选品闸门判杀 (${date})`, `> ${HISTORY}`,
     `<!-- rankup-selection:${record.slug} -->`,
     '| 对象 | 类型 | 日期 | 理由 | 复活条件 | 证据 |',
     '|---|---|---|---|---|---|',
@@ -436,8 +437,8 @@ export function recordRootTrace(dir, record, revival) {
 }
 
 function printGateInfo(g) {
-  console.log(`闸门 ${g.id}：${g.name}（${g.judgment === 'human' ? '人工判断' : '半自动'}）`);
-  console.log(`判据：${g.criteria}`);
+  console.log(`${HISTORY}\n闸门 ${g.id}：${g.name}（${g.judgment === 'human' ? '人工判断' : '半自动'}）`);
+  console.log(`历史判据（不参与裁决）：${g.criteria}`);
   if (g.checklist) {
     console.log('检查清单：');
     for (const c of g.checklist) console.log(`  - ${c}`);
@@ -491,14 +492,18 @@ function runAuto(dir, record, gateId, scriptName, scriptPath, passthroughArgs, {
 // ── CLI ─────────────────────────────────────────────────────────────────────
 
 const HELP = `
-gate-runner.mjs — 七道闸门选品流程编排 + 决策记录
+gate-runner.mjs — 两路证据记录 + 历史七道闸门兼容
+
+${HISTORY}
+现行判据唯一源：references/playbooks/entry.md「选词判据：只看两个」。
+record-evidence 只登记人的证据与状态，不自动给出立项判断。
 
 它不替人做判断。闸门 0/1/4/5 是人工判断闸门：脚本只打印判据和检查清单、
 接收你的判定和理由，写进决策文件。闸门 2/3/6 是半自动闸门：脚本调用
 scripts/demand/*.mjs 取证据，判定仍然由人做——不把阈值硬编码成结论。
 
 一旦某道闸门被判杀（--kill），候选记录立即锁死：后续闸门无法再记录判定
-或跑 --auto，这是"早杀省钱"这套流程的核心价值，脚本强制、不是建议。
+或跑 --auto，这是历史记录的锁定行为，仅为兼容保留。
 
 判杀或七道闸门全部通过时，会自动把结果追写进 workspace 根层的
 .rankup/decisions.md（总是）和 .rankup/rejected.md（仅闸门 0–5 判杀，闸门 6
@@ -507,6 +512,7 @@ scripts/demand/*.mjs 取证据，判定仍然由人做——不把阈值硬编�
 不会落盘本地记录（改好问题后重跑同一条 gate 命令即可，见 --revival）。
 
 用法:
+  node gate-runner.mjs record-evidence --candidate "<候选名>" --seo <支持|反证|未知> --geo <支持|反证|未知> --status <进入规划|待验证|不做> [--dir <path>]
   node gate-runner.mjs init "<候选名>" [--dir <path>]
   node gate-runner.mjs gate <0-6> --candidate "<候选名>" --pass  --reason "<理由>" [--evidence <url|file>]...
   node gate-runner.mjs gate <0-6> --candidate "<候选名>" --kill  --reason "<理由>" [--evidence <url|file>]...
@@ -518,7 +524,13 @@ scripts/demand/*.mjs 取证据，判定仍然由人做——不把阈值硬编�
   node gate-runner.mjs --help
 
 选项:
+  --seo / --geo <状态>    两路各自的支持 / 反证 / 未知
+  --seo-evidence / --geo-evidence <url|file>  各路证据指针，可重复；支持/反证必填
+  --status <状态>         人工登记总体状态；缺输入落为阻塞（列 missingInputs）
+  --seo-sufficient / --geo-sufficient  人工声明反证充分（不是脚本核实）
+  --coverage <url|file>   问法簇与反查覆盖记录；不做须两路反证、充分声明及此指针
   --dir <path>            决策记录目录，默认 <cwd>/.rankup/selection/
+                          两路记录写 <dir>/two-route/<slug>.json，不混入旧 report
   --candidate <名>        gate/status 用来定位候选记录（不维护隐藏的"当前候选"，
                           避免并发调用互相踩踏——见文件头「设计偏离」说明）
   --pass / --kill         终判（互斥，且必须搭配 --reason）
@@ -537,7 +549,7 @@ scripts/demand/*.mjs 取证据，判定仍然由人做——不把阈值硬编�
   --timeout <ms>          --auto 子进程超时，默认 120000
   -- <...>                之后的所有参数原样透传给 --script 指定的脚本
 
-七道闸门:
+历史七道闸门（以下均不参与现行裁决）:
   0 硬约束     人工   逐条对照约束清单，撞一条即出局
   1 使用频次   人工   每天/每周→过；一年几次→杀；几年一次→立即杀
   2 痛点证据   半自动 抱怨句式搜 Reddit/X/YT；<3 个独立的人说同一件事→杀
@@ -556,6 +568,44 @@ scripts/demand/*.mjs 取证据，判定仍然由人做——不把阈值硬编�
   node gate-runner.mjs gate 2 --candidate "X" --auto --script reddit-wishes --dry-run -- --topic "resume" --limit 20
   node gate-runner.mjs report
 `.trim();
+
+function cmdRecordEvidence(dir, args) {
+  const candidate = args.candidate;
+  if (!candidate || candidate === true) die('record-evidence 必须提供 --candidate。');
+  const text = value => typeof value === 'string' ? value.trim() : '';
+  const pointers = value => asList(value).map(text).filter(Boolean);
+  const missingInputs = [];
+  const routes = {};
+  for (const route of ['seo', 'geo']) {
+    const state = text(args[route]);
+    const evidence = pointers(args[`${route}-evidence`]);
+    if (!['支持', '反证', '未知'].includes(state)) missingInputs.push(`--${route}（支持/反证/未知）`);
+    if (state && state !== '未知' && !evidence.length) missingInputs.push(`--${route}-evidence`);
+    routes[route] = { state: state || null, evidence, sufficient: args[`${route}-sufficient`] === true };
+  }
+  const requestedStatus = text(args.status);
+  if (!['进入规划', '待验证', '不做'].includes(requestedStatus)) missingInputs.push('--status（进入规划/待验证/不做）');
+  const coverage = pointers(args.coverage);
+  if (requestedStatus === '不做') {
+    for (const route of ['seo', 'geo']) {
+      if (['支持', '未知'].includes(routes[route].state)) die('不做只能登记在两路均有充分反证时；判据见 references/playbooks/entry.md。');
+      if (!routes[route].sufficient) missingInputs.push(`--${route}-sufficient`);
+    }
+    if (!coverage.length) missingInputs.push('--coverage');
+  }
+  if (requestedStatus === '进入规划' && !missingInputs.length && !Object.values(routes).some(r => r.state === '支持')) {
+    die('进入规划须至少一路支持；未知且无正证据请登记待验证。');
+  }
+  const record = { candidate, ...routes, requestedStatus: requestedStatus || null,
+    status: missingInputs.length ? '阻塞' : requestedStatus, missingInputs, coverage,
+    ruleSource: 'references/playbooks/entry.md#选词判据只看两个', recordedAt: new Date().toISOString() };
+  const evidenceDir = path.join(dir, 'two-route');
+  fs.mkdirSync(evidenceDir, { recursive: true });
+  const file = path.join(evidenceDir, `${slugify(candidate)}.json`);
+  fs.writeFileSync(file, JSON.stringify(record, null, 2) + '\n');
+  console.log(JSON.stringify(record, null, 2));
+  console.log(`记录：${file}`);
+}
 
 function cmdInit(dir, args) {
   const candidate = args._.join(' ').trim();
@@ -645,7 +695,7 @@ function cmdGate(dir, args, passthrough) {
   console.log(`闸门 ${gateId}（${gateDef.name}）判定：${wantPass ? '通过' : '判杀'}`);
   console.log(`理由：${record.gates[gateId].reason}`);
   if (wantKill) {
-    console.log(`\n候选「${record.candidate}」流程终止于闸门 ${gateId}。后续闸门不再需要跑——这正是早杀省钱的意义。`);
+    console.log(`\n候选「${record.candidate}」流程终止于闸门 ${gateId}。后续历史闸门保持锁定，仅兼容旧记录。`);
   } else if (record.status === 'passed_all') {
     console.log(`\n候选「${record.candidate}」已通过全部 7 道闸门。`);
   } else {
@@ -707,7 +757,13 @@ async function main() {
   if (args.help) { console.log(HELP); return; }
   const dir = path.resolve(process.cwd(), args.dir || DEFAULT_DIR);
 
+  if (['init', 'gate', 'status', 'report'].includes(cmd)) {
+    if (args.json) console.error(HISTORY);
+    else console.log(HISTORY);
+  }
+
   switch (cmd) {
+    case 'record-evidence': return cmdRecordEvidence(dir, args);
     case 'init': return cmdInit(dir, args);
     case 'gate': return cmdGate(dir, args, passthrough);
     case 'status': return cmdStatus(dir, args);

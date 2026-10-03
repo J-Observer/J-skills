@@ -7,7 +7,7 @@
  *     ③ 多次重复的稳定度（名单 Jaccard、Top1 一致率）；
  *     ④ 与 Google 前 10 的域名重合；
  *     ⑤ AI 给每个推荐打的类型标签（dedicated_product / listicle_blog / marketplace / big_platform…），
- *        据此给出「推荐位空/被占」的提示（提示，不是结论，结论归读结果的人）。
+ *        仅记录类型计数，不自动给出推荐位判决。
  *   适用产品：付费工具、游戏站、平台类——凡是「用户会直接问 AI 要推荐」的需求。
  *
  * 示例（<...> 换成自己的词和目录；--out 指向仓库外的任意目录）：
@@ -34,6 +34,17 @@
  *   --google-serp-file <f>  可选。opencli google search -f json 的输出文件（带标题，追问更自然）。
  *   --fetch-google          没给上面两项时，用 `opencli google search` 现抓一次前 10（只读，需 Chrome）。
  *   --channel <c>           codex（默认）| chatgpt-web。见下方「通道」。
+ *   --multi-turn            仅 chatgpt-web：每个 N/K 样本在同一临时页自然提问并追问，不加 PROBE/搜索包装，不做 C 型。
+ *   --turns <整数>           多轮总轮数，任意正整数，默认 3；轮间至少等 8 秒，全部读完才关页；失败保留轮次、不重发。
+ *   --turn2-prompt <文本>   默认 Why did you recommend that one first, and what are its weak points?
+ *   --turn3-prompt <文本>   默认 Is there anything better out there that you'd recommend instead? What would a better product need to do?
+ *   --followup "文本"        可重复，依次定制第 2、3、4…轮；未给的轮交替用默认两句。
+ *   --keep-open             仅 chatgpt-web 且 reps=1：采样后保留页面并打印会话名。
+ *   # 三轮预览：--channel chatgpt-web --multi-turn --kinds K --reps 1 --dry-run
+ *   # AI_PROBE_WEB_WINDOW 覆盖临时页窗口模式，默认 dedicated。raw 的 turns 保存各轮原文、域名、耗时与状态。
+ *   --temporary             chatgpt-web 默认开启：dedicated 临时页发送，DOM 读取回答与来源；--no-temporary 用旧路径。
+ *   --kinds <N,K,C>         仅执行指定类型，默认 N,K,C；单措辞采样可用 --kinds N，避免 reps 翻倍。
+ *   --followup-prompt <文本> C 型完整提问，替代 Google 前三模板。
  *   --memory-clean          仅 chatgpt-web：**用户已确认**该账号关闭了记忆/是干净账号才传。不传则记 memoryClean=unknown，
  *                           summary.json / summary.md / 每条 raw 顶部都标「未确认无记忆污染，仅供参考」。脚本不会替你改账号设置。
  *   --followup / --no-followup  是否做 C 型追问（默认做 1 次）。
@@ -61,7 +72,9 @@
  *                ≠ 网页版 ChatGPT 产品；只能说「Codex/GPT 侧联网推荐」。
  *   chatgpt-web  经 OpenCLI 驱动用户**已登录**的 chatgpt.com。需要用户先在 Chrome 里登录网页版；
  *                本脚本不登录、不输入任何凭据、不改账号设置、不点「不个性化」。
- *                **注意：不是记忆隔离的**——账号开了全局记忆时普通聊天与临时聊天都会读记忆
+ *                默认临时页路径（2026-10-01）：每样本重新打开 ?temporary-chat=true，核对页面不使用记忆声明，
+ *                经 browser type/click 发送、DOM 读完整答案与直接引用链接；未做 payload 核验。
+ *                以下是 --no-temporary 旧路径的历史说明：账号开了全局记忆时普通聊天会读记忆
  *                （实测 memory_scope=global_enabled，一个「你记得我什么」的探测原样吐出了用户的居住地/职业/持仓等个人信息）。
  *                所以脚本启动时会打印显式警告；没传 --memory-clean 时，输出 memoryClean=unknown 并在 summary.md / summary.json
  *                顶部标「未确认无记忆污染，仅供参考」。要做正式采样，请用未开记忆的干净账号并由用户确认后再传 --memory-clean。
@@ -90,7 +103,7 @@
  *   raw/<N|K|C>-<rep>.answer.md    答案原文
  *   google-serp.json               抓到/传入的 Google 前 10
  *   summary.json                   机器可读汇总（banner、memoryClean、memoryScopesSeen、稳定度、Top1 一致率、与 Google 重合、
- *                                  引用来源分布 citedDomainFrequency、推荐位提示）。memoryClean：网页通道 unknown|user-confirmed；
+ *                                  引用来源分布 citedDomainFrequency、首次回答外部产品点名率）。memoryClean：网页通道 unknown|user-confirmed；
  *                                  codex 通道恒为 n/a-isolated-codex-home（空 CODEX_HOME，无账号记忆）。
  *   summary.md                     人读摘要（网页通道且未确认记忆时，第一行就是「未确认无记忆污染，仅供参考」）
  *   退出码：0 全部成功；2 参数错误；3 有提问失败（限流/登录失效/超时，已记录，可 --resume 续跑）。
@@ -98,7 +111,7 @@
  * 已知坑（都踩过）：
  *   - **不要在 codex 通道里用默认 ~/.codex**（见上，记忆/指令污染）。脚本自己造空 home，别改成复用。
  *   - 空 home 里仍会带的环境信息：时区、cwd、日期。联网搜索的结果还受本机出口 IP 的地区影响。
- *   - 提问带了固定的「探针尾巴」（要求先自然作答，再在 ---PROBE--- 之后给一行 JSON：名单/类型/弱点/空白）。
+ *   - 单轮提问带了固定的「探针尾巴」（--multi-turn 不带）（要求先自然作答，再在 ---PROBE--- 之后给一行 JSON：名单/类型/弱点/空白）。
  *     这会让模型多讲「弱点」，与用户的自然提问略有不同；N/K 三组用同一尾巴，组间可比，绝对值别当真实分布。
  *   - 模型「联网」不等于「靠联网发现」：codex 通道看事件流里有没有 web_search 项判断是否联网；
  *     2026-09-29 三个词 21 次全部联网，且**每一次首轮搜索词里就已带上最终推荐的产品名**
@@ -112,7 +125,7 @@
  *   - opencli 的 chatgpt 适配器（本机 2026-09-29 版）读不到新版网页 DOM（ask 发送成功但收不到回答 TIMEOUT、
  *     detail/read 报 EMPTY_RESULT）——所以网页通道只借它发送（--new --wait false），回答走页内 payload，完成判定看会话数据。
  *     隐藏窗口（默认 dedicated 池满时、background）下 composer 不可见，发送用 --window isolated；读 payload 只需同源 fetch，
- *     用 background 窗口的 opencli browser 会话即可。修 opencli 属另一件事，本脚本不动它。
+ *     用 dedicated 专用窗口的 opencli browser 会话即可。修 opencli 属另一件事，本脚本不动它。
  *   - 网页通道每提问一次就在用户的 ChatGPT 历史里留一条对话（含 N/K 探针提问），脚本不删除；批量采样会污染历史。
  *     `site:chatgpt` 是 opencli 适配器的持久会话，同一账号下并发的第二个 ask 会排队，脚本已把 chatgpt-web 强制为串行。
  *   - 网页版对英文提问可能用中文作答（账号语言/记忆迹象）；脚本不加「Answer in English」，以免偏离自然提问，解析不受影响。
@@ -141,25 +154,10 @@ import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from './_lib.mjs';
+import { regDomain, oc, parseEvalJson, classifyWebSend, failedPage, sendTurn as runTemporaryChat, closeSession } from './_chatgpt_web.mjs';
+export { regDomain, parseEvalJson } from './_chatgpt_web.mjs';
 
 // ───────────────────────── 域名工具 ─────────────────────────
-
-const SLD2 = new Set(['co.uk', 'org.uk', 'com.au', 'co.jp', 'com.br', 'co.in', 'com.cn', 'com.tw', 'co.kr', 'com.hk', 'com.sg', 'co.nz', 'com.mx', 'com.tr', 'co.za']);
-// 多租户平台：子域名才是「一个产品」，不能折叠到主域
-const MULTI_TENANT = ['itch.io', 'github.io', 'netlify.app', 'vercel.app', 'pages.dev', 'notion.site', 'substack.com', 'wordpress.com', 'blogspot.com', 'herokuapp.com', 'web.app', 'firebaseapp.com', 'gitlab.io', 'onrender.com', 'fly.dev', 'replit.app', 'glitch.me'];
-
-export function regDomain(input) {
-  let host = String(input || '').trim().toLowerCase();
-  if (!host) return '';
-  try { host = new URL(/^[a-z]+:\/\//.test(host) ? host : `https://${host}`).hostname; } catch { /* keep */ }
-  host = host.replace(/^www\./, '').replace(/\.$/, '');
-  const parts = host.split('.');
-  if (parts.length <= 2) return host;
-  const last2 = parts.slice(-2).join('.');
-  if (MULTI_TENANT.includes(last2)) return parts.slice(-3).join('.');
-  if (SLD2.has(last2)) return parts.slice(-3).join('.');
-  return last2;
-}
 
 // 同一产品的多个域名（例如官方域名 + 旧域名/子域名）折成一个：--alias "old.example=new.example,a.com=b.com"
 let ALIASES = {};
@@ -174,7 +172,7 @@ export function urlsIn(text) {
 }
 const uniq = (a) => [...new Set(a.filter(Boolean))];
 
-// 列表页/博客榜单的启发式：只用来给「推荐位空/被占」一个提示
+// 列表页/博客榜单的启发式：只记录 URL 类型占比
 const LISTICLE_RE = /(\/blog\/|\/blogs\/|\/articles?\/|\/best[-_/]|\/top[-_]?\d*|\/alternatives|\/vs[-_/]|\/compare|\/guide|\/review|\/roundup|\/list)/i;
 const LISTICLE_HOSTS = /(^|\.)(medium\.com|reddit\.com|quora\.com|pcmag\.com|techradar\.com|zapier\.com|forbes\.com|g2\.com|capterra\.com|producthunt\.com|youtube\.com|wikipedia\.org|substack\.com|linkedin\.com|tomsguide\.com|cnet\.com|theverge\.com)$/i;
 export const looksLikeListicle = (url) => { try { const u = new URL(url); return LISTICLE_RE.test(u.pathname) || LISTICLE_HOSTS.test(u.hostname); } catch { return false; } };
@@ -319,11 +317,6 @@ function runCodexOnce({ prompt, model, effort, timeoutS, rawBase }) {
 
 // ───────────────────────── chatgpt-web 通道 ─────────────────────────
 
-function oc(args, { timeoutS = 180 } = {}) {
-  const r = spawnSync('opencli', args, { encoding: 'utf8', timeout: timeoutS * 1000, maxBuffer: 64 * 1024 * 1024 });
-  return { status: r.status, stdout: r.stdout || '', stderr: r.stderr || '', spawnError: r.error ? (r.error.code || r.error.message) : null };
-}
-
 /**
  * 页内读取器：在 chatgpt.com 页面里跑（经 `opencli browser <会话> eval`），自包含、不引用外部变量（用 toString 注入）。
  * 只做两次只读 GET：/api/auth/session（取令牌，令牌只在这里用、不返回）与 /backend-api/conversation/<id>。
@@ -405,31 +398,11 @@ export const readerJs = (id, waitMs) => `(${pageReader.toString()})(${JSON.strin
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
-/** opencli browser eval 的输出：字符串结果原样打印（一行 JSON），对象结果会被美化；两种都兼容 */
-export function parseEvalJson(stdout) {
-  const t = String(stdout || '').trim();
-  if (!t) return null;
-  const tryParse = (s) => { try { return JSON.parse(s); } catch { return undefined; } };
-  for (const cand of [t, t.split('\n').filter(Boolean).pop()]) {
-    let v = tryParse(cand);
-    if (typeof v === 'string') v = tryParse(v);
-    if (v && typeof v === 'object' && !Array.isArray(v)) return v;
-  }
-  return null;
-}
-
 function convIdFrom(text) {
   const t = String(text || '');
   try { const v = JSON.parse(t); const o = Array.isArray(v) ? v[0] : v; if (o?.conversationId && /^[0-9a-f-]{20,}$/i.test(o.conversationId)) return o.conversationId; } catch { /* fall through */ }
   const m = t.match(/"?conversationId"?\s*[:=]\s*"?([0-9a-f-]{20,})/i) || t.match(/\/c\/([0-9a-f-]{20,})/i);
   return m ? m[1] : null;
-}
-
-function classifyWebSend(text) {
-  const t = String(text || '');
-  if (/logged[- ]in|not logged|sign in|log in|login|unauthorized/i.test(t)) return 'auth';
-  if (/rate.?limit|too many requests|usage limit|reached the limit/i.test(t)) return 'rate-limit';
-  return 'send-failed';
 }
 
 /** 发送：只借 `opencli chatgpt ask --new --wait false`（不传 --web-search），拿 conversationId。最多 2 次，认证类错误不重试。 */
@@ -452,23 +425,46 @@ async function sendChatgptPrompt(prompt) {
  * 发送 → 页内轮询会话数据 → 取回答与引用。总硬超时 timeoutS（从发送成功起算），不重发、不无限重试。
  * web = { session, ready, opened }：读数据用的 opencli browser 会话（描述性名字）、「已在 chatgpt.com」标记、是否开过（收尾要 close），跨提问复用。
  */
+async function runMultiTurnChat({ prompts, timeoutS, web }) {
+  const t0 = Date.now();
+  const turns = [];
+  let first = null; let last = null;
+  try {
+    for (const [i, prompt] of prompts.entries()) {
+      if (i) await sleep(8000);
+      last = await runTemporaryChat({ prompt, timeoutS, web, continuation: i > 0, natural: true });
+      first ||= last;
+      turns.push({ n: i + 1, prompt, answer: last.text || '',
+        citedDomains: uniq((last.cited || []).map(c => c.domain)),
+        textDomains: extractReco({ answer: last.text || '' }).linkDomains,
+        cited: last.cited || [], durationMs: last.durationMs || 0, ok: last.ok,
+        searched: !!last.searched, ...(last.ok ? {} : { failure: last.failure, error: last.error, pageText: last.pageText, pageUrl: last.pageUrl }) });
+      if (!last.ok) break;
+    }
+    return { ...first, ok: last.ok, failure: last.failure, error: last.error, ...(!last.ok ? { pageText: last.pageText, pageUrl: last.pageUrl } : {}), turns, durationMs: Date.now() - t0 };
+  } finally {
+    if (web.opened && !web.keepOpen) closeSession(web);
+  }
+}
+
 async function runChatgptWebOnce({ prompt, timeoutS, web }) {
+  if (web.temporary) return runTemporaryChat({ prompt, timeoutS, web });
   const t0 = Date.now();
   const sent = await sendChatgptPrompt(prompt);
   if (!sent.ok) return { ok: false, failure: sent.failure, error: sent.error, durationMs: Date.now() - t0 };
   const conv = sent.conv;
   const conversationUrl = `https://chatgpt.com/c/${conv}`;
-  const fail = (failure, error, extra = {}) => ({ ok: false, failure, error, conversationId: conv, durationMs: Date.now() - t0, ...extra });
+  const fail = (failure, error, extra = {}) => ({ ...(['rate-limit', 'auth', 'page', 'timeout'].includes(failure) ? failedPage(web) : {}), ok: false, failure, error, conversationId: conv, durationMs: Date.now() - t0, ...extra });
   const pollDeadline = Date.now() + timeoutS * 1000;
   let got = null; let last = null; let fails = 0; let reopens = 0; let lastErr = '';
   while (Date.now() < pollDeadline) {
     if (!web.ready) {
-      const o = oc(['browser', web.session, 'open', 'https://chatgpt.com/', '--window', 'background'], { timeoutS: 90 });
+      const o = oc(['browser', web.session, 'open', 'https://chatgpt.com/', '--window', 'dedicated'], { timeoutS: 90 });
       if (o.status !== 0) { lastErr = (o.stderr || o.stdout || o.spawnError || '').trim().slice(-200); if (++fails >= 3) return fail('page', `opencli browser ${web.session} open chatgpt.com 连续失败：${lastErr}`); await sleep(3000); continue; }
       web.ready = true; web.opened = true; fails = 0;
     }
     const chunkMs = Math.max(3000, Math.min(40000, pollDeadline - Date.now()));
-    const r = oc(['browser', web.session, 'eval', readerJs(conv, chunkMs), '--window', 'background'], { timeoutS: Math.ceil(chunkMs / 1000) + 40 });
+    const r = oc(['browser', web.session, 'eval', readerJs(conv, chunkMs), '--window', 'dedicated'], { timeoutS: Math.ceil(chunkMs / 1000) + 40 });
     if (r.spawnError === 'ENOENT') return fail('no-opencli', 'PATH 里找不到 opencli');
     const j = parseEvalJson(r.stdout);
     if (!j) { lastErr = (r.stderr || r.stdout || r.spawnError || '').trim().slice(-200); web.ready = false; if (++fails >= 3) return fail('eval-failed', `opencli browser eval 连续 3 次没有可解析输出：${lastErr}`); await sleep(3000); continue; }
@@ -587,26 +583,65 @@ export function summarizeGroup(records, googleDomains, topicTokens) {
 }
 
 function slotHint({ top1Modal, consistency, kinds, listicleShare, topicMatch }) {
-  const dedicated = kinds.dedicated_product || 0;
-  const listicle = kinds.listicle_blog || 0;
-  const tot = Object.values(kinds).reduce((a, b) => a + b, 0) || 1;
-  if (!top1Modal) return 'unknown（没有解析出名单）';
-  if (consistency >= 2 / 3 - 1e-9 && dedicated / tot >= 0.5 && listicle / tot < 0.25) return `occupied（Top1 ${top1Modal} 稳定，且推荐以专门产品为主${topicMatch ? '，域名主标签与词素匹配' : ''}）`;
-  if (listicle / tot >= 0.4 || (listicleShare ?? 0) >= 0.6) return 'open-ish（推荐/引用以博客榜单为主）';
-  return `mixed（Top1 ${top1Modal} 一致率 ${(consistency * 100).toFixed(0)}%，需人工读答案定夺）`;
+  return `历史 slotHint 字段（不参与裁决）：Top1 众数 ${top1Modal || '无'}；一致率 ${(consistency * 100).toFixed(0)}%；类型计数 ${JSON.stringify(kinds)}；博客榜单 URL 占比 ${listicleShare ?? '未知'}；域名词素匹配数 ${topicMatch}`;
+}
+
+// 只使用已有推荐/文本域名解析；引用和检索命中本身不等于点名。
+function firstResponseNamesExternalProduct(r) {
+  const first = r.turns?.[0];
+  if (!(first ? first.ok : r.ok)) return null;
+  const reco = first ? extractReco({ answer: first.answer }) : (r.reco || extractReco(r));
+  const ext = (d) => d && !['chatgpt.com', 'openai.com'].includes(regDomain(d));
+  if (uniq([...reco.list.map(x => x.domain), ...reco.linkDomains, ...(first?.textDomains || [])]).some(ext)) return true;
+  if (reco.list.some(x => x.name && !/^(chatgpt|openai)$/i.test(String(x.name).trim()))) return true;
+  // 没解析到域名或名称，不能据此断言「没有点名」：纯文本里的产品名在不调用模型时无法识别。
+  // 只有后续追问里 ChatGPT 自己记录的推荐清单（{"recommendations":[...]}）明确为空，才记「否」（自报，口径单列）；其余记「未知」。
+  for (const t of (r.turns || []).slice(1)) {
+    const m = String(t?.answer || '').match(/\{[^{}]*"recommendations"\s*:\s*\[\s*\][^{}]*\}/);
+    if (m) return false;
+  }
+  return null;
+}
+
+function summarizeQuestions(results) {
+  const groups = new Map();
+  for (const r of results) {
+    const prompt = r.turns?.[0]?.prompt || r.prompt;
+    const key = JSON.stringify([r.channel, !!r.turns, prompt]);
+    if (!groups.has(key)) groups.set(key, { prompt, channel: r.channel, sampleMode: r.turns ? 'multi-turn-natural' : 'historical-wrapped', samples: [] });
+    groups.get(key).samples.push({ label: r.label, firstResponseNamesExternalProduct: firstResponseNamesExternalProduct(r) });
+  }
+  return [...groups.values()].map(g => {
+    const known = g.samples.filter(r => r.firstResponseNamesExternalProduct !== null);
+    const k = known.filter(r => r.firstResponseNamesExternalProduct).length;
+    const n = known.length;
+    const z2 = 1.96 ** 2;
+    const center = n ? (k / n + z2 / (2 * n)) / (1 + z2 / n) : null;
+    const half = n ? 1.96 * Math.sqrt(k / n * (1 - k / n) / n + z2 / (4 * n ** 2)) / (1 + z2 / n) : null;
+    return { ...g, namedCount: k, nKnown: n, nUnknown: g.samples.length - n,
+      namingRate: n ? round(k / n, 4) : null, namingRateWilson95: n ? [round(center - half, 4), round(center + half, 4)] : null };
+  });
 }
 
 // ───────────────────────── 主流程 ─────────────────────────
 
-const HELP = 'ai-probe.mjs --topic <词> --need-prompt <文本> --out <目录> [--keyword-prompt <文本>] [--reps 3] [--google-top a.com,b.com | --google-serp-file f | --fetch-google] [--channel codex|chatgpt-web [--memory-clean]] [--dry-run] [--resume]（详见文件头注释）';
+const HELP = 'ai-probe.mjs --topic <词> --need-prompt <文本> --out <目录> [--keyword-prompt <文本>] [--reps 3] [--google-top a.com,b.com | --google-serp-file f | --fetch-google] [--channel codex|chatgpt-web [--temporary] [--memory-clean]] [--kinds N,K,C] [--followup-prompt <文本>] [--multi-turn [--turns <整数>] [--turn2-prompt <文本>] [--turn3-prompt <文本>] [--followup <文本> ...]] [--keep-open] [--dry-run] [--resume] [--summarize-only]（详见文件头注释）\n新流程自然采样以 ChatGPT 网页版为准：--channel chatgpt-web --memory-clean --multi-turn；默认通道仍为 codex。Codex 通道与旧 N/K 包装样本仅作历史兼容，不冒充自然样本。';
 
 async function main() {
   const args = parseArgs();
   if (args.help || args.h) { console.log(HELP); return 0; }
-  for (const k of ['topic', 'need-prompt', 'out']) if (!args[k] || args[k] === true) { console.error(`缺少 --${k}\n${HELP}`); return 2; }
+  for (const k of ['topic', 'out']) if (!args[k] || args[k] === true) { console.error(`缺少 --${k}\n${HELP}`); return 2; }
   const channel = args.channel || 'codex';
   if (!['codex', 'chatgpt-web'].includes(channel)) { console.error('--channel 只能是 codex 或 chatgpt-web'); return 2; }
   const webChannel = channel === 'chatgpt-web';
+  const multiTurn = !!args['multi-turn'];
+  if (multiTurn && !webChannel) { console.error('--multi-turn 仅网页通道 chatgpt-web 支持'); return 2; }
+  const turnCount = Number(args.turns || 3);
+  if (multiTurn && (!Number.isInteger(turnCount) || turnCount < 1)) { console.error('--turns 必须是 1 及以上整数'); return 2; }
+  if ((!args.kinds || String(args.kinds).split(',').includes('N')) && (!args['need-prompt'] || args['need-prompt'] === true)) { console.error(`缺少 --need-prompt\n${HELP}`); return 2; }
+  const customFollowups = args.followup && args.followup !== true ? [].concat(args.followup).map(String) : [];
+  const defaults = [String(args['turn2-prompt'] || 'Why did you recommend that one first, and what are its weak points?'), String(args['turn3-prompt'] || "Is there anything better out there that you'd recommend instead? What would a better product need to do?")];
+  const followupPrompts = Array.from({ length: turnCount - 1 }, (_, i) => customFollowups[i] ?? defaults[i % 2]);
   const memoryFlag = args['memory-clean'] !== undefined && args['memory-clean'] !== false && args['memory-clean'] !== 'false';
   // 网页通道：默认 unknown；只有用户明确传 --memory-clean 才记 user-confirmed。codex 通道用空 CODEX_HOME，不存在账号记忆问题
   const memoryClean = webChannel ? (memoryFlag ? 'user-confirmed' : 'unknown') : 'n/a-isolated-codex-home';
@@ -614,6 +649,8 @@ async function main() {
   const topic = String(args.topic);
   const keyword = String(args.keyword || topic);
   const reps = Number(args.reps || 3);
+  const keepOpen = !!args['keep-open'];
+  if (keepOpen && (!webChannel || reps > 1)) { console.error('--keep-open 仅 chatgpt-web 且 --reps 1 支持'); return 2; }
   const model = String(args.model || 'gpt-6-sol');
   const effort = String(args.effort || 'low');
   const timeoutS = Number(args['timeout-s'] || (webChannel ? 150 : 300));
@@ -626,7 +663,7 @@ async function main() {
   const log = (m) => { const l = `[${new Date().toISOString().slice(11, 19)}] ${m}`; logLines.push(l); console.error(l); };
 
   if (webChannel) {
-    log('[警告] chatgpt-web 通道不是记忆隔离的：账号开了「记忆」时，普通聊天与临时聊天都会读取账号记忆，推荐结果会被用户本人的上下文污染（曾实测原样吐出居住地、职业、持仓等个人信息）。');
+    log('[提示] 临时路径核对页面不使用记忆声明，未做 payload 核验；旧普通对话路径仍可能读取账号记忆。');
     log(memoryFlag
       ? '[警告] 已传 --memory-clean：视为用户已确认该账号关闭了记忆或是干净账号。脚本无法替你验证，只会用会话 payload 里的 memory_scope 做矛盾检查。'
       : `[警告] 未传 --memory-clean：所有输出与摘要顶部会标「${MEMORY_UNCONFIRMED}」。要做正式采样，请用未开记忆的干净账号，用户确认后再传 --memory-clean。本脚本不会改账号设置，也不会去点「不个性化」。`);
@@ -641,11 +678,13 @@ async function main() {
   const jobs = [];
   for (let i = 1; i <= reps; i++) jobs.push({ kind: 'N', rep: i, body: String(args['need-prompt']) });
   for (let i = 1; i <= reps; i++) jobs.push({ kind: 'K', rep: i, body: kPrompt });
-  if (args.followup !== false && args['no-followup'] !== true) {
+  if (!multiTurn && args.followup !== false && args['no-followup'] !== true) {
     if (top.length >= 1) jobs.push({ kind: 'C', rep: 1, body: followupBody(keyword, top) });
     else log('没有 Google 前 10，跳过 C 型追问（传 --google-top / --google-serp-file / --fetch-google）');
   }
-  for (const j of jobs) { j.prompt = wrap(j.kind, j.body, channel); j.label = `${j.kind}-${j.rep}`; }
+  if (!multiTurn && args['followup-prompt']) { const c = jobs.find(j => j.kind === 'C'); if (c) c.body = String(args['followup-prompt']); else jobs.push({kind:'C',rep:1,body:String(args['followup-prompt'])}); }
+  if (args.kinds) { const selected = String(args.kinds).split(','); for (let i=jobs.length-1;i>=0;i--) if (!selected.includes(jobs[i].kind)) jobs.splice(i,1); }
+  for (const j of jobs) { j.prompt = multiTurn ? j.body : wrap(j.kind, j.body, channel); if (multiTurn) j.prompts = [j.prompt, ...followupPrompts]; j.label = `${j.kind}-${j.rep}`; }
 
   if (args.resume) {
     for (const job of jobs) {
@@ -659,18 +698,18 @@ async function main() {
     }
   }
 
-  if (args['dry-run']) { console.log(`channel=${channel} memoryClean=${memoryClean}${webChannel && !memoryFlag ? `（${MEMORY_UNCONFIRMED}）` : ''} timeout=${timeoutS}s`); for (const j of jobs) console.log(`\n===== ${j.label} =====\n${j.prompt}`); return 0; }
+  if (args['dry-run']) { console.log(`channel=${channel} memoryClean=${memoryClean}${webChannel && !memoryFlag ? `（${MEMORY_UNCONFIRMED}）` : ''} timeout=${timeoutS}s`); for (const j of jobs) for (const [i, prompt] of (j.prompts || [j.prompt]).entries()) console.log(`\n===== ${j.label}${multiTurn ? ` turn ${i + 1}` : ''} =====\n${prompt}`); return 0; }
 
   const results = [];
   const queue = args['summarize-only'] ? [] : [...jobs];
   if (args['summarize-only']) {
     // 只重算汇总：读 raw/*.json，不发任何提问
-    for (const f of fs.existsSync(rawDir) ? fs.readdirSync(rawDir) : []) if (f.endsWith('.json')) { try { const r = JSON.parse(fs.readFileSync(path.join(rawDir, f), 'utf8')); r.answer = cleanText(r.answer); r.reco = extractReco(r); results.push(r); } catch { /* skip */ } }
+    for (const f of fs.existsSync(rawDir) ? fs.readdirSync(rawDir) : []) if (f.endsWith('.json')) { try { const r = JSON.parse(fs.readFileSync(path.join(rawDir, f), 'utf8')); r.answer = cleanText(r.answer); r.reco = extractReco(r); r.firstResponseNamesExternalProduct = firstResponseNamesExternalProduct(r); results.push(r); } catch { /* skip */ } }
     log(`--summarize-only：读到 ${results.length} 条记录`);
   }
   let lastStart = 0; let abortAll = null;
   // 读会话数据用的 opencli browser 会话：描述性名字（不用 $$/随机串，方便一眼认出、也避免同名并发——同名会话别给两个任务用）
-  const webState = webChannel ? { session: String(args['web-session'] || 'ai-probe-web'), ready: false, opened: false } : null;
+  const webState = webChannel ? { session: String(args['web-session'] || 'ai-probe-web'), ready: false, opened: false, keepOpen, ...(keepOpen ? { idleTimeout: process.env.OPENCLI_BROWSER_IDLE_TIMEOUT || 86400 } : {}), temporary: multiTurn || (args['no-temporary'] !== true && args.temporary !== false) } : null;
 
   async function worker() {
     while (queue.length && !abortAll) {
@@ -686,6 +725,7 @@ async function main() {
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         res = channel === 'codex'
           ? await runCodexOnce({ prompt: job.prompt, model, effort, timeoutS, rawBase })
+          : multiTurn ? await runMultiTurnChat({ prompts: job.prompts, timeoutS, web: webState })
           : await runChatgptWebOnce({ prompt: job.prompt, timeoutS, web: webState });
         if (res.ok) break;
         const fatal = ['quota-402', 'auth', 'model', 'no-codex', 'no-opencli'].includes(res.failure); // 这些重试没用，交回人
@@ -693,30 +733,35 @@ async function main() {
         if (fatal) break;
         if (attempt < maxAttempts) await sleep(30000);
       }
-      const { answer, probe, probeError } = res.ok ? splitProbe(res.text) : { answer: res.text || '', probe: null, probeError: res.error || null };
+      const { answer, probe, probeError } = multiTurn ? { answer: res.text || '', probe: null, probeError: null } : res.ok ? splitProbe(res.text) : { answer: res.text || '', probe: null, probeError: res.error || null };
       const ev = res.ev || { searches: [], retrieved: [], usage: null };
       const rec = {
         label: job.label, kind: job.kind, rep: job.rep, channel, topic, ok: !!res.ok, failure: res.ok ? null : res.failure, error: res.ok ? null : res.error,
+        ...(!res.ok && res.pageText !== undefined ? { pageText: res.pageText, pageUrl: res.pageUrl } : {}),
         prompt: job.prompt, startedAt: new Date(lastStart).toISOString(), durationMs: res.durationMs || null, model: channel === 'codex' ? model : res.web?.model, effort: channel === 'codex' ? effort : null,
         memoryClean,
-        searched: ev.searches.length > 0, searches: ev.searches, retrieved: ev.retrieved, usage: ev.usage, web: res.web || null, conversationId: res.conversationId || null,
-        answer, probe, probeError,
+        searched: multiTurn ? !!res.searched : ev.searches.length > 0, searches: ev.searches, retrieved: ev.retrieved, usage: ev.usage, web: res.web || null, conversationId: res.conversationId || null,
+        answer, probe, probeError, ...(multiTurn ? { turns: res.turns } : {}),
       };
       // 引用来源：网页通道=最终答案的 content_references（via=marker|item|safe_url）；codex=答案正文里的链接（via=answer-link）
-      rec.cited = res.ok ? (webChannel ? (res.cited || []) : answerLinkSources(answer)) : [];
+      rec.cited = (res.ok || rec.turns?.[0]?.ok) ? (webChannel ? (res.cited || []) : answerLinkSources(answer)) : [];
       rec.memoryScopeConflict = !!(webChannel && memoryFlag && rec.web?.memory_scope === 'global_enabled');
       if (rec.memoryScopeConflict) log(`[警告] ${job.label}：你传了 --memory-clean，但会话 payload 显示 memory_scope=global_enabled（账号记忆是开着的）——声明与页面矛盾，这批结果仍可能被账号记忆污染。`);
       rec.reco = extractReco(rec);
+      rec.firstResponseNamesExternalProduct = firstResponseNamesExternalProduct(rec);
       rec.textDomains = rec.reco.linkDomains;
       fs.writeFileSync(jsonPath, JSON.stringify(rec, null, 2));
       fs.writeFileSync(`${rawBase}.answer.md`, `${answer}\n`);
       results.push(rec);
       log(`${job.label} ${rec.ok ? 'ok' : 'FAIL'} ${rec.durationMs ? (rec.durationMs / 1000).toFixed(0) + 's' : ''} 联网=${rec.searched} 检索命中=${rec.retrieved.length} 引用=${rec.cited.length} 名单=${rec.reco.list.map((x) => x.domain).join(',') || '（空）'}${rec.conversationId ? ` 会话=${rec.conversationId}` : ''}`);
-      if (!rec.ok && ['quota-402', 'auth', 'model', 'no-codex', 'no-opencli', 'rate-limit'].includes(rec.failure)) { abortAll = rec.failure; log(`遇到 ${rec.failure}：停止后续提问，交回人处理（不硬试）`); }
+      if (!rec.ok && ['quota-402', 'auth', 'model', 'no-codex', 'no-opencli', 'rate-limit', 'privacy-switch'].includes(rec.failure)) { abortAll = rec.failure; log(`遇到 ${rec.failure}：停止后续提问，交回人处理（不硬试）`); }
     }
   }
   await Promise.all(Array.from({ length: concurrency }, () => worker()));
-  if (webState?.opened) oc(['browser', webState.session, 'close', '--window', 'background'], { timeoutS: 30 });
+  if (webState?.opened) {
+    if (keepOpen) console.log(`会话保持打开：${webState.session}`);
+    else closeSession(webState);
+  }
 
   // 汇总
   const by = (k) => results.filter((r) => r.kind === k).sort((a, b) => a.rep - b.rep);
@@ -732,13 +777,14 @@ async function main() {
     memoryClean: summaryMemoryClean, memoryScopesSeen,
     topic, keyword, channel: summaryChannel, model: summaryChannel === 'codex' ? model : null, effort: summaryChannel === 'codex' ? effort : null, generatedAt: new Date().toISOString(),
     aliases: ALIASES,
-    caveat: 'n 很小，只是一次探针，不是统计结论；探针尾巴会让模型多讲弱点；codex 通道≠网页版 ChatGPT；网页通道拿不到搜索词（firstQueryNamesPickShare 恒为 null）。',
+    questions: summarizeQuestions(results),
+    caveat: 'n 很小，只是一次探针，不是统计结论；' + (multiTurn || results.some(r => r.turns) ? '多轮自然提问不带探针尾巴；域名只按引用/文本链接计数，不等于确认推荐；' : '探针尾巴会让模型多讲弱点；') + 'codex 通道≠网页版 ChatGPT；网页通道拿不到搜索词（firstQueryNamesPickShare 恒为 null）。',
     google: { top10: googleDomains, source: args['google-serp-file'] ? 'file' : args['google-top'] ? 'arg' : args['fetch-google'] ? 'opencli-google' : 'none' },
     N: summarizeGroup(by('N'), googleDomains, tokens),
     K: summarizeGroup(by('K'), googleDomains, tokens),
     C: by('C').map((r) => ({ ok: r.ok, searched: r.searched, verdicts: r.probe?.verdicts || null, firstPick: r.probe?.my_first_pick || null, newProductWinsIf: r.probe?.new_product_wins_if || null, marketGap: r.probe?.market_gap || null })),
     marketGaps: uniq(results.map((r) => r.probe?.market_gap).filter(Boolean)),
-    failures: results.filter((r) => !r.ok).map((r) => ({ label: r.label, failure: r.failure, error: r.error, conversationId: r.conversationId || null })),
+    failures: results.filter((r) => !r.ok).map((r) => ({ label: r.label, failure: r.failure, error: r.error, ...(r.pageText !== undefined ? { pageText: r.pageText.slice(0, 120), pageUrl: r.pageUrl } : {}), conversationId: r.conversationId || null })),
     aborted: abortAll,
   };
   fs.writeFileSync(path.join(outDir, 'summary.json'), JSON.stringify(summary, null, 2));
@@ -754,13 +800,41 @@ function renderMd(s, results) {
   L.push(`# AI 探针：${s.topic}`, '', `- 通道：${s.channel}${s.model ? `（${s.model} ${s.effort}）` : ''}；memoryClean=${s.memoryClean}${s.memoryScopesSeen?.length ? `；payload memory_scope=${s.memoryScopesSeen.join('/')}` : ''}；生成：${s.generatedAt}`, `- ${s.caveat}`, `- Google 前 10（${s.google.source}）：${s.google.top10.join(', ') || '（无）'}`, ...(Object.keys(s.aliases || {}).length ? [`- 域名别名（折成同一产品）：${JSON.stringify(s.aliases)}`] : []), '');
   for (const k of ['N', 'K']) {
     const g = s[k];
-    L.push(`## ${k} 型（${k === 'N' ? '需求描述，不含关键词' : '关键词直问'}）`, '', `- 成功 ${g.nOk}/${g.n}；联网占比 ${g.searchedShare}；首轮搜索词里已带最终推荐产品名的占比 ${g.firstQueryNamesPickShare}（=先凭记忆选人再联网核实）；全部搜索都是 site: 限定的占比 ${g.preSitedShare}；平均 ${g.avgDurationS}s`,
+    L.push(`## ${k} 型（${k === 'N' ? '需求描述，不含关键词' : '关键词直问'}）`, '', `- 成功 ${g.nOk}/${g.n}；联网占比 ${g.searchedShare}；首轮搜索词里已带最终推荐产品名的占比 ${g.firstQueryNamesPickShare}（仅记录词面包含，不推断因果）；全部搜索都是 site: 限定的占比 ${g.preSitedShare}；平均 ${g.avgDurationS}s`,
       `- 每个域名出现次数：${Object.entries(g.perDomainFrequency).map(([d, c]) => `${d}×${c}`).join('、') || '（无）'}`,
       `- 每次都出现的域名：${g.coreAllRuns.join('、') || '（无）'}；≥2 次占并集：${g.stableShare_ge2}；两两 Jaccard 均值：${g.pairwiseJaccard}`,
       `- Top1 每次：${g.top1PerRun.join(' / ')}；一致率 ${g.top1Consistency}（众数 ${g.top1Modal || '无'}）`,
       `- 与 Google 前 10 重合：推荐并集里 ${g.googleOverlap.count} 个（${g.googleOverlap.recoUnionInGoogleTop10.join('、') || '无'}）；Top1 在前 10：${g.googleOverlap.top1InGoogleTop10}；检索命中里在前 10 的：${g.googleOverlap.retrievedInGoogleTop10.join('、') || '无'}`,
       `- 引用来源（cited）：${Object.entries(g.citedDomainFrequency).map(([d, c]) => `${d}×${c}`).join('、') || '（无）'}；有引用的占比 ${g.citedShare}；引用里在 Google 前 10 的：${g.googleOverlap.citedInGoogleTop10.join('、') || '无'}`,
-      `- AI 自标类型计数：${JSON.stringify(g.kindsCount)}；推荐名单之外的检索/引用 URL 里博客榜单占比 ${g.listicleShareOfUrls}`, `- 推荐位提示：${g.slotHint}`, '');
+      `- AI 自标类型计数：${JSON.stringify(g.kindsCount)}；推荐名单之外的检索/引用 URL 里博客榜单占比 ${g.listicleShareOfUrls}`, `- 历史兼容字段 slotHint：${g.slotHint}`, '');
+  }
+  L.push('## 按问法：首次回答外部产品点名率', '', '只用已有推荐/文本域名解析判断点名（是/否）；引用或检索命中不单独算点名，失败为未知。解析不能识别没有域名的纯名称，须回读原回答。回答中没有任何外部产品时，说明该问法下推荐位不存在（ChatGPT 自己当工具），不等于被筛掉；解析空名单本身不能证明原文没有产品。这是 2026-10-03 oc-maker 试点的实测发现（8 个问法里 6 个无外部推荐）。', '');
+  for (const q of s.questions) {
+    L.push(`- 问法：${q.prompt}；通道 ${q.channel}；样本 ${q.sampleMode}；点名率 ${q.namedCount}/${q.nKnown}（${q.namingRate ?? '未知'}）；95% Wilson 区间 ${q.namingRateWilson95?.join('–') || '未知'}；未知 ${q.nUnknown}`);
+    for (const r of q.samples) L.push(`  - ${r.label}：首次回答是否点名外部产品/网站=${r.firstResponseNamesExternalProduct === null ? '未知' : r.firstResponseNamesExternalProduct ? '是' : '否'}`);
+  }
+  const multi = results.filter(r => r.turns);
+  if (multi.length) {
+    const domains = t => uniq([...(t?.citedDomains || []), ...(t?.textDomains || [])].map(canon));
+    const freq = entries => {
+      const counts = {};
+      for (const ds of entries) for (const d of ds) counts[d] = (counts[d] || 0) + 1;
+      return Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([d, n]) => `${d}×${n}`).join('、') || '（无）';
+    };
+    const excerpt = (t, pattern) => {
+      const lines = (t?.answer || '').split('\n').map(l => l.trim()).filter(Boolean);
+      return (lines.find(l => pattern.test(l)) || lines[0] || '（未完成）');
+    };
+    L.push('## 多轮', '', `- 第 1 轮推荐/引用域名出现次数（引用与文本链接，每样本去重）：${freq(multi.map(r => domains(r.turns[0])))}`, '', '### 第 2 轮不足（逐样本原文摘 1 行）', '');
+    for (const r of multi) L.push(`- ${r.label}：${excerpt(r.turns.find(t => t.n === 2 && t.ok), /weak|downside|limit|drawback|不足|缺点|缺陷|局限|слаб|недостат|Schwäch|Nachteil/i)}`);
+    L.push('', '### 第 3 轮其他产品', '', '- 是否改荐由原文判断；新增域名只表示相对第 1 轮首次出现，不自动判定推荐。');
+    for (const r of multi) {
+      const third = r.turns.find(t => t.n === 3 && t.ok);
+      L.push(`- ${r.label}：${excerpt(third, /recommend|instead|better|推荐|更好|рекоменд|besser|empfehl/i)}；新增域名：${third ? domains(third).filter(d => !domains(r.turns[0]).includes(d)).join('、') || '（无）' : '（未完成）'}`);
+    }
+    L.push(`- 第 3 轮域名出现次数：${freq(multi.map(r => domains(r.turns.find(t => t.n === 3 && t.ok))))}`);
+    const completed = multi.map(r => r.turns.filter(t => t.ok).length);
+    L.push('', `- 完成轮次分布：3 轮 ${completed.filter(n => n === 3).length}；2 轮 ${completed.filter(n => n === 2).length}；1 轮 ${completed.filter(n => n === 1).length}；失败（0 轮）${completed.filter(n => n === 0).length}；中途失败 ${multi.filter(r => !r.ok).length}`, '');
   }
   L.push('## C 型（追问：把 Google 前 3 摆给它）', '');
   for (const c of s.C) {
@@ -772,7 +846,7 @@ function renderMd(s, results) {
   L.push('## 逐次明细', '', '| 次 | 成功 | 联网 | 检索命中 | 引用 | 耗时 | 名单（按序） |', '|---|---|---|---|---|---|---|');
   for (const r of results.sort((a, b) => a.label.localeCompare(b.label))) L.push(`| ${r.label} | ${r.ok ? 'ok' : r.failure} | ${r.searched} | ${(r.retrieved || []).length} | ${(r.cited || []).length} | ${r.durationMs ? (r.durationMs / 1000).toFixed(0) + 's' : '-'} | ${r.reco.list.map((x) => x.domain + (x.verified ? '' : '?')).join(' > ') || '（空）'} |`);
   L.push('', '域名后带 `?` 表示模型自报、未在文本链接或检索命中里核实到。');
-  if (s.failures.length) L.push('', `失败：${JSON.stringify(s.failures)}`);
+  if (s.failures.length) L.push('', ...s.failures.map(f => `- 失败 ${f.label}（${f.failure}）：${f.error}；pageText：${(f.pageText || '').replace(/\s+/g, ' ')}`));
   return L.join('\n') + '\n';
 }
 

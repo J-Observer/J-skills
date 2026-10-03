@@ -13,7 +13,7 @@
  *   --out <file>            落盘 JSON
  *   --timeout <s>           整体超时（默认 30）
  *   --keep-open             跑完保留标签页
- *   --window <mode>         background（默认）/ foreground / isolated
+ *   --window <mode>         dedicated（默认）/ background / foreground / isolated
  *   --help                  本说明
  *
  * 输出（traffic 报表）：
@@ -63,7 +63,7 @@ if (!['traffic', 'adsense', 'whois'].includes(report)) {
 const outFile = flags.out || null;
 const timeoutMs = (Number(flags.timeout) || 30) * 1000;
 const keepOpen = !!flags['keep-open'];
-const windowMode = flags.window || 'background';
+const windowMode = flags.window || 'dedicated';
 
 const session = defaultSession('sitedata');
 const SEARCH_TAB = report === 'adsense' ? 'AdSense' : 'Traffic';

@@ -10,7 +10,8 @@
  * 遇到授权 DNS 服务商、登录或验证码立即停止；TXT 传播未就绪最多每 60 秒
  * 检查一次、单站最多 20 分钟。2026-09-28：一站实测自动验证，
  * 另一站实测已存在；2026-09-28 两站 status 再次实测可进入 sitemap 页面。
- * 手动 DNS TXT 分支尚未在真实站点验证。
+ * 2026-10-02：轮询资源弹窗与验证结果；DNS 提供商从 listbox 选择。
+ * TXT 传播查询公共 DNS，避免本机负缓存阻塞；2026-10-02 实测 TXT 新增后 GSC 自动验证成功。
  */
 import { execFileSync } from "node:child_process"
 import { cfAuthHeaders } from "./lib-cf-auth.mjs"
@@ -29,13 +30,22 @@ if (!["status", "add-site"].includes(action) || !domain || !/^[a-z\d-]+(?:\.[a-z
 const property = `sc-domain:${domain}`
 const propertyUrl = `https://search.google.com/search-console/sitemaps?resource_id=${encodeURIComponent(property)}`
 let opened = false
+let sitemapListed = false
 function browser(...parts) {
-  return execFileSync("opencli", ["browser", session, "--window", "background", ...parts],
+  return execFileSync("opencli", ["browser", session, "--window", "dedicated", ...parts],
     { encoding: "utf8", timeout: 90000 }).trim()
 }
 function evalJs(source) { return browser("eval", `(()=>{${source}})()`) }
-function open(url) { browser("open", url); opened = true }
-function text() { return evalJs("return document.body.innerText.slice(0,10000)") }
+function open(url) { opened = true; browser("open", url) }
+function text() {
+  // 2026-10-02：页面跳转瞬间 document.body 为 null，原写法会抛 TypeError；最多等 10 秒重取。
+  for (let i = 0; i < 10; i++) {
+    const t = evalJs("return document.body ? document.body.innerText.slice(0,10000) : '__NO_BODY__'")
+    if (t !== "__NO_BODY__") return t
+    browser("wait", "time", "1")
+  }
+  return ""
+}
 function guard() {
   const body = text()
   if (/请登录|登录以继续|sign in to continue|验证码|captcha|recaptcha/i.test(body)) {
@@ -54,9 +64,13 @@ function dialogText() {
   return evalJs("return [...document.querySelectorAll('[role=dialog]')].filter(e=>e.offsetParent!==null).map(e=>e.innerText).join('\\n').slice(0,8000)")
 }
 function accessible() {
-  open(propertyUrl)
+  try { open(propertyUrl) } catch (error) {
+    if (!evalJs("return location.pathname").includes("/search-console/not-verified")) throw error
+    return false
+  }
   const body = guard()
-  return body.includes("sitemap.xml") && /站点地图|Sitemaps/.test(body)
+  sitemapListed = body.includes("sitemap.xml")
+  return /站点地图|Sitemaps/.test(body) && evalJs(`return new URL(location.href).searchParams.get("resource_id")===${JSON.stringify(property)} && !![...document.querySelectorAll('input')].find(e=>e.offsetParent!==null&&/输入站点地图网址|Enter sitemap URL/i.test(e.getAttribute("aria-label")||""))`).includes("true")
 }
 function visibleDomainInput() {
   return "[...document.querySelectorAll('input[aria-label=\"example.com\"]')].find(e=>e.offsetParent!==null)"
@@ -85,7 +99,7 @@ async function ensureTxt(content) {
 }
 try {
   if (accessible()) {
-    console.log(`${property} 已验证；页面显示 sitemap.xml。`)
+    console.log(`${property} 已验证；${sitemapListed ? "页面显示 sitemap.xml。" : "站点地图尚无 sitemap.xml。"}`)
   } else if (action === "status") {
     console.log(`${property} 未在当前账号的站点地图页面显示；请用 add-site。`)
     process.exitCode = 1
@@ -93,7 +107,11 @@ try {
     open("https://search.google.com/search-console/welcome")
     guard()
     stamp("[...document.querySelectorAll('button')].find(e=>e.offsetParent!==null&&/添加网站|Add (a )?(site|property)/i.test(e.innerText))", "添加网站")
-    if (!evalJs("return !![...document.querySelectorAll('input[aria-label=\"example.com\"]')].find(e=>e.offsetParent!==null)").includes("true")) {
+    const inputDeadline = Date.now() + 15000
+    while (!evalJs(`return !!(${visibleDomainInput()})`).includes("true") && Date.now() < inputDeadline) {
+      browser("wait", "time", "1")
+    }
+    if (!evalJs(`return !!(${visibleDomainInput()})`).includes("true")) {
       throw new Error("资源类型弹窗未打开，不能输入域名")
     }
     evalJs(`const el=${visibleDomainInput()};el.setAttribute('data-gsc-input','1');return true`)
@@ -101,30 +119,39 @@ try {
     if (!filled.verified || filled.actual !== domain) throw new Error("网域输入未被 GSC 接受")
     stamp("[...document.querySelectorAll('[role=dialog] [role=button]')].find(e=>e.offsetParent!==null&&e.getAttribute('aria-disabled')!=='true'&&e.innerText.trim()==='继续')", "网域继续")
     let result = dialogText()
-    if (/正在验证|Verifying/i.test(result)) {
-      browser("wait", "time", "2")
+    const verificationDeadline = Date.now() + 30000
+    while (/正在验证|Verifying/i.test(result) && Date.now() < verificationDeadline) {
+      browser("wait", "time", "1")
       result = dialogText()
     }
     if (/已自动完成所有权验证|Ownership auto verified|Ownership verified/i.test(result)) {
       console.log(`${property} 已自动完成所有权验证（既有验证记录，不新增 TXT）。`)
     } else {
       if (/授权访问|授权.*DNS|Authorize.*DNS|Connect.*provider/i.test(result)) {
-        stamp("[...document.querySelectorAll('[role=dialog] [role=button]')].find(e=>e.offsetParent!==null&&/任何 DNS 提供商|Any DNS provider/i.test(e.innerText))", "任何 DNS 提供商")
+        stamp("[...document.querySelectorAll('[role=dialog] [role=listbox]')].find(e=>e.offsetParent!==null&&/任何 DNS 提供商|Any DNS provider/i.test(e.innerText))", "DNS 提供商下拉")
+        stamp("[...document.querySelectorAll('[role=option]')].find(e=>e.offsetParent!==null&&/任何 DNS 提供商|Any DNS provider/i.test(e.innerText))", "任何 DNS 提供商")
         result = dialogText()
       }
       if (/授权访问|Authorize.*DNS|Connect.*provider/i.test(result)) throw new Error("页面仍在 DNS 授权路径，停止")
-      const txt = verificationTxt(result)
+      const txt = verificationTxt(result) || verificationTxt(evalJs("return [...document.querySelectorAll('[role=dialog] input, [role=dialog] textarea')].filter(e=>e.offsetParent!==null).map(e=>e.value).join('\\n')"))
       if (!txt) throw new Error(`未从验证弹窗读到 TXT；弹窗摘要: ${result.slice(0,300)}`)
       console.log(`Cloudflare 验证 TXT ${await ensureTxt(txt) ? "已新增" : "已存在"}。`)
       const deadline = Date.now() + 20 * 60 * 1000
       while (Date.now() < deadline) {
-        const answers = await import("node:dns/promises").then(dns => dns.resolveTxt(domain).catch(() => []))
-        if (answers.some(parts => parts.join("") === txt)) break
+        const dns = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domain)}&type=TXT`, {
+          headers: { accept: "application/dns-json" },
+        }).then(res => res.json())
+        if ((dns.Answer || []).some(record => record.data.replace(/"/g, "") === txt)) break
         if (Date.now() + 60000 >= deadline) throw new Error("等待 TXT 传播超过 20 分钟")
         await new Promise(resolve => setTimeout(resolve, 60000))
       }
       stamp("[...document.querySelectorAll('[role=dialog] [role=button], [role=dialog] button')].find(e=>e.offsetParent!==null&&/^(验证|Verify)$/.test(e.innerText.trim()))", "验证")
-      const final = dialogText()
+      let final = dialogText()
+      const finalDeadline = Date.now() + 30000
+      while (/正在验证|Verifying/i.test(final) && Date.now() < finalDeadline) {
+        browser("wait", "time", "1")
+        final = dialogText()
+      }
       if (!/已完成所有权验证|Ownership verified|验证成功/i.test(final) && !accessible()) {
         throw new Error(`验证点击后没有成功判据；弹窗摘要: ${final.slice(0,300)}`)
       }

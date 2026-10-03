@@ -2,11 +2,11 @@
 /**
  * 用途：用 serper.dev（Google SERP 的 JSON API）取一个关键词的谷歌第一页，
  *       输出 organic 前 N 条 + relatedSearches + peopleAlsoAsk，
- *       并派生两个挖词时最想先知道的判断：
+ *       并派生两个供回读的计数：
  *         (a) 前十里有几个站是**拿这个词当主域名**的（域名主标签命中词素）；
  *         (b) 前十里有几个是首页、有几个是内页。
- *       relatedSearches / peopleAlsoAsk 是扩词的直接来源：把它们再喂回本脚本或
- *       喂给 官方 gefei CLI keyword_difficulty 做难度过筛，就是一条完整的挖词流水线。
+ *       relatedSearches / peopleAlsoAsk 用于问法补漏，再喂回本脚本取 Google 证据；
+ *       下游读法见 references/seo-serp.md「逐问法 Google 读法」，不自动给出裁决。
  *
  * 示例：
  *   node serp-query.mjs "ai photo editor"
@@ -32,8 +32,8 @@
  *   - relatedSearches / peopleAlsoAsk / answerBox / knowledgeGraph **不保证出现**，
  *     谷歌该词的 SERP 没有这些模块时字段直接缺失，不是空数组。全部按可缺处理。
  *   - 「主域名命中」是启发式，不是事实：它只看域名主标签里有没有关键词的实义词素。
- *     怎么判读（连同首页/内页构成）移进了 demand-sources.md「SERP 盘面怎么读」——
- *     脚本只出计数，结论归 AI（2026-08-30 重构第二波）。
+ *     怎么判读（连同首页/内页构成）移进了 references/seo-serp.md「逐问法 Google 读法」——
+ *     脚本只出计数，结论归读结果的人（2026-08-30 重构第二波）。
  *   - 原始 serper 响应**每次运行都会**原样落进证据目录（成功也落），
  *     解析或派生字段哪天错了，raw JSON 还能对质。
  */
@@ -50,7 +50,7 @@ const STOP = new Set([
   'vs', 'app', 'tool', 'tools', 'website', 'site',
 ]);
 
-const HELP = `serp-query.mjs —— serper.dev Google SERP 查询 + 挖词派生判断
+const HELP = `serp-query.mjs —— serper.dev Google SERP 查询 + 问法补漏计数
 
 用法:
   node serp-query.mjs <keyword> [选项]
@@ -62,7 +62,7 @@ const HELP = `serp-query.mjs —— serper.dev Google SERP 查询 + 挖词派生
   --page <n>      第几页，默认 1
   --location <s>  城市级地理位置，如 "New York, United States"（可选）
   --expand        只输出可继续挖的词（relatedSearches + peopleAlsoAsk 的问题），一行一个
-  --json          输出结构化 JSON（含派生判断）
+  --json          输出结构化 JSON（含派生计数）
   --out <file>    落盘；.jsonl 走 JSON Lines，其它走 pretty JSON
   --help          本帮助
 
@@ -74,7 +74,8 @@ const HELP = `serp-query.mjs —— serper.dev Google SERP 查询 + 挖词派生
   · 精确域名命中 / 部分域名命中：前十里有几个站把这个词做进了主域名
   · 首页数 / 内页数
   这些数怎么读（domainMatch 是启发式、首页/内页构成意味着什么），
-  见 rankup/references/demand-sources.md「SERP 盘面怎么读」。
+  见 rankup/references/seo-serp.md「逐问法 Google 读法」。
+  relatedSearches / peopleAlsoAsk 用于问法补漏，每条长尾问法分别取 Google 证据。
   原始 serper 响应每次都会落进证据目录（--evidence-dir 可指定落点）。
 `;
 

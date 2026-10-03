@@ -85,7 +85,7 @@ domain = domain ? domain.replace(/^https?:\/\//, "").replace(/\/.*$/, "") : doma
 
 function cli(args, { timeout = 30000 } = {}) {
   try {
-    const windowArgs = action === "status" ? ["--window", "background"] : ["--window", "dedicated", "--window-slot", windowSlot]
+    const windowArgs = ["--window", "dedicated", "--window-slot", windowSlot]
     return execFileSync("opencli", ["browser", session, ...windowArgs, ...args],
       { encoding: "utf8", timeout, stdio: ["pipe", "pipe", "pipe"] }).trim()
   } catch (e) {

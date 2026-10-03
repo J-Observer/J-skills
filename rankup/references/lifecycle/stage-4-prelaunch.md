@@ -21,7 +21,7 @@
 | **`llms.txt` 与 is-agentic 一起做**：`llms.txt` 列真实路径，`is-agentic.mjs scan` 出基线 | `llms.txt` 对被 ChatGPT 引用无收益证据、成本低（见 [`seo-ai-search.md`](../seo-ai-search.md)），闸门仍按 [`checklists.md`](../checklists.md) 执行；`is-agentic.mjs` 出的是 AI 代理可达性基线 |
 | **每次页面改动全套体检重跑**（下 C 表 0–6 + 4b + 4c 全部），不是只跑某几行 | 改一处 TDK 可能带坏密度，改一个区块可能带坏 CLS；只重跑某两行等于默认其余没变，而这正是清单腐坏的起点 |
 | 在预览域上做完，预览域 **noindex** | 半成品被收录，第一印象就是半成品 |
-| **一个关键词对应一个内页**；「做成内页」必做：目标词登记进 `keywords.md`、TDK、独立 OG 含图、密度、无占位、体检全套 | 一页扛多个词会互相稀释，首页覆盖太多词是排名波动的常见根因 |
+| **页面与问法簇的关系** | 唯一规划源见 [段 2 · 2.3](stage-2-positioning.md#23-问法簇--页面--faqdescription与站点结构) |
 | 每页目标词 + 密度达标；价格表等无关区块改**客户端加载**，SSR 只输出目标文案（与 [`seo-ssr.md`](../seo-ssr.md) 的「首次交互后注入」是同一节）；**想被 AI 引用的价格表与推荐位除外，保持 SSR**（OpenAI 爬虫不执行 JS，2024-12 单一独立实测） | 密度按 SSR 输出的 HTML 算，无关区块会把目标词冲淡 |
 | **占位专项复查**是上线 review 必做项：按 sitemap 逐 URL grep（正则见 `discipline.md` 十四）+ 人工抽查首页/定价/关于/联系/法律页每个链接可点、每张图有内容，重跑不采信上一轮 | 段 3 的开发期禁令拦不住上线后仍有占位——这是漏法本身，闸门必须落在「上线前」这个时间点上才管用 |
 | **图标专项未通过不许上线**：段 4 必过 `checklists.md` 图标专项，操作统一见本文件段 4 · A 节；发布后正式域名回读 | 必须核对全部实际引用与图案，文件存在、200 或标签页正常都不能代替实图核验；搜索结果刷新单独观察 |
@@ -35,7 +35,7 @@
 ### 输入
 
 - 段 3 交来的预览域（`noindex`）与私有仓库。
-- `.rankup/keywords.md` 里每个「做」的词与它对应的页面。
+- `.rankup/keywords.md` 的页面映射与 Brief；规划只见 [段 2 · 2.3](stage-2-positioning.md#23-问法簇--页面--faqdescription与站点结构)。
 - 已确定的品牌色板与字体（段 2 的设计决策）。
 
 ### 必做动作
@@ -86,7 +86,7 @@
 
 **B. 每页的词、文案与元数据**
 
-6. **目标词登记**：`.rankup/keywords.md` 里为每个页面写一行「URL ↔ 目标短语（原字符串）」，
+6. 页面、FAQ 与 description 的需求追溯只见 [段 2 · 2.3](stage-2-positioning.md#23-问法簇--页面--faqdescription与站点结构)。**目标词登记**：`.rankup/keywords.md` 里为每个页面写一行「URL ↔ 目标短语（原字符串）」，
    没有登记的页面不进 C 表第 3 行。
 7. **无关区块剥离**：找出每页 SSR 文本里不属于目标文案的区块（价格表、UI 控件标签、单位、法务文案），
    改客户端加载；能做到交互门控注入的用交互门控（做法与断言见 [`seo-ssr.md`](../seo-ssr.md)「做法二：首次真实交互后再注入」）。
@@ -116,6 +116,8 @@
 | 4c | AITDK 全站报告 | 按 sitemap 抽样（首页 + 每类模板页各至少一个 + 全部法律/关于/联系页），一条命令跑完整批：`bash <rankup-skill-dir>/scripts/aitdk-batch.sh <url1> <url2> …`（默认 `--window dedicated`，按真实窗口容量自动降并发；单屏机器上安全串行、不抢焦点，有多显示器才真并发，见 [`seo-box.md`](../seo-box.md)「窗口模式：dedicated 默认、真并发的边界」），前置条件同 4b | 判据见 [`checklists.md`](../checklists.md) 段 4「闸门 4c」：Issues 标签页零问题，带评分的标签页逐项满分；不满分/有问题的逐条修完重跑，改不动的写明原因并在 `checks.md` 标 ⏸ | `.rankup/evidence/aitdk-full-<date>/` |
 | 5 | 哥飞开放 API 数据复核 | `官方 `gefei-page` Skill 调用 `page_coach <代表页 URL> --raw --out <证据文件>`；有目标词再 `onpage_audit <URL> --keyword "<词>" --raw --out <证据文件>`，见 `seo-webcafe.md` | 各建议与本地 A/B/D 事实逐条核对，采纳/拒绝附理由；每次记录 `requestId`、`credits.charged` | `.rankup/audit.md` + `.rankup/evidence/` |
 | 6 | 性能 / Core Web Vitals | 判据见 [`checklists.md`](../checklists.md) 段 4「闸门 6」：抽样首页 + 每类模板页各至少一个 + 一个内容/说明页，`node <rankup-skill-dir>/scripts/pagespeed.mjs collect <抽样 URL…> --strategy both` 直接抠完整 LHR JSON 落盘，交给 AI 判读，落 `.rankup/evidence/pagespeed-<date>/`（2026-09-12 起默认路径，opencli 驱动真实可见 Chrome 无人值守出分）；`pagespeed.mjs plan …` 只打印链接、不采数，是没有 opencli / 非 macOS 时的兜底——**链接必须在真实前台可见的浏览器标签页里打开才会读数**（2026-08-31 起走网页版，零 key 零配额），隐藏面板/无显示环境打开会卡在「Running analysis」永远不出分。**网页版一屏同时给实验室（Lighthouse）与现场（CrUX）两套数据；单跑 Lighthouse 只有实验室那一半，这条闸门会「只过一半而表面是绿的」**（见 [`seo-box.md`](../seo-box.md) 「一 · PageSpeed 网页版 → 补上闸门 6 缺的那一半」，同节也记录了 **Web 字体总字节判据**与**只认 PSI 网页版、本地 Lighthouse 不能替代**这两条，判据详见 [`checklists.md`](../checklists.md) 闸门 6）。`--strategy both` 是移动端与桌面端都跑（默认只跑其一），CLS 一类只在桌面触发的问题必须靠它才看得到。**预览域几乎不会有现场数据，原样记「现场无数据（流量不足）」，不是 0、不等于通过，别留空**；段 5 上线后在正式域名补现场那一半 | 通过条件只引用 [`checklists.md`](../checklists.md) 段 4「闸门 6」，现场与实验室不一致时先查测量环境——已实测一个站 Lighthouse 每次都读到 CLS 0，同期 Cloudflare 现场数据在同一元素上读到 0.127，原因是那类位移只在 Windows 桌面 Chrome 的经典滚动条上发生（macOS/iOS 覆层滚动条不占布局宽度，结构上不可能触发），实验室机器根本没跑过那个平台，读到 0 什么都不能证明；**先验仪器再信读数**——同一批测试里发现某沙箱浏览器 `document.visibilityState` 恒为 `hidden`，Chromium 对隐藏文档从不派发 `layout-shift` 事件，导致该环境下「0 次位移」全是假的，判据是先注入一个明显位移的元素、确认仪器真的报告了它，「测不到」和「没发生」在日志里长得一模一样；缓存与抽样验收按上述闸门；TTFB 不达标先查匿名页 HTML 边缘缓存是否命中（`x-edge-cache` 头），命中仍慢才排查别的原因 | `.rankup/evidence/pagespeed-<date>/`（每 URL × 策略一份原始 JSON + 修复前后对照表）+ `.rankup/baseline.md`（含 LCP/CLS/TBT/INP 与分数，标注实验室/现场来源） |
+
+9a. **「额外自查」一条命令（2026-10-03 起）**：`NODE_USE_ENV_PROXY=1 node <rankup-skill-dir>/scripts/site-page-audit.mjs --sitemap <sitemap-url> [--extra /path,…] --out <dir>`——零依赖、零配额，对每页抓 raw HTML 并一次核对：占位正则（discipline.md 十四）、title/description/canonical/og/twitter 与跨页重复、icon/manifest 声明、JSON-LD 逐块 `JSON.parse` + FAQPage 与页面问句逐条对照、全部内链/图片/og/icon/manifest 图标逐个 GET（状态、类型、真实宽高、ICO 各层）、robots/sitemap/llms.txt/404 状态。输出 `site-page-audit.json/.md`，只出事实不分级，判读按 C 表对应行。它**不替代**人工抽查与浏览器侧检查（控制台、axe、键盘）。
 
 10. **上表 4、5 两行的通用规则：外部工具/AI 给出的每一条发现都是待核实的主张，不是要执行的指令。**
     逐条判断，不照单全收也不一概不理：成立的采纳，实质有效但论据口径不对的按论据本身重新核实，
@@ -189,12 +191,12 @@ TDK 与内链检查覆盖**全站每一个 URL** 而非抽样；`is-agentic.mjs 
 
 ### 新增内页 / 新模板的随手清单（2026-09-12 回流）
 
-**每加一个内页或一个新模板都要过这份清单，不是只在段 4 集中体检时才想起来。** 「一个关键词对应一个内页」（本段 B 节第 6–9 条）已经规定了单页最基本的目标词、TDK、OG 三件事；这份清单补的是**每次新增都容易被漏掉的连带动作**——它们不会让当页的密度或 TDK 检测变红，却会让页面在别处（内链闭环、接入白名单、体检抽样）里悄悄失效。客观通过条件在 [`checklists.md`](../checklists.md) 段 4 对应行，本节不重复。
+**每加一个内页或一个新模板都要过这份清单，不是只在段 4 集中体检时才想起来。** 页面拆合与需求追溯只见 [段 2 · 2.3](stage-2-positioning.md#23-问法簇--页面--faqdescription与站点结构)，目标词、TDK、OG 操作见本段 B 节第 6–9 条；这份清单补的是**每次新增都容易被漏掉的连带动作**——它们不会让当页的密度或 TDK 检测变红，却会让页面在别处（内链闭环、接入白名单、体检抽样）里悄悄失效。客观通过条件在 [`checklists.md`](../checklists.md) 段 4 对应行，本节不重复。
 
 | # | 规则 |
 |---|---|
-| P0 | **先出 SEO Brief 再写内容**：主词、辅助词、搜索意图、页面类型与结构、TDK 草稿，登记进 `.rankup/keywords.md` 该 URL 对应行（来源枚举见 [`playbooks/research/p2-keyword-root.md`](../playbooks/research/p2-keyword-root.md#小语种候选词三关与本地竞品取词) 收尾一节）；没有 Brief 就起稿，容易写完才发现和意图对不上。**非英语页按 Brief 重新生成**内容，不逐句翻译英文页——标题、功能描述、FAQ、按钮文案都按当地表达（见 [`experiences/webcafe-experiences.md`](../experiences/webcafe-experiences.md) 三）；含文字的配图（截图类、需要展示界面文案的场景图）叠字用目标语言，不是套英文版换皮——`/imagegen` 本身不生成图内文字，文字都是后期用 HTML/CSS 叠上去的，叠字这一步叠当地语言 |
-| P1 | 目标词先登记进 `.rankup/keywords.md`（同本段 B 节第 6 条，一词一页）；title 40–60 字且主词在句首，分隔符按语种（日文站用全角「｜」，不要沿用拉丁站的 `-`/`\|`）；description 140–160 字且含本页真实事实（具体数量、尺寸、线索数这类不能套模板的数字）；H1 唯一且含目标词；H2 ≥ 2、H3 ≥ 2 |
+| P0 | **先出 SEO Brief 再写内容**：字段与问法、FAQ、description 的追溯只见 [段 2 · 2.3](stage-2-positioning.md#23-问法簇--页面--faqdescription与站点结构)，登记进 `.rankup/keywords.md` 该 URL 对应行（来源枚举见 [`playbooks/research/p2-keyword-root.md`](../playbooks/research/p2-keyword-root.md#小语种候选词三关与本地竞品取词) 收尾一节）；没有 Brief 就起稿，容易写完才发现和意图对不上。**非英语页按 Brief 重新生成**内容，不逐句翻译英文页——标题、功能描述、FAQ、按钮文案都按当地表达（见 [`experiences/webcafe-experiences.md`](../experiences/webcafe-experiences.md) 三）；含文字的配图（截图类、需要展示界面文案的场景图）叠字用目标语言，不是套英文版换皮——`/imagegen` 本身不生成图内文字，文字都是后期用 HTML/CSS 叠上去的，叠字这一步叠当地语言 |
+| P1 | 目标词先登记进 `.rankup/keywords.md`（同本段 B 节第 6 条）；title 40–60 字且主词在句首，分隔符按语种（日文站用全角「｜」，不要沿用拉丁站的 `-`/`\|`）；description 140–160 字且含本页真实事实（具体数量、尺寸、线索数这类不能套模板的数字）；H1 唯一且含目标词；H2 ≥ 2、H3 ≥ 2 |
 | P2 | **内容形状随模板带**，不是写完正文才想起来补：规格类信息用 `<table>`；至少一条外部来源用 `<cite>` + 真实外链；FAQ 用 H3 结构并配 `FAQPage` JSON-LD（页面结构卫生项，不是被 ChatGPT 引用的收益依据，见 [`seo-ai-search.md`](../seo-ai-search.md)「FAQ Rich Results 下架」）；页面带更新日期。**模板化生成的内页正文 ≥ 150 字且必须含本页独有的事实**——同一模板生成两百多页却是同一套话术，会被判定为薄内容；首屏第一句话就说清这一页解决什么，不要让用户往下滚才明白 |
 | P3 | **每页独立 og 图**（真实图片，体积 > 10KB，不是共享同一张模板底图）；canonical 自引；内链闭环三件套：面包屑、同类上一项/下一项、回分类页。批量新增与分页时，全部可索引内容须从分类页或可抓取分页的 SSR 真实 `<a href>` 到达，不能只靠客户端按钮、搜索或无限滚动；无需全塞首页或全部进 sitemap。分类页样板控件文案放进 aria-label，不进 SSR 正文；抓取内链图并与可索引路由清单对账，包含 sitemap 外页面 |
 | P4 | 新页上线要同步进四张清单，缺一个页面就在某处静默失效：边缘缓存白名单（[`cloudflare-stack.md`](../cloudflare-stack.md)「12. 匿名页面 HTML 边缘缓存」的适用范围）、markdown 内容协商白名单（本段 D9）、sitemap（仅当有独立搜索意图，见本段 D10）、IndexNow 增量推送 |

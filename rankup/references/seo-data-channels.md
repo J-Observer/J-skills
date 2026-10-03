@@ -7,7 +7,7 @@
 | 通道 | 用法 | 坑 |
 |---|---|---|
 | **GSC(真实点击,最高优先)** | `opencli browser <描述性会话名>` 驱动用户真实 Chrome 的 dedicated 窗口，导航 performance 报告；每页行数调 100 逐维度读 | 复用用户登录态，读回实际页面和数据 |
-| **Google Suggest(真实输入,免费无限)** | `curl --retry 3 --retry-all-errors ${HTTP_PROXY:+-x "$HTTP_PROXY"} "https://suggestqueries.google.com/complete/search?client=firefox&oe=utf-8&ie=utf-8&hl=<hl>&gl=<gl>&q=<enc>"` | **oe/ie=utf-8 必带**,否则非拉丁文字结果丢失;`[512]` subtype = 高量词;空结果本身就是"无需求"的裁决 |
+| **Google Suggest(真实输入,免费无限)** | `curl --retry 3 --retry-all-errors ${HTTP_PROXY:+-x "$HTTP_PROXY"} "https://suggestqueries.google.com/complete/search?client=firefox&oe=utf-8&ie=utf-8&hl=<hl>&gl=<gl>&q=<enc>"` | **oe/ie=utf-8 必带**,否则非拉丁文字结果丢失;`[512]` subtype = 高量词;成功响应但空列表只记「未返回联想」，不否决需求；不可用与裁决口径见 [entry.md](playbooks/entry.md#4--判读)，GT 失败口径见 [trends.md](trends.md#trends-侧) |
 | **哥飞官方关键词工具** | 加载 `gefei-keywords`，按官方 Skill 取目标市场及全球月量、趋势和 CPC | 记录工具名、市场、日期与原始响应；不以站内 AI 转述当原始数据 |
 | **哥飞官方页面与竞品工具** | 加载 `gefei-page` / `gefei-competitor`，按官方 Skill 取页面检查和竞品数据 | 工具结果需与真实页面、目标市场和其他来源核对；失败状态不能记为零 |
 | **PageSpeed 网页版(lab + field 两套)** | `node <rankup>/scripts/pagespeed.mjs collect <url> --strategy both` 直接落盘完整 LHR JSON(2026-09-12 起默认路径,opencli 驱动真实可见 Chrome 无人值守出分);`plan <url> --strategy both` 只出链接、不采数,是没有 opencli / 非 macOS 时的兜底,拿到链接要在真实前台可见的浏览器标签页里打开才会读数 | **零 key 零配额**(2026-08-31 起停用带 key 的 PSI API)。跑分只在标签页真的可见时才渲染得完,后台标签页会一直停在 Running analysis;跑不出来**不等于**没有数据。本地 lighthouse median-of-N 仍可做同环境"修复前"基线,绝对值不可跨环境比 |

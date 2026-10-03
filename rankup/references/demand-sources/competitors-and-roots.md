@@ -1,6 +1,6 @@
 # 需求数据源 · 竞品下注、站群、子域名监控、社区与词根扩词
 
-> 本文件从 [`demand-sources.md`](../demand-sources.md) 拆出（2026-09-30），含原文 第九、九·二、九·三、九·五至九·八节。选哪类信号、先亲眼看搜索结果首页、令牌与维护契约仍在主文件。
+> 本文件从 [`demand-sources.md`](../demand-sources.md) 拆出（2026-09-30），含原文 第九、九·二、九·三、九·五至九·八节。来源分流、搜索结果页采集入口、令牌与维护契约仍在主文件。
 
 ## 九、竞品正在往哪儿下注
 
@@ -10,8 +10,8 @@
 | 多语种游戏平台清单 | 项目关注市场的游戏平台新内页候选 | `.rankup/demand/game-platforms.json` 批量调用 sitemap 增量脚本 | 否 | `scripts/demand/game-platform-monitor.mjs` |
 | Columbus AI 外链榜 | 目录站域名、被多少 AI 工具站引用、DR、dofollow、月访问量 | 纯 HTTP | 否 | `scripts/demand/boards.mjs columbus` |
 
-**sitemap 增量是这一节的主力**：竞品新布的长尾词页面，是它花钱花时间调研出来的结论，
-你只需要读。默认快照写在 `.rankup/demand/sitemap-snapshots/`（相对当前项目，不写死绝对路径）。
+**sitemap 增量是这一节的主力**：从竞品新增的长尾页面提取候选词与目标 URL，
+作为反查素材。默认快照写在 `.rankup/demand/sitemap-snapshots/`（相对当前项目，不写死绝对路径）。
 
 ```bash
 node scripts/demand/sitemap-diff.mjs --domain <域名> --slug-words
@@ -28,9 +28,8 @@ node scripts/demand/game-platform-monitor.mjs --language de,pl,ja,ar,ru
 
 ## 九·二、一个站背后的整个站群
 
-拆一个站，你拿到一个方向；**拆一个站群，你拿到的是「这套打法在哪些赛道上被验证过」**。
-成规模的操盘手会把同一套已验证的关键词打法复制到十几个赛道上——
-图片、视频、音乐、3D、试穿、学术、导航——每个站都是一次独立的市场验证。
+拆一个站拿到候选方向；**拆站群可以补齐同一主体布局的赛道与页面线索**，
+例如图片、视频、音乐、3D、试穿、学术、导航。站点存在与共同指纹只说明发现及关联事实。
 
 | 源 | 拿什么 | 取数方式 | 需登录 | 脚本 |
 |---|---|---|---|---|
@@ -70,8 +69,7 @@ node scripts/demand/site-network.mjs --domain <种子域名> --confirm --max 10
   首页 HTML 里什么都看不到。空结果的正确读法是「这条路没找到」，不是「它没有兄弟站」。
 - CF 挡纯 HTTP 客户端的站取不到，需要时改走 opencli 的真实浏览器把 HTML 喂进去。
 
-拿到站群清单之后**别停在清单**：逐个丢进第十节的验证链路，
-真正有价值的是「哪几个赛道它做成了、哪几个它做了但没跑起来」——后者才是你的机会。
+拿到站群清单后，保留每个域名的发现路径、共同指纹与回访状态，移交[第十节](validation-chain.md#十候选验证链路)；现行候选裁决只见 [`entry.md`](../playbooks/entry.md#4--判读)。
 
 ---
 
@@ -168,7 +166,7 @@ node scripts/demand/word-roots.mjs expand converter \
 
 ### 两条必须一起记的约束
 
-1. **扩展出来的是候选串，不是关键词。** 它们没有搜索量也没有难度——
+1. **扩展出来的是候选串，不是已验证关键词。** 它们尚无验证证据——
    把「我扩出了 300 个词」当成「我找到了 300 个词」是这条路上最常见的自欺。
    脚本刻意在输出末尾打了这句提醒。**下一步必须过第十节。**
 2. **词根库全是英文，这是整个社群共同的盲区。** 中国人搜「JSON 编辑器」不搜
@@ -194,16 +192,11 @@ node scripts/demand/word-roots.mjs expand converter \
 
 补测之后，同一难度档的池子从几十词翻到一百多词，量接近翻倍。
 
-操作规则：
+反查对象、扩词补漏与工作量边界只见 [P2「五个取数动作与编排」](../playbooks/research/p2-keyword-root.md#五个取数动作与编排探索循环)。
 
-1. **扩词不要只按自己想到的那一种构词模式展开。** 先按自己的思路扩一轮，
-   然后**必须**用竞品词库反查补第二轮（`backlink/scripts/semrush-report.mjs` 取排名词报表）。
-2. 反查对象选**同赛道、站龄 9–24 个月、已经有排名的站**，取 3–5 个，每站前 100 词，
-   与自己的池子做差集。
-3. 差集里的词**逐个补测量与难度**，不要凭印象取舍——被自己判过「太难」的头词尤其要测，
-   它常常就是竞品流量的主要来源。
-4. **池子变大不等于经济性变好。** 补漏进来的泛型大词常常是廉价流量（量很大、CPC 接近零）。
-   **扩完词必须重算按量加权的 CPC**；加权 CPC 掉下来时，「盘子更大了」是个假的好消息。
+| 采集什么 | 操作入口 | 保留什么 |
+|---|---|---|
+| 竞品实际排名词库 | `backlink/scripts/semrush-report.mjs` 排名词报表；也可按官方 [`seo-webcafe.md`](../seo-webcafe.md) 接口取词 | 域名、国家库、日期、词与目标 URL、已有词池差集及采集状态；移交 P2 |
 
 ### 品牌截流词（Brand Keyword Hijacking）
 
@@ -211,8 +204,8 @@ node scripts/demand/word-roots.mjs expand converter \
 
 操作：
 - 从第二节收集到的竞品列表中，取每个品牌名，构造 `[brand] alternative`、`[brand] vs [你的产品]`、`[brand] review`。
-- 用官方 `gefei-keywords` Skill 测量这些词的搜索量和难度——品牌修饰词通常 KD 很低，因为竞品自己不会做「自己的替代品」这种页面。
-- 做法：建 `/compare/[brand]-vs-[你的产品]` 或 `/alternative/[brand]-alternative` 页面，内容是真实的功能对比。
+- 品牌修饰词与发现来源一并移交 [P2](../playbooks/research/p2-keyword-root.md#五个取数动作与编排探索循环)，意图核验只见 [`seo-serp.md`](../seo-serp.md#逐问法-google-读法)。
+- 比较/替代页规划只见 [`stage-2-positioning.md`](../lifecycle/stage-2-positioning.md)。
 
 **限制**：这是一个有争议的策略。只有在产品确实能替代竞品时才应该做，否则是误导用户。页面内容必须是真实的对比，不是纯粹的截流。
 
@@ -220,7 +213,7 @@ node scripts/demand/word-roots.mjs expand converter \
 
 ## 九·七、跨平台自动补全扩词
 
-搜索引擎和平台的自动补全（autocomplete / suggest）是**用户真实搜索行为**的直接投射——它推荐的是有量的查询，且更新频率远快于任何第三方关键词数据库。
+搜索引擎和平台的自动补全（autocomplete / suggest）可采集查询表达与构词线索，建议列表不提供已核实月量。
 
 ### 两个核心手法
 
@@ -241,7 +234,7 @@ node scripts/demand/word-roots.mjs expand converter \
 ### 操作建议
 
 - 种子词取自第二节（需求信号源）的已验证关键词，不要凭空想。
-- 对比多个平台的建议差集——Amazon 上出现而 Google 上不出现的词往往是高购买意图词。
+- 对比多个平台的建议差集，保留平台与实际措辞；意图核验只见 [`seo-serp.md`](../seo-serp.md#逐问法-google-读法)。
 - 批量操作可用 keywordtool.io，单次深挖用 alphabet soup 手动做（或 AI 通过搜索框自动化）。
 
 | 源 | 拿什么 | 取数方式 | 需登录 | 脚本 |

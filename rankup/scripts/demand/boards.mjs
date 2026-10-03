@@ -236,7 +236,7 @@ function opencli(args, timeoutMs = 180000) {
 }
 
 function browserEval(session, code) {
-  const out = opencli(["browser", session, "--window", "background", "eval", code]);
+  const out = opencli(["browser", session, "--window", "dedicated", "eval", code]);
   const i = out.indexOf("{");
   const j = out.indexOf("[");
   const start = i < 0 ? j : j < 0 ? i : Math.min(i, j);
@@ -250,7 +250,7 @@ function browserOpen(session, url, { waitMs = 25000 } = {}) {
   // 桥没连上时原来会在这里的 spawnSync 上无声挂到 timeoutMs（180s）才报错，
   // 而且报的是「eval 超时」这种症状性错误，容易被当成「站点没数据」。
   requireBrowserBridge();
-  opencli(["browser", session, "--window", "background", "open", url]);
+  opencli(["browser", session, "--window", "dedicated", "open", url]);
   const deadline = Date.now() + waitMs;
   let last = null;
   while (Date.now() < deadline) {
@@ -269,7 +269,7 @@ function browserOpen(session, url, { waitMs = 25000 } = {}) {
 
 function browserClose(session) {
   try {
-    opencli(["browser", session, "--window", "background", "close"], 60000);
+    opencli(["browser", session, "--window", "dedicated", "close"], 60000);
   } catch {
     /* 关不掉不该让整次取数失败，但也别静默到看不见 */
     console.error(`warn: 会话 ${session} 没关干净，手动跑 opencli browser ${session} close`);

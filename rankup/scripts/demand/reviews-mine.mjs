@@ -338,7 +338,7 @@ function browserSource() {
     for (const u of urls) {
       // G2 / Capterra 首次要过 Cloudflare 挑战，open 可能超时断连但页面其实在加载，
       // 所以这里吞掉 open 的错误，交给下面的 eval 重试去判定。
-      try { ocli(["browser", s, "--window", "background", "open", u]) }
+      try { ocli(["browser", s, "--window", "dedicated", "open", u]) }
       catch (e) { process.stderr.write(`[warn] open 未确认完成，继续轮询：${u}\n`) }
       if (opt.source === "capterra") {
         // Capterra 的星级过滤没有 URL 参数，只能点左侧 filter-overallRating-N 按钮

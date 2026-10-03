@@ -2,6 +2,7 @@
 // Offline research triage of aitdk-opencli.sh exports. No browser, network or LLM.
 import { readFile, writeFile, mkdir, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 export const SECTIONS = 'overview traffic backlinks adsense issues geo serp density headings images links social hreflangs structured whois'.split(' ');
@@ -173,6 +174,7 @@ export async function main(args) {
   if (pages.some(p => p.status === 'capture-incomplete')) process.exitCode = 2;
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// 技能目录是符号链接（~/.claude/skills/rankup -> yan-skills/rankup）：import.meta.url 是真实路径，argv[1] 是链接路径，必须都 realpath 再比（2026-10-03 修：之前经链接调用时主函数静默不执行、退出码 0）
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   main(process.argv.slice(2)).catch(error => { console.error(error.message); process.exitCode = 1; });
 }

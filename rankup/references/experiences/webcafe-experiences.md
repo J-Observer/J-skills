@@ -1,5 +1,8 @@
 # 哥飞经验帖里的可执行裁定（new.web.cafe/experiences）
 
+> **已被新判据取代的部分（2026-10-03）**：本文件保留历史来源、日期、数值与结论；第六节 KGR / `intitle` 的选词效力已被新判据取代，不再承担当前选词与立项裁决。
+> 当前流程与裁决见 [entry.md](../playbooks/entry.md#选词判据只看两个)，问法链路见 [seo-geo.md](../seo-geo.md#geo-反推测试ai-需求验证流程)，Google 读法见 [seo-serp.md](../seo-serp.md#逐问法-google-读法)，GT 测量见 [trends.md](../trends.md#gpts-基线判读到底怎么才算有搜索量唯一判据源)；正文保持原样。
+
 2026-08-19 用站主的浏览器把 `new.web.cafe/experiences` 六页共 60 条经验全文
 拉了一遍，逐条读完后只保留**能改变我们下一步动作**的那些。
 每条注明出处 ID（`https://new.web.cafe/experience/<id>`）与作者。

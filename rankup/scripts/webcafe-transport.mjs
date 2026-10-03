@@ -129,8 +129,8 @@ export async function ensureOrigin(session) {
   } catch {
     /* 会话还不存在，往下开 */
   }
-  // 默认 background：在用户当前窗口开标签页，不抬窗口、不切走他正在看的标签页。
-  await opencli(["browser", session, "--window", "background", "open", BASE + "/"]);
+  // 显式 dedicated：在专用窗口开标签页，不借用用户当前窗口。
+  await opencli(["browser", session, "--window", "dedicated", "open", BASE + "/"]);
   await sleep(2500);
   return true;
 }
@@ -293,7 +293,7 @@ export async function getHtml(path, { transport = "http", session, rsc = false, 
  */
 export async function navGet(path, { session, settleMs = 2500 } = {}) {
   if (!session) throw new Error("navGet 需要 session");
-  await opencli(["browser", session, "--window", "background", "open", abs(path)]);
+  await opencli(["browser", session, "--window", "dedicated", "open", abs(path)]);
   await sleep(settleMs);
   // 从活着的页面里取 flight。这里不能读 document.body.innerText——那样会丢掉
   // markdown 的原始格式（代码块、链接、层级），而我们要的正是原文。
@@ -346,7 +346,7 @@ export async function ensureLoggedIn(session, { timeout = 20000 } = {}) {
   //     background → 弹窗打不开        isolated → 一次就开
   // 后台标签页被浏览器节流，水合根本没跑完，点击落在一个还没挂上处理函数的按钮上。
   // isolated 开在独立窗口里，不抢用户正在看的标签页，又不受节流——两头都要的那个选项。
-  // 取数本身仍然走 background，只有这一步例外。
+  // 取数使用 dedicated 专用窗口；登录保留已实测的 isolated 独立窗口。
   await opencli(["browser", loginSession, "--window", "isolated", "open", BASE + "/"]);
   // **还要等够水合。** 实测 3 秒和 9 秒都不行、30 秒一次就中：页面还在水合时，
   // 「登 录」按钮已经在 DOM 里但处理函数还没挂上，这时候的点击**返回成功、毫无效果**。

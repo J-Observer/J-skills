@@ -362,6 +362,16 @@ node backlink/scripts/tools-share-node.mjs probe --tool semrush --nodes 1,2,3 # 
 
 ---
 
+### 哥飞开放 API：趋势与意图补充
+
+以下是独立的 Web.Cafe API 通道，不是 Semrush / Similarweb 共享面板的账号级 API；加载官方 `gefei` Skill，选词编排沿用 `gefei-keywords`。2026-10-01 仅以免费 `help` 核对目录能力，业务调用均为 `[官方文档,未实测]`；不新增面板枚举或计数。
+
+| 能力 / 接口 | 用在哪一步 | 参数要点 | 价格与记录 | 证据等级 |
+|---|---|---|---|---|
+| `google_trends` | 候选曲线 / 新词趋势面交叉核验；共享缓存优先、省浏览器会话，作为 `gt.py` 的付费备选，不替代地区分布 / 热搜 / 短时窗口 | `--keyword` + `--compare` 合计最多 5 词；`--range 7d/30d/90d/12m/5y`、`--geo`；`--related true` 仅单词 | 价格以实时 `tools` 目录为准；保存原始结果与 `credits.charged` | [官方文档,未实测] |
+| `trends_rising` | W3 批量挖上升相关查询，合并排序后回填候选，再复核曲线；补充本地 rising 流程 | `--roots` 最多 20 或 `--preset default/ai`；`--range 7d/30d/90d`、`--geo`、`--max_fetch` 最多 8；未抓词根见 `notReached` | 价格以实时 `tools` 目录为准；保存原始结果与 `credits.charged` | [官方文档,未实测] |
+| `search_intent` | 拓词去重后、筛选前批量分类信息 / 导航 / 商业 / 交易与次意图；阶段 6 仍核真实 SERP | `--keywords` 每批最多 200 词，一批一次调用；`--hl` 对齐目标语言 | 价格以实时 `tools` 目录为准；保存原始结果与 `credits.charged` | [官方文档,未实测] |
+
 ## 三·五、AI 侧数据（AI 引荐 / AI 可见度）能力表
 
 > 检索日期 2026-09-29。Semrush 与 Similarweb 各条是本机账号的真实读数（【实测】），其余来自官方文档（【官方】；对抓取返回 403 的官方页按搜索摘要采信并注明，需人工复核原文）。**本节不新增工具箱或页面枚举，不改变上面的计数，所以没有同步 JSON 的头条数字**；日后为这些页面写脚本时，再把路由登记进 JSON。本节的【官方】即抄自官方文档、未实测，等同 `[官方文档,未实测]`，这是对第五节第 1、4 条的例外（见该节末尾的说明）。用途是验证「这个词在 AI 里有多大需求」，流程见 [seo-geo.md](seo-geo.md) 步骤 1。

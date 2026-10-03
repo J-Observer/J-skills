@@ -26,12 +26,27 @@ Rankup 只负责判断**什么时候需要哥飞数据、结果如何进入本�
 
 ## Rankup 如何使用结果
 
-1. 主 Agent 先按 Rankup 的选品/调研/上线闸门明确问题和目标国家，再由实际执行的 Agent 加载对应官方 Skill；不要为一个模糊问题把工具全跑一遍。
+1. 关键词研究按 [entry.md](playbooks/entry.md) 编排；上线体检按 [checklists.md](checklists.md) 段 4。明确问题和目标国家后加载对应官方 Skill，不为模糊问题把工具全跑一遍。
 2. 让官方 Skill 按其工作流取数。能批量就批量；已有同口径数据不重复付费。每条结果保留工具名、市场、日期、快照/缓存口径、原始请求号与实际扣费。
-3. Rankup 自己核实与判读：预筛难度与哥飞版 KD 分开，整站访问与估算自然流量分开；`null`、未收录、429、上游失败都不等于 0。全球需求必须有全球口径，默认美国值不能冒充全球。
-4. 真实 SERP 版式、目标市场本地搜索、社区原话、GSC 和 PageSpeed 继续按 Rankup 的相应流程验证。外部工具建议逐条采纳或记录拒绝理由，不能直接当结论。
+3. 数据口径分开记：哥飞版 KD 与 Semrush KD、整站访问与估算自然流量各标来源；`null`、未收录、429、上游失败都不等于 0。全球需求必须有全球口径，默认美国值不能冒充全球。
+4. 问法生成、ChatGPT 自然采样、追问与三清单只见 [seo-geo.md](seo-geo.md)；逐问法 Google 核验只见 [seo-serp.md](seo-serp.md#逐问法-google-读法)。工具意图标签与建议只作待核实材料，关键词裁决与 KD 的处理只见 [entry.md「选词判据：只看两个」](playbooks/entry.md#选词判据只看两个)。
 
 若官方 Skill 未安装或令牌无效，只标记该依赖步骤待完成；仍可推进不依赖它的本地与公开来源检查。不要改用旧网页登录端点或站内 AI 来伪装成同一份证据。
+
+## 官方研究工具口径
+
+本表登记当前文档使用的工具身份；实际名称、参数与价格仍以官方 Skill 和实时目录为准。
+
+| 用途 | 工具与调用口径 | 产物去向 / 权威指针 |
+|---|---|---|
+| 难度读数与竞争页画像 | `keyword_difficulty`；保存国家与原始读数 | 仅数据补充；裁决见 [entry.md](playbooks/entry.md#选词判据只看两个) |
+| Google 盘面 | `serp` 取原始结果，`serp_review` 取点评，两者分列 | 对应问法的 SERP 卡；判读见 [seo-serp.md](seo-serp.md#逐问法-google-读法) |
+| 趋势曲线付费备选 | `google_trends`：共享缓存，最多 5 词；`--range 7d/30d/90d/12m/5y`、`--geo`，单词可 `--related true` | 不替代 `gt.py`；默认 gpts 与测量完整口径见 [trends.md](trends.md#gpts-基线判读到底怎么才算有搜索量唯一判据源) |
+| 批量趋势候选 | `trends_rising`：`--roots` 最多 20 或 `--preset default/ai`，`--range 7d/30d/90d`、`--geo`、`--max_fetch` 最多 8 | 上升相关查询只生成候选；后续编排见 [P2](playbooks/research/p2-keyword-root.md) |
+| 意图标签 | `search_intent`：`--keywords` 每批最多 200 词、`--hl` | 信息/导航/商业/交易与次意图只作补充，不替代逐问法 Google 核验 |
+| 扩词 / 需求翻译 / 起名核域名 | `keyword_ideas`、`translate_demand`、`brand_naming`、`domain_availability` | 回填候选与词池；探索动作见 [P2](playbooks/research/p2-keyword-root.md) |
+
+各调用保留原始结果、市场、日期、请求号与 `credits.charged`；不把工具缓存当当轮实时实测。
 
 ## 本地脚本与保留的旧能力（2026-09-30）
 
@@ -45,7 +60,7 @@ Rankup 只负责判断**什么时候需要哥飞数据、结果如何进入本�
 
 | 用途 | 保留命令 | 官方等价与旧口径 |
 |---|---|---|
-| 本地计算 | `kgr` / `string` / `money` / `email`，支持 `--batch` | 零网络、零积分；结果是公式数值，非商业验证结论 |
+| 本地计算 | `kgr` / `string` / `money` / `email`，支持 `--batch` | 零网络、零积分；兼容公式的当前边界见下文「本地命令数值判读指引」 |
 | 输入判型 | `mineSeed --input <词或网址>` | 官方目录暂无等价能力；本日旧接口实跑 HTTP 200，返回 type/value；旧记录不计每日配额 |
 | 单页评分/需求信号 | `serpPage` / `translatePage` / `minePage` | 官方 `serp_review` 是搜索结果盘面，`onpage_audit` 是页面体检，不能据名称宣称这些独有字段覆盖；暂无等价能力。translatePage/minePage 旧记录不计每日配额；serpPage 扣费未显示 |
 | 已取数据聚合/报告 | `translateAggregate` / `mineReport` | 官方 `translate_demand` 不提供原数组聚合或取回旧报告的字段合同；暂无等价能力；旧记录不计每日配额。page 可用保留命令，search/domain 数据另从官方取，格式需人工核对 |
@@ -55,3 +70,17 @@ Rankup 只负责判断**什么时候需要哥飞数据、结果如何进入本�
 依据是 2026-09-30 的官方实时目录与本轮试用，不是凭旧文档推测供应商完全没有该能力。保留脚本的 mineSeed 已验证可用；其他独有端点在本轮探测上限内没有逐项实跑，不能把共享脚本通过说成每个端点均已验证。失败时显示失败，不回退到已移除的旧取数命令。
 
 论坛原文、悬赏投票榜与完整群聊搜索继续用 [`webcafe-forum.md`](webcafe-forum.md) 的保留入口；官方知识库只返回相关节选，不能冒充论坛全集或全部群友原文。
+
+## 本地命令数值判读指引
+
+兼容旧入口；关键词裁决只见 [entry.md](playbooks/entry.md#选词判据只看两个)。当前 `kgr` 仍返回 KGR、EKGR、KDROI，`money` 仍按 KD 推导引荐域、投入与 ROI；这些兼容公式不提供当前研究的排序、通过或出局结论，也不是已验证的获客成本。脚本字段与文案调整归 B16，本批未改实现。
+
+### `string` 的判读：三套 TDK 长度口径，别混着引
+
+| 工具 | 当前文档 / 源码口径 | 判读入口 |
+|---|---|---|
+| `seo-audit.mjs` | title 10–60 / description 50–160，字符数 | 分级只见 [seo-box.md「seo-audit 判读指引」](seo-box.md#seo-audit-判读指引分级表从脚本迁来) |
+| `seo-webcafe.mjs string` | title 30–60 / description 70–160；ASCII 记 1，其他字符记 2，近似展示宽度 | 本地长度观察，不是实际像素测量 |
+| Ahrefs | 既有文档记录 description 110–160；随报告口径与抓取日期核对 | 档位与报告边界见 [seo-box.md「Ahrefs AWT 免费档」](seo-box.md#ahrefs-awt-免费档边界在哪能拿什么) |
+
+报告说「超长」时点名工具与计长口径；不同尺的结果不能混引成同一项失败。

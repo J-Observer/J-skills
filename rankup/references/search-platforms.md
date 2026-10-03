@@ -169,6 +169,10 @@ meta 标签的形状（token 是公开值，本来就印在每一页的 HTML 里
 
 ### GSC 与 Bing 脚本
 
+**2026-10-03 实测补充**：`sc-domain:` 网域资源提交 sitemap 必须用**完整 URL**（`https://<域名>/sitemap.xml`）；填相对路径 `sitemap.xml`
+点提交后列表仍为空、不报错（`webmaster-sitemap.mjs` 已对 sc-domain 自动补全）。站点仍 `Disallow: /` 时 GSC 里这条 sitemap 显示「无法抓取」，
+放开索引后才会转正，不是提交失败。GSC 验证后立刻提交即可，不必等数据就绪。
+
 `gsc-domain-verify.mjs status|add-site --domain <域名>` 查验或添加网域资源；已有验证时不重复写 TXT。`bing-import-from-gsc.mjs --sites <域名> [--sitemap]` 只导入指定的缺失站点，提交前核对勾选。两者的 sitemap 状态与提交仍用 `webmaster-sitemap.mjs`。
 
 ### 步骤 5：Naver Search Advisor（仅韩国市场）
