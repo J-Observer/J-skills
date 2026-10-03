@@ -30,9 +30,7 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 三条阅读约定：
 
 1. **入口列写的是真实存在的路径**，相对仓库根。跑之前不用再确认它在不在。
-2. **脚本只采集，判读归你。** 三波重构之后，本 Skill 的脚本里没有打分器、没有阈值门、
-   没有 verdict；它们产出的是原始数值 + manifest（每源 `{status,count,error}`）+ 失败现场。
-   「这个词能不能做」「这站是不是真赚钱」「这项算不算过闸」全部由你对着判读文档下。
+2. **工具结果是数据，市场裁决回唯一源。** 采集器保存原始值、manifest 与失败现场；兼容计算器和页面评分的边界见 [seo-webcafe.md](seo-webcafe.md#本地命令数值判读指引)与 [seo-box.md](seo-box.md)。关键词顺序与裁决只见 [entry.md](playbooks/entry.md)。
 3. **采集失败 ≠ 结论为零。** 配额 429、CAPTCHA、卡加载、改版都会产出 0 条。
    看到空结果先读 manifest 与证据目录，再决定是重试还是如实标「未测」。
 
@@ -54,7 +52,7 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 | Skill 自体门禁 | 项目中立性、凭据泄露、必需引用与内容片段的机械断言 | `rankup/scripts/validate-rankup.mjs` | 改完 Skill 必跑 |
 | 规则晋升与淘汰 | 一条经验该留项目侧还是回流 Skill、怎么废弃 | [`references/evolution.md`](evolution.md) | 「这条经验要不要写进 Skill」 |
 | 维护章节 | 收尾维护五步、清理判据、决策类文档维护、Skill 源码维护、`/rankup doctor` 编排 | [`references/maintenance.md`](maintenance.md) | 「收尾」「整理一下 rankup」「把这个经验写进 rankup」 |
-| 入口环节 | 词级调研第一步：Trends 同框 gpts → 有人做 → AI 探针 → GEO / SEO 路线 | [`references/playbooks/entry.md`](playbooks/entry.md) | 「这个词能不能做」 |
+| 入口环节 | 词级研究顺序、入口卡与两路裁决的唯一源 | [`references/playbooks/entry.md`](playbooks/entry.md) | 「这个词能不能做」 |
 | 项目记录诊断 | `.rankup/` 目录外文件、备份、接力超长、任务型残留、断链、过期日期、根层登记条目数 | `rankup/scripts/maintain/rankup-doctor.mjs` | 「/rankup doctor」 |
 | 全量扫描 | 给术语 / 脚本名 / 路径 / 阈值，列出 Skill 与指定 `.rankup/` 的全部引用 | `rankup/scripts/maintain/ref-scan.mjs` | 收尾维护第 ① 步 |
 | 文档断链与拆分 | 断链、断锚、超标检查；按计划拆分文档并自动修链接 | `rankup/scripts/maintain/doc-lint.mjs`、`split-doc.mjs` | 改完 Skill 文档必跑 |
@@ -66,10 +64,7 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 哪些能一条消息并行派 agent、配额多少、卡住了怎么办」。本表是**底账**，回答「有没有这个能力」，
 不回答「什么时候跑它」。
 
-判读顺序固定：**[`research-checklist.md`](research-checklist.md)（9 节清单逐项打勾，验收单）→
-[`demand-sources.md`](demand-sources.md)（源 → 脚本路由表）→
-[`experiences/demand-discovery.md`](experiences/demand-discovery.md)（裁定集）**。
-先读路由表，不要逐个翻脚本。
+研究编排见 [P2](playbooks/research/p2-keyword-root.md)，顺序与裁决见 [entry.md](playbooks/entry.md)；[demand-sources.md](demand-sources.md)只作来源分流，[research-checklist.md](research-checklist.md)查证据覆盖，历史经验不作当前裁决入口。
 
 `rankup/scripts/demand/` 共 24 个可执行脚本 + 1 个公共库（`_lib.mjs`，不可单独运行），
 全部零依赖、统一支持 `--json` / `--out`，失败把 `{url,status,body}` 落证据目录。
@@ -99,9 +94,9 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 | SERP 取数 | serper.dev 拿 Google 第一页 organic + relatedSearches + PAA | `scripts/demand/serp-query.mjs` | 「这个词首页排的是什么」 |
 | 词根扩展 | 给词根并扩成可投喂数据平台的候选串（挖词的起手式） | `scripts/demand/word-roots.mjs` | 「我只有一个词根」 |
 | 搜索框下拉联想 | Google / Bing / DuckDuckGo 三引擎的搜索框联想，按语种带 `--hl` / `--gl`；扩树第二层的入口（词根 → 联想词 → 叶子再联想一次即停），只采集、每引擎独立落 manifest，0 条不等于没词 | `scripts/demand/suggest.mjs` | 「帮我扩树」「这个词大家还怎么搜」 |
-| CPC 折算 | 把关键词表里的 CPC 变成参与决策的信号（纯计算，不联网） | `scripts/demand/keyword-value.mjs` | 「这批词值多少钱」 |
+| CPC 折算 | 将 CPC 折成经营背景读数（纯计算，不联网；判读见 [entry.md](playbooks/entry.md#选词判据只看两个)） | `scripts/demand/keyword-value.mjs` | 「这批词值多少钱」 |
 
-判读依据集中在 [`demand-sources/validation-chain.md`](demand-sources/validation-chain.md)：**十**（候选验证链路）、
+来源交叉核对方法见 [`demand-sources/validation-chain.md`](demand-sources/validation-chain.md)：**十**（候选验证链路）、
 **十·五**（能排上去 ≠ 能赚钱）、[`demand-sources/competitors-and-roots.md`](demand-sources/competitors-and-roots.md) **九·六**（自扩词表必漏一半）、**[②·六·四](demand-sources/validation-chain.md#②六四-semrush-的自然流量什么时候不能信先看它的词库分布再决定信不信总数)**（模型流量何时高估）。
 
 ### 没有脚本、但一样是正式来源的手工源
@@ -129,18 +124,18 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 
 | 能力 | 一句话能干什么 | 入口 | 典型触发说法 |
 |---|---|---|---|
-| 关键词难度 + Top10 盘面 | 哥飞版 KD、进入前十的链接预算、竞争页画像 | 官方 Skill 调用 `keyword_difficulty` | 「这个词难不难做」 |
-| SERP 排名归因 | 原始搜索结果与逐位点评分开取 | 官方 Skill 调用 `serp` / `serp_review` | 「为什么是他排第一」 |
-| 趋势曲线付费备选 | `google_trends`：共享缓存、最多 5 词对比与趋势面判断；W1/W2/W3 复核时省浏览器会话，不替代 `gt.py` | 官方 `gefei` Skill；`--range 7d/30d/90d/12m/5y`、`--geo`，单词可 `--related true`；价格以实时 `tools` 目录为准，保存原始结果与 `credits.charged` | 「交叉核验这几个词的曲线」 |
-| 批量新词挖掘 | `trends_rising`：合并排序上升相关查询；W3 先挖候选再复核曲线 | 官方 `gefei` Skill；`--roots` 最多 20 或 `--preset default/ai`，`--range 7d/30d/90d`、`--geo`、`--max_fetch` 最多 8；价格以实时 `tools` 目录为准，保存原始结果与 `credits.charged` | 「批量找 rising 新词」 |
-| 批量搜索意图 | `search_intent`：拓词去重后、筛选前分信息/导航/商业/交易及次意图；不替代 SERP 核验 | 官方 `gefei-keywords` / `gefei` Skill；`--keywords` 每批最多 200 词、`--hl`；价格以实时 `tools` 目录为准，保存原始结果与 `credits.charged` | 「这批词分别想找什么」 |
-| 本地零配额计算 | `kgr` / `string`（TDK 长度）/ `money`（收入目标拆解）/ `email`，支持 `--batch`，**只出数值不出评级** | `scripts/seo-webcafe.mjs kgr\|string\|money\|email` | 「算下 KGR」「TDK 超长没」 |
-| 需求翻译 / 拓词 / 起名核域名 | `translate_demand`、`keyword_ideas`、`brand_naming`、`domain_availability` | 按官方 `gefei` Skill 选择工具 | 「帮我想个站名」「这词换成英文怎么搜」 |
-| Google Trends | 热度对比、地区分布、相关飙升词、每日热搜；含 1h/4h/1d 短时窗口（小时级曲线，验证刚出现的新词）；2026-09-09 切到新版 Explore UI（`trends.google.com/explore`）路由，零 venv；旧版（`/trends/explore` + pytrends）归档在 `scripts/archive/gt-v1/`，不算独立能力入口 | `scripts/gt.py`（取数层 `scripts/gt-browser.mjs`） | 「XX 和 YY 哪个更火」「今天在搜什么」 |
+| 关键词难度 + Top10 盘面 | 哥飞版 KD 与竞争页画像；读数处理见 [entry.md](playbooks/entry.md#选词判据只看两个) | [seo-webcafe.md「官方研究工具口径」](seo-webcafe.md#官方研究工具口径) | 「这个词难不难做」 |
+| SERP 排名归因 | 原始搜索结果与逐位点评分开取 | [seo-webcafe.md「官方研究工具口径」](seo-webcafe.md#官方研究工具口径) | 「为什么是他排第一」 |
+| 趋势曲线付费备选 | `google_trends` 补曲线；测量见 [trends.md](trends.md#gpts-基线判读到底怎么才算有搜索量唯一判据源) | [seo-webcafe.md「官方研究工具口径」](seo-webcafe.md#官方研究工具口径) | 「交叉核验这几个词的曲线」 |
+| 批量新词挖掘 | `trends_rising` 生成上升相关查询候选；探索编排见 [P2](playbooks/research/p2-keyword-root.md) | [seo-webcafe.md「官方研究工具口径」](seo-webcafe.md#官方研究工具口径) | 「批量找 rising 新词」 |
+| 批量搜索意图 | `search_intent` 补充意图标签；逐问法核验见 [seo-serp.md](seo-serp.md#逐问法-google-读法) | [seo-webcafe.md「官方研究工具口径」](seo-webcafe.md#官方研究工具口径) | 「这批词分别想找什么」 |
+| 本地零配额计算 | `kgr` / `string` / `money` / `email` 的兼容计算；字段与判读边界见 [seo-webcafe.md](seo-webcafe.md#本地命令数值判读指引) | `scripts/seo-webcafe.mjs kgr\|string\|money\|email` | 「算下 KGR」「TDK 超长没」 |
+| 需求翻译 / 拓词 / 起名核域名 | `translate_demand`、`keyword_ideas`、`brand_naming`、`domain_availability` | [seo-webcafe.md「官方研究工具口径」](seo-webcafe.md#官方研究工具口径) | 「帮我想个站名」「这词换成英文怎么搜」 |
+| Google Trends | `compare` 默认同框 gpts；完整测量口径见 [trends.md](trends.md#gpts-基线判读到底怎么才算有搜索量唯一判据源)。热度对比、地区分布、相关飙升词、每日热搜；含 1h/4h/1d 短时窗口（小时级曲线，验证刚出现的新词）；2026-09-09 切到新版 Explore UI（`trends.google.com/explore`）路由，零 venv；旧版（`/trends/explore` + pytrends）归档在 `scripts/archive/gt-v1/`，不算独立能力入口 | `scripts/gt.py`（取数层 `scripts/gt-browser.mjs`） | 「XX 和 YY 哪个更火」「今天在搜什么」 |
 | 搜索量 / KD / CPC（Semrush） | 分国家量与 KD，**外加全球合计 `globalVolume`**；同国家最多 100 词 `--bulk --db <cc>`（**bulk 下 `globalVolume`/`byCountry` 恒 null**） | `backlink/scripts/semrush-keyword.mjs` | 「这词一个月多少量」 |
 | **词根批量扩词（Similarweb）** | 一个种子词扩出整页关键词，四个 tab：`phraseMatch` / `relatedKeywords`（量最大）/ `trending` / `questions`。这是 `demand-discovery.md` 那条「1,309 词根 → 97,681 词」流水线的**入口**（2026-08-28 落地） | `backlink/scripts/similarweb-keywords.mjs` | 「帮我扩词」「我只有一个词根」 |
 | **整包扩词 + 聚簇（Semrush）** | Keyword Magic 整包导出 + Topics 聚簇（实测种子 `nonogram` → 20.1K 词 / 201 页）。与上一行互补：那个给广度，这个给簇 | `backlink/scripts/semrush-report.mjs --report keyword-magic` | 「这个主题一共有多少词」「帮我分组」 |
-| 判读：做不做 | 词龄、窗口、低 KD ≠ 能做、非英语版本值不值 | [`experiences/webcafe-topics.md`](experiences/webcafe-topics.md) 一 ~ 二 | 「KD 才 12，能做吗」 |
+| 判读：做不做 | 关键词与立项判读、KD 的处理只见 [`entry.md`「选词判据：只看两个」](playbooks/entry.md#选词判据只看两个) | [entry.md](playbooks/entry.md#选词判据只看两个)；[webcafe-topics.md](experiences/webcafe-topics.md) 一 ~ 二只作历史经验 | 「KD 才 12，能做吗」 |
 | 判读：趋势怎么读 | 窗口选择、毛刺与加速度、空曲线 ≠ 没需求 | [`references/trends.md`](trends.md) | 「这曲线是不是在涨」 |
 
 ## 四、竞品与数据面板（判「别人是怎么跑起来的」）
@@ -220,7 +215,8 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 | 2026 AI 搜索范式 | AI Overviews / AI Mode / Preferred Sources / Discover 独立算法 / Information Gain；引用优先于排名 | [`references/seo-ai-search.md`](seo-ai-search.md) | 「怎么被 AI 引用」「AEO 怎么做」 |
 | Agent 就绪度评分 | `scan` 评分+待修项、`diff` 与上次对比、`history`；`--save` 存 `.rankup/agentic/` | `scripts/is-agentic.mjs` | 「llms.txt 要不要写」「对 AI 友好吗」 |
 | 全网基线分母 | Cloudflare Radar 的全网 AI Agent Readiness 聚合通过率（**不是站点扫描器**） | `scripts/cf-agent-baseline.mjs` | 「我这个分数算高吗」 |
-| AI 需求验证与推荐位 | 在目标引擎里重复提问，量化 AI 会推荐谁、推荐位是否被占（付费工具 / 游戏站 / 平台类必做）；流程与判据在 seo-geo.md | `scripts/demand/ai-probe.mjs`，流程 [`references/seo-geo.md`](seo-geo.md) | 「这个词在 AI 里有多大需求」「ChatGPT 会不会推荐我们」 |
+| ChatGPT 问法链路 | 问法生成、自然采样、追问与三清单的方法入口 | [seo-geo.md](seo-geo.md#geo-反推测试ai-需求验证流程)；`scripts/demand/geo-multimodel-questions.sh` 造问法，`ai-probe.mjs` 的通道默认与解析限制见该唯一源 | 「ChatGPT 会推荐谁」「为什么推荐或筛掉其他产品」 |
+| 逐问法 Google 核验 | 将长尾问法关联到 SERP 卡与页面证据 | [seo-serp.md](seo-serp.md#逐问法-google-读法)；工具取数见 [seo-webcafe.md](seo-webcafe.md#官方研究工具口径) | 「这些问法在 Google 上是什么结果」 |
 | AI 爬虫读到的 raw HTML | 用四个爬虫 UA 抓同一页，比较 raw HTML 是否一致、是否客户端渲染空壳 | `scripts/ua-parity.mjs`，判读 [`references/seo-ssr.md`](seo-ssr.md)「三-E」 | 「AI 爬虫读得到正文吗」 |
 
 ## 十、外链（专项 Skill：backlink）
@@ -237,7 +233,7 @@ rankup 只判「什么时候发、发多少」（SKILL.md 段 6 一行指回这�
 | 质量与毒性判读 | 无专用脚本，靠评分卡 | `backlink/references/link-quality-rubric.md` | 是 |
 | 付费平台登记 | 竞品在哪买的链接、投放平台估价 | `backlink/scripts/paid-platform-registry.mjs` | 读 `paid-platforms.md` |
 | 登录态后台抓表格 | 虚拟滚动、节流、静默丢行的完整陷阱清单 | `backlink/scripts/harvest.browser.js` + `harvest-collect.sh` + `harvest-merge.mjs` | 是（`harvest.md`） |
-| 判读：外链怎么发 | 买链花多少钱、KD → 引荐域数量对照、导航站过滤、发多快算太快 | [`experiences/webcafe-topics.md`](experiences/webcafe-topics.md) 五 + [`experiences/webcafe-experiences-2.md`](experiences/webcafe-experiences-2.md) 二十 | — |
+| 判读：外链怎么发 | 买链费用、导航站过滤与节奏的历史经验；其中 KD 推导部分的当前效力见 [entry.md](playbooks/entry.md#选词判据只看两个) | [`experiences/webcafe-topics.md`](experiences/webcafe-topics.md) 五 + [`experiences/webcafe-experiences-2.md`](experiences/webcafe-experiences-2.md) 二十 | — |
 
 ## 十一、社群与经验（判「别人踩过什么坑」）
 
@@ -249,7 +245,7 @@ rankup 只判「什么时候发、发多少」（SKILL.md 段 6 一行指回这�
 | 微信群归档搜索 | 14 个群的原文归档，会员取数；搜索最多 50 条，未出现工具箱每日配额扣费显示 | `scripts/webcafe-forum.mjs chat-search "词"` | 「群里怎么说的」 |
 | 直接使用哥飞开放 API 工具箱 | 实时工具目录，官方 CLI 从服务端实时读取目录；选词/竞品/域名/页面按官方 Skill 工作流编排，Rankup 自己判读 | [`seo-webcafe.md`](seo-webcafe.md) 指向官方 Skill | 「查词、拓词、拆竞品、审页面、查域名」 |
 | 取数注意 | **匿名不报错**：返回 200 但把正文抹成空串、票数归零 | [`references/webcafe-forum.md`](webcafe-forum.md) 第一节 | 拿到空正文时 |
-| 裁定集：挖需求阶段 | 还没定方向时的判断口径 | [`experiences/demand-discovery.md`](experiences/demand-discovery.md) | 「方向怎么选」 |
+| 历史经验：挖需求阶段 | 候选发现经验；当前判读见 [entry.md](playbooks/entry.md) | [`experiences/demand-discovery.md`](experiences/demand-discovery.md) | 「方向怎么选」 |
 | 裁定集：0→1 | 优先级、「1」的定义、虚荣指标、止损线、新站上线执行清单 | [`experiences/zero-to-one.md`](experiences/zero-to-one.md) | 「先做哪个」「什么时候放弃」 |
 | 裁定集：转化 | 访客不注册、注册不付费、定价怎么定；**动页面前先查上游流量意图** | [`experiences/conversion.md`](experiences/conversion.md) | 「没人付费」 |
 | 裁定集：技术 SEO / 站群 / 索引 | 老站救不救、多站自我重复、品牌名不显示、页面下限 | [`experiences/webcafe-experiences.md`](experiences/webcafe-experiences.md) | 「这站还有救吗」 |

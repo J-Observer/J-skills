@@ -3,10 +3,10 @@
  * game-newtitles.mjs —— 「持续涌现新词」的游戏源取数
  *
  * 用途：
- *   新游戏 = 新词 = 新需求。游戏标题在发布当天基本没有竞争页面，对新站极友好
+ *   新游戏标题是候选新词与需求线索，发布当天的竞争页面须实际核验
  *   （攻略 / 兑换码 / 是否免费 / unblocked / 类似游戏 / 能不能联机……都是现成长尾）。
  *   本脚本从多个源批量拉「新上架 / 即将发布 / 最近新增」的游戏标题，
- *   下游再交给 KD / Trends 脚本验证词的热度与难度。
+ *   下游按 references/playbooks/entry.md：GT 趋势与量验证后，首测 ChatGPT 问法链路。
  *
  * 支持的源 (--source)：
  *   steam    Steam 商店搜索的 infinite JSON 端点（公开、无 token）—— 首选
@@ -87,7 +87,7 @@ const UA =
   '(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
 const FETCH_TIMEOUT_MS = 30_000;
 
-const HELP = `game-newtitles.mjs — 新游戏标题批量取数（新游戏 = 新词 = 新需求）
+const HELP = `game-newtitles.mjs — 新游戏标题批量取数（候选新词与需求线索）
 
 用法:
   node game-newtitles.mjs --source <steam|steam-featured|steam-applist|itch|poki|igdb|steamdb> [选项]
@@ -142,6 +142,8 @@ steamdb (需要 OpenCLI 真浏览器，Cloudflare 挡纯 HTTP):
   --evidence-dir <d> 失败现场与 manifest 落点
 
 输出字段: {source, name, url, domain, users, rating, ratingCount, date, extra}
+下游入口: references/playbooks/entry.md；GT 趋势与量验证后，首测 ChatGPT 问法链路。
+问法与推荐记录见 references/seo-geo.md，逐问法 Google 证据见 references/seo-serp.md。
 `;
 
 // ---------- env ----------

@@ -7,6 +7,7 @@
  * translatePage/Aggregate/Me、mineSeed/Page/Report、domainSessions 原记录不计配额；
  * serpPage、domainIntent/Collision 的实际扣费以旧接口响应为准，未知不写成免费。
  * 本地 kgr/string/money/email 零网络、零配额；凭据只在旧请求进程内使用，不输出。
+ * kgr/money 的 KD 派生值保留为历史计算，不参与选词与立项裁决；JSON 字段兼容保留。
  * 2026-09-30 mineSeed 实跑 HTTP 200，返回 type/value；其余独有端点未逐项实跑。
  */
 import { writeFileSync, mkdirSync, readFileSync, realpathSync } from "node:fs";
@@ -306,7 +307,7 @@ function summarize(name, data) {
  * 绝不能不小心接进 callSessionAuto 那条会发请求的路径。
  */
 const KD_DOMAINS = { 0: 0, 10: 10, 20: 22, 30: 36, 40: 56, 50: 84, 60: 129, 70: 202, 80: 353, 90: 756, 100: 1200 };
-/** KD → 所需引荐域名数，Ahrefs 经验对照表，线性插值（抄自 /kgr/ 与 /money/ 页面内联 JS，两处实现一致）。 */
+/** 历史计算：KD → 引荐域名数，Ahrefs 经验对照表线性插值（抄自 /kgr/ 与 /money/；不参与选词与立项裁决）。 */
 function requiredDomains(kd) {
   if (kd <= 0) return 0;
   const keys = Object.keys(KD_DOMAINS).map(Number).sort((x, y) => x - y);
@@ -353,7 +354,7 @@ function optNumArg(v, flag, def) {
 
 const LOCAL = {
   kgr: {
-    desc: "关键词价值评估：KGR / EKGR / KDROI（纯本地计算，零网络零配额）",
+    desc: "历史公式：KGR / EKGR / KDROI（历史计算，不参与选词与立项裁决；零网络零配额）",
     help: "--volume <月搜索量> --intitle <intitle 结果数> --kd <0-100 难度分>",
     run: (a) => {
       const volume = numArg(a.volume, "--volume");
@@ -374,9 +375,9 @@ const LOCAL = {
       const revenue = (volume / 30) * 0.1 * 365;
       const roi = invest > 0 ? ((revenue - invest) / invest) * 100 : Infinity;
 
-      // 只出数值，不出判决。「黄金词/中等竞争/高竞争」「极佳/放弃」这类评级
-      // 是阈值判读，已迁到 references/seo-webcafe.md「本地命令数值判读指引」——
-      // 阈值该不该信、对这个市场适不适用，由拿着上下文的判读者决定。
+      // 历史公式只保留数值与旧字段，不参与选词与立项裁决。
+      // 两路记录入口见 references/playbooks/entry.md；
+      // Google 与 ChatGPT 证据分别见 references/seo-serp.md、references/seo-geo.md。
       return {
         kgr: { value: Number(kgr.toFixed(3)) },
         ekgr: { value: Number(ekgr.toFixed(3)), kdFactor: Number(kdFactor.toFixed(2)) },
@@ -391,7 +392,7 @@ const LOCAL = {
     summarize: (d) =>
       `KGR ${d.kgr.value} · EKGR ${d.ekgr.value}（kdFactor ${d.ekgr.kdFactor}） · ` +
       `KDROI 需 ${d.kdroi.requiredDomains} 条外链/$${d.kdroi.invest}，ROI ${d.kdroi.roiPct ?? "∞"}%` +
-      `（数值判读见 references/seo-webcafe.md）`,
+      `（历史计算，不参与选词与立项裁决）`,
   },
 
   string: {
@@ -437,7 +438,7 @@ const LOCAL = {
   },
 
   money: {
-    desc: "月收入目标拆解：反推所需 UV / 关键词日搜索量 / 外链投入与 ROI（纯本地计算）",
+    desc: "月收入目标拆解：UV / 关键词日搜索量；外链投入与 ROI 为历史计算，不参与选词与立项裁决（纯本地计算）",
     help: "--income <月收入$> [--sites 1] [--kws 5] [--rankpos 3] [--rpm 5] [--saas 0] [--pvuv 2] [--kd 30]",
     run: (a) => {
       const clamp = (v, lo, hi) => {
@@ -471,9 +472,9 @@ const LOCAL = {
       const cost = sites * totalLinkCost(domains);
       const roi = cost > 0 ? yearly / cost : Infinity;
 
-      // 风险判读（每词日搜索量过万、ROI<1、投入超 6 个月收入、难度产出不匹配……）
-      // 已迁到 references/seo-webcafe.md「本地命令数值判读指引」：那些是阈值判决，
-      // 不是计算结果。脚本只出数，判读者拿数对照指引。
+      // KD 预算与 ROI 保留历史公式及默认 KD30，不参与选词与立项裁决。
+      // 两路记录入口见 references/playbooks/entry.md；
+      // Google 与 ChatGPT 证据分别见 references/seo-serp.md、references/seo-geo.md。
       return {
         params: { income, sites, kws, rankpos, ctrPct: CTR[rankpos], rpm, saas, pvuv, kd },
         dailyIncome: Number(daily.toFixed(2)),
@@ -490,7 +491,7 @@ const LOCAL = {
     },
     summarize: (d) =>
       `每站需日 UV ${d.siteDailyUv}（${d.siteDailyPv} PV） · 每词日搜索量 ${d.keywordDailyVolume} · ` +
-      `外链投入 $${d.totalLinkCost} · ROI ${d.roi ?? "∞"}x（数值判读见 references/seo-webcafe.md）`,
+      `外链投入 $${d.totalLinkCost} · ROI ${d.roi ?? "∞"}x（历史计算，不参与选词与立项裁决）`,
   },
 
   email: {
@@ -543,6 +544,9 @@ ${Object.entries(LOCAL).map(([k, v]) => `  ${k}  ${v.desc}\n    ${v.help}`).join
   --guest            显式使用旧接口访客请求；默认登录态 Chrome
   --help             本帮助
 
+kgr 的 EKGR/kdFactor/KDROI、money 的 KD 预算/ROI 为历史计算，不参与选词与立项裁决。
+默认摘要标注历史用途；--out 与默认 JSON 保留旧字段，money 仍按默认 KD30 计算。
+两路记录入口：references/playbooks/entry.md；Google 证据见 references/seo-serp.md，ChatGPT 推荐见 references/seo-geo.md。
 旧接口每日配额与官方 API 积分分开；本轮口径以响应为准。
 已覆盖的网络能力加载官方 gefei/gefei-keywords/gefei-competitor/gefei-domain/gefei-page。`;
 

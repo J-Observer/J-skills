@@ -2,7 +2,7 @@
 name: rankup
 description: 独立开发者的项目全生命周期管理：需求验证、选词选品、建站或做原生 App、上线接入、SEO/GEO 获客、支付变现、监控迭代与跨会话接力。以下情况使用：用户提到 rankup 或 /rankup（check、review、init；doctor 仅指整理项目 .rankup 记录）；当前目录或工作区有 .rankup/，或要读取、续做、整理项目计划、路线图、待办、PRD、交接或进度文档；在这些项目记录上下文里说「继续」「接着做」「上次做到哪」「下一步做什么」；以及项目规划、需求验证、关键词调研与 SERP、独立 Google Trends 热度查询或对比、AI 搜索推荐（GEO）、网站体检、sitemap/IndexNow/Search Console、流量、建站、上线、支付（Stripe、Anyway、PayPal）、变现与增长。SEO/GEO 是主要手段，不是适用边界，非 SEO 的项目计划与 macOS、iOS、iPad 原生 App 同样适用。纯文案（含 SEO 趋势博客等主题写作）、纯视觉设计、与项目管理无关的通用开发及基础设施排错（含 Cloudflare 部署报错、普通 CLI doctor）不触发；目录内有 .rankup/ 时仅叠加项目记录维护义务；外链执行交 backlink，浏览器驱动交 opencli，配图生成交 imagegen，多模型派单交 agent-fleet。
 metadata:
-  version: "3.37.1"
+  version: "3.38.0"
 ---
 
 # Rankup
@@ -22,10 +22,11 @@ SEO 与 GEO 是最主要的获客与验证手段，**不是适用边界**：项�
 | **里程碑**：产物、决定或后台任务状态变化 | 同上接力协议 | 覆盖当前接力与产物指针 | 接力反映最新状态 |
 | **收尾**：完成、放弃、叫停或等用户决定 | [维护「一」「二」](references/maintenance.md#二收尾维护五步顺序固定) | 按轻量路径或五步维护收口；扫描用 `scripts/maintain/ref-scan.mjs` | 回复有维护摘要与证据 |
 | 有项目记录上下文的「继续」「接着做」「上次做到哪」「我们开始执行这个项目的计划」，或读计划 / 交接 / 进度文档 | 同上「新会话怎么接」 | 定位项目 → 读接力（无 `.rankup/` 用 `HANDOFF.md`）→ 核对后台产物与改动 → 直接执行下一步 | 下一步已有执行证据 |
-| 选词、调研、找需求（**已有主词**） | [`playbooks/entry.md`](references/playbooks/entry.md) → [`research.md`](references/playbooks/research.md) | 花配额前按入口四步执行；方向未落主词先走 [`selection.md`](references/playbooks/selection.md)，无方向先走 [P1](references/playbooks/research/p1-discovery.md)，主词出现后回本行 | 入口卡写进 `.rankup/research/<词根>-<日期>.md` |
-| AI 探针、「ChatGPT 会不会推荐」、付费工具 / 游戏 / 平台类候选 | [`seo-geo.md`](references/seo-geo.md) 步骤 1–4 | 通道隔离；只报出现率与区间；需求信号与推荐位难度信号分开记；取不到写「未知」 | 汇总写入口卡③，第 4 节只留指针 |
+| 选词、调研、找需求（**已有主词**） | [`playbooks/entry.md`](references/playbooks/entry.md) → [`research.md`](references/playbooks/research.md) | 按入口四步顺序与两路判读执行；方向未落主词先走 [`selection.md`](references/playbooks/selection.md)，无方向先走 [P1](references/playbooks/research/p1-discovery.md)，主词出现后回本行 | 入口卡写进 `.rankup/research/<词根>-<日期>.md` |
+| ChatGPT 问法链路、自然推荐验证 | [`seo-geo.md`](references/seo-geo.md) 步骤 2–3 | 问法、采样、追问与三清单只按该唯一源；词级编排与裁决回 [`entry.md`](references/playbooks/entry.md) | 入口卡②有三清单与原始证据指针 |
+| 「谷歌质量」「HCU」「E-E-A-T」「AI 内容会不会被打」「内容 review」「垃圾内容政策」 | [`seo-helpful-content.md`](references/seo-helpful-content.md) | 区分官方口径与业内推断；按单页或站点级自检表核对并留证据 | 对应自检表通过且无红线 |
 | 建站、做功能、写 UI | [`lifecycle/stage-3-build.md`](references/lifecycle/stage-3-build.md)、[`cloudflare-stack.md`](references/cloudflare-stack.md) | 用 shadcn 脚手架与组件库，不手写基础控件；当天过完 Day-1 清单 | [`checklists.md`](references/checklists.md) 段 3 通过 |
-| 做内页、「把这个词做成页面」 | [`lifecycle/stage-4-prelaunch.md`「新增内页随手清单」](references/lifecycle/stage-4-prelaunch.md#新增内页--新模板的随手清单2026-09-12-回流) | 一词一页；把目标词登记到 `keywords.md`；TDK、独立 OG 含图、密度、无占位；全套体检 | `checks.md` 记 ✅ 与证据 |
+| 做内页、「把这个词做成页面」 | [`lifecycle/stage-4-prelaunch.md`「新增内页随手清单」](references/lifecycle/stage-4-prelaunch.md#新增内页--新模板的随手清单2026-09-12-回流) | 页面映射按 [段 2 §2.3](references/lifecycle/stage-2-positioning.md#23-问法簇--页面--faqdescription与站点结构)；目标词登记到 `keywords.md`；按段 4 完成页面与体检 | `checks.md` 记 ✅ 与证据 |
 | 上线前体检、「能不能上线」 | `checklists.md` 段 4、[`lifecycle/stage-4-prelaunch.md`](references/lifecycle/stage-4-prelaunch.md) | 全套体检：AITDK、PageSpeed、图标专项、占位专项；重跑不采信上一轮 | 段 4 闸门全绿，或写明改不动的理由 |
 | 接入、绑域名、提交 sitemap、「怎么不收录」 | [`lifecycle/stage-5-launch.md`](references/lifecycle/stage-5-launch.md)、[`search-platforms.md`](references/search-platforms.md) | 先 `site-onboard.mjs --check` 再执行；接入一律线上实测 | `.rankup/integrations.md` 逐行有证据与日期 |
 | 外链 | `backlink` Skill、[`lifecycle/stage-6-backlinks.md`](references/lifecycle/stage-6-backlinks.md) | Rankup 只判时机与数量；提交前把候选清单给用户圈定 | 台账有 submitted → public → indexed 证据 |
@@ -45,13 +46,14 @@ SEO 与 GEO 是最主要的获客与验证手段，**不是适用边界**：项�
 | 「挖点需求」「最近有什么能做的」「找几个关键词」（没给具体词） | 1 | [`research/p1-discovery.md`](references/playbooks/research/p1-discovery.md) |
 | 「调研一下这个词」「这个词能不能做」「帮我扩词」「找个 xxx 的需求」 | 1 | [`entry.md`](references/playbooks/entry.md) → [`research/p2-keyword-root.md`](references/playbooks/research/p2-keyword-root.md)（任何词都是词根，按[五个取数动作](references/playbooks/research.md#五个取数动作与编排探索循环)全自动跑完，不反问） |
 | 「做小语种」「这个词在德语怎么搜」「某国市场找词」 | 1 | P2 [阶段 0.7 开工卡](references/playbooks/research/p2-keyword-root.md#阶段-07--非英语市场开工卡目标市场非英语时必填) + [三关](references/playbooks/research/p2-keyword-root.md#小语种候选词三关与本地竞品取词)；语种探测 [`trends.md`](references/trends.md) W1 |
-| 「找个方向」「这个方向值不值得做」「选品」「帮我看看这个想法」 | 1 | [`selection.md`](references/playbooks/selection.md) 七道闸门先判该不该做；主词出现后走入口环节 |
+| 「找个方向」「这个方向值不值得做」「选品」「帮我看看这个想法」 | 1 | [`selection.md`](references/playbooks/selection.md) 收集方向候选；主词出现后按 [`entry.md`](references/playbooks/entry.md) 验证与裁决 |
 | 「App 有没有需求」「找 iOS/iPad/macOS 产品」 | 1–2 | [`research.md` App 分支](references/playbooks/research.md#app-市场验证分支) → [段 2](references/lifecycle/stage-2-positioning.md) 2.2 |
 | 「谁在赚钱」「反查这个站」「帖子说月入 X 是真的吗」 | 1 | `research.md` P4 + [`demand-sources/validation-chain.md`](references/demand-sources/validation-chain.md) |
 | 「筛这批 AITDK 报告」「只看竞品异常」 | 1 | [`seo-box.md`](references/seo-box.md#aitdk-研究报告离线分流)：`aitdk-triage.mjs` 离线分流 |
 | 「运行趋势监控」「扫描种子 Rising」「美日韩趋势追踪」 | 1–2 | [`trends-system.md`](references/trends-system.md)：三区串行扫描、去重、健康台账与追踪复查 |
 | 「XX 和 YY 哪个更火」「今天美国在搜什么」「这个词有没有量」 | 1–2 | [`trends.md`](references/trends.md)（[gpts 基线判读](references/trends.md#gpts-基线判读到底怎么才算有搜索量唯一判据源)），`scripts/gt.py` |
-| 「这个词在 AI 里有多大需求」「ChatGPT 会不会推荐我们」「竞品为什么被 AI 推荐」 | 1 / 4 复测 | [`seo-geo.md`](references/seo-geo.md)；面板 AI 侧数据见 [`provider-capabilities.md`](references/provider-capabilities.md)「三·五」 |
+| 「这个词在 AI 里有多大需求」「候选会不会被 ChatGPT 推荐」「竞品为什么被 AI 推荐」 | 1 / 4 验证 | 词级编排先读 [`entry.md`](references/playbooks/entry.md)，问法链路只按 [`seo-geo.md`](references/seo-geo.md)；面板数据见 [`provider-capabilities.md`](references/provider-capabilities.md)「三·五」 |
+| 「已上线站 ChatGPT 会不会推荐我们」「问 ChatGPT 为什么不推荐」「推荐位整改」「GEO 闭环」「复审」 | 5 / 6 上线后 | [`seo-geo-recommendation-loop.md`](references/seo-geo-recommendation-loop.md)：复用问法与三清单 → 建议甄别 → 整改发布 → 复审；采样规则只指 [`seo-geo.md`](references/seo-geo.md) |
 | 「有什么游戏站能做」「小游戏机会采集 / 决策」 | 1–2 | [`game-sites.md`](references/game-sites.md)：平台监控、sitemap 差分、新标题筛选；旧每日决策协议仅部分覆盖 |
 | 「做不做」「做哪个语种」「要不要多语言」「做成工具还是内容站」 | 2 | [`lifecycle/stage-2-positioning.md`](references/lifecycle/stage-2-positioning.md) |
 | 「我们做个网站吧」「帮我搭起来」 | 2→3 | 先过段 2 立项，再段 3 初始化；手上没有词树先回段 1 |
@@ -82,19 +84,19 @@ SEO 与 GEO 是最主要的获客与验证手段，**不是适用边界**：项�
 
 ## 七段生命周期
 
-每段保留适用场景、入口、原则摘要与闸门指针。硬规则全文（含「为什么」）在各段文件，步骤 check 与操作也在那里；[`lifecycle.md`](references/lifecycle.md) 是总述、旧编号映射与对账。**闸门判据只在 [`references/checklists.md`](references/checklists.md)。**
+每段保留适用场景、入口、原则摘要与闸门指针。硬规则全文（含「为什么」）在各段文件，步骤 check 与操作也在那里；[`lifecycle.md`](references/lifecycle.md) 是总述、旧编号映射与对账。**完成验收只在 [`checklists.md`](references/checklists.md)，关键词与立项裁决只在 [`entry.md`](references/playbooks/entry.md)。**
 
 ### 1 调研 · [全文](references/lifecycle/stage-1-research.md)
 
 - **触发**：一批数据、一个词、一个帖子、一个域名，问能不能做；或只有模糊方向问值不值得做（先进 `selection.md`）。
-- **入口**：词级先过[入口环节](references/playbooks/entry.md) → [`research.md`](references/playbooks/research.md)（P0 分流：没东西 P1、一个词 P2、一个域名 P4）；判读 [`demand-discovery.md`](references/experiences/demand-discovery.md)；验收单 `research-checklist.md`。常用：`scripts/demand/suggest.mjs`、官方 `gefei-keywords` / `gefei-competitor`、`backlink/scripts/semrush-keyword.mjs`、面板取证 `scripts/rankup-cli.mjs`（`npx @yan-labs/rankup audit similarweb`）、`scripts/select/leading-indicator.mjs` 与 `scripts/select/gate-runner.mjs`、`scripts/demand/ai-probe.mjs`。
-- **原则与范围**：以同框基线判读 Trends、结合竞品反查复核低量，避免把相对热度或单一词形当绝对需求；适用于词级需求判断，详见[调研规则](references/lifecycle/stage-1-research.md)与[基线判读表](references/trends.md#gpts-基线判读到底怎么才算有搜索量唯一判据源)。
+- **入口**：词级先过[入口环节](references/playbooks/entry.md) → [`research.md`](references/playbooks/research.md)（P0 分流：没东西 P1、一个词 P2、一个域名 P4）；裁决只见 [`entry.md`](references/playbooks/entry.md)，历史经验见 [`demand-discovery.md`](references/experiences/demand-discovery.md)；证据覆盖见 `research-checklist.md`。常用：`scripts/demand/suggest.mjs`、官方 `gefei-keywords` / `gefei-competitor`、`backlink/scripts/semrush-keyword.mjs`、面板取证 `scripts/rankup-cli.mjs`（`npx @yan-labs/rankup audit similarweb`）；问法与采样工具见 [`seo-geo.md`](references/seo-geo.md)。
+- **原则与范围**：顺序与两路判读只按 [入口环节](references/playbooks/entry.md)；GT 测量只按 [gpts 基线判读](references/trends.md#gpts-基线判读到底怎么才算有搜索量唯一判据源)，ChatGPT 问法链路只按 [`seo-geo.md`](references/seo-geo.md)。
 - **闸门**：`checklists.md` 段 1。
 
 ### 2 立项与定位 · [全文](references/lifecycle/stage-2-positioning.md)
 
-- **触发**：方向已有，问做不做、做哪个语种、做成什么形态。入口另读 [`zero-to-one.md`](references/experiences/zero-to-one.md)、`webcafe-topics.md` 七。
-- **原则与范围**：定位、语种与产品形态按本段规则裁决，避免把市场读数直接当立项；见[段 2](references/lifecycle/stage-2-positioning.md)。
+- **触发**：方向已有，问做不做、做哪个语种、做成什么形态；主词出现后先读 [`entry.md`](references/playbooks/entry.md)。立项后的经营经验见 [`zero-to-one.md`](references/experiences/zero-to-one.md)。
+- **原则与范围**：立项裁决只见 [`entry.md`](references/playbooks/entry.md)；市场选择、产品形态及问法簇到页面的移交见 [段 2](references/lifecycle/stage-2-positioning.md)。
 - **闸门**：`checklists.md` 段 2。
 
 ### 3 建站与开发 · [全文](references/lifecycle/stage-3-build.md)

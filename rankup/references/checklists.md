@@ -34,10 +34,10 @@
 | 规则 | 为什么 |
 |---|---|
 | **每条 check 都要有证据，证据要写清楚在哪个文件的哪一段** | 这套东西唯一致命的失败形态是**看着全绿、底下什么都没有**。只跑了命令、没留下证据不算过；控制台一个绿色图标不是证据 |
-| **闸门判据写在这里，步骤判据紧贴动作，操作说明写在各自的 md** | 同一件事在两处各写一份，改了一处另一处就静默过期，而两边看起来都正常。所以本文件的「怎么做」一列只给一句话加一个指路 |
+| **完成验收写在这里，关键词/立项裁决与测量方法只指向唯一源** | 同一件事在两处各写一份，改了一处另一处就静默过期，而两边看起来都正常。所以本文件的「怎么做」一列只给一句话加一个指路 |
 | **过不了就写清为什么过不了** | 需要 CAPTCHA、需要付费决策、需要用户的物理操作 —— 这些标 ⏸ 并写明卡在哪、需要用户做什么，不要留一个悬空的空格 |
 
-**还有一条贯穿全程的：任何调研都要亲眼去搜索引擎看一遍第一页。** 数据平台给的是模型输出与面板外推，首页是搜索引擎此刻真正端给用户的东西。至少 Google + Bing，做非英语市场再加目标市场的本地引擎，方法见 [`demand-sources.md`](demand-sources.md) 第一·五节。
+**调研的执行顺序与两路裁决**只见 [entry.md](playbooks/entry.md)，逐问法 Google 记录只见 [seo-serp.md](seo-serp.md#逐问法-google-读法)。
 
 ## 复查口径：哪些 check 下一轮还要再过
 
@@ -47,7 +47,8 @@
 | **每轮** | **每一轮迭代都必须重跑** | 三方对账、构建全绿、性能基线、迭代记录 |
 | **动了 URL** | 本轮新增或修改了线上可访问的 URL 才必须重跑 | 上线前闸门的 TDK、技术 SEO、IndexNow 推送 |
 | **动了页面** | 本轮改了任何页面的内容、结构或元数据（不一定新增 URL）就必须**全套**重跑 | 段 4 的九行闸门——改一处 TDK 可能带坏密度，改一个区块可能带坏 CLS |
-| **会过期** | 依赖的外部数据是易腐品，超过 30 天必须重取 | SERP 快照、关键词裁决、域名黑历史 |
+| **会过期** | 依赖外部数据；有效期与触发条件按对应唯一源核对，过期或事实变化才补取 | SERP 快照、关键词裁决、域名黑历史 |
+| **内容质量定期复查** | 已上线站每季度（或 Google 发布 Spam/Core Update 后）按 [`seo-helpful-content.md` 站点级自检表](seo-helpful-content.md#站点级自检表)复查并记录分数、范围与证据 | 内容质量、AI/程序化内容与责任披露 |
 
 **每轮开工时的第一个动作**：把上一轮标记为「每轮」的 check 全部打回未过，
 本轮动过线上 URL 的把「动了 URL」那一批也打回，动过页面的把「动了页面」那一批**整段**打回。
@@ -85,40 +86,23 @@
 
 说明见 [`lifecycle/stage-1-research.md`](lifecycle/stage-1-research.md)（段 1）、[`playbooks/research.md`](playbooks/research.md)、[`experiences/demand-discovery.md`](experiences/demand-discovery.md)、[`demand-sources.md`](demand-sources.md)。
 
-**验收单**：[`research-checklist.md`](research-checklist.md) 是本环节的逐项验收单——覆盖 seo.web.cafe / Semrush / Similarweb / Google Trends / 收入三榜 / 折成钱的完整工具链。**按拟交付平台逐项核验；网页项不能替代App市场验证，不适用项记N/A与理由。** 操作顺序以 `playbooks/research.md` 为准。
+**验收单**：[research-checklist.md](research-checklist.md) 查产物覆盖；执行顺序与裁决只见 [entry.md](playbooks/entry.md)，网页项不能替代 App 市场验证，不适用项记 N/A 与理由。
 
 ### 主词与域名用词实测闸门
 
-**适用时点：立项、推荐或购买域名、开始建站之前。** 主词与每个候选域名所含词（按完整短语核验）逐项满足以下判据，才可继续：
-
-- 有「实测过的证据」或「已确认」来源，可回读到该短语、目标市场、时间窗、日期与独立量级核验结论；仅有口头确认、面板月量或词族总量不算已确认。
-- 缺上述证据就先自测：搜索量至少跑一遍 Google Trends 与 `gpts` 同框基线，保存原始读数文件及判读；折量与分辨率处理按 [`trends.md`「gpts 基线判读」](trends.md#gpts-基线判读到底怎么才算有搜索量唯一判据源)。无法分辨且没有已确认的独立来源，只记「待验证」，不放行。
-- 哥飞 / Google Ads 规划师的多个近义词月量完全相同、12 个月曲线一致时，一律标「合并量」，不得当单短语量、不得逐词相加；必须另核单短语量，不能凭合并量通过本闸门。
-
-证据落在入口卡 ①：逐词写明主词 / 候选域名用词、状态、GT 同框读数文件路径或已确认来源的链接与具体段落。没有候选域名时记「尚无候选域名」；首次提出或更换域名用词时补验，不能沿用主词绿灯。
+保留标题供旧链接定位；这里只核入口卡①是否覆盖主词与候选域名完整短语的原始证据、市场、窗口、日期及状态，测量与合并量处理只见 [trends.md「gpts 基线判读」](trends.md#gpts-基线判读到底怎么才算有搜索量唯一判据源)。没有候选域名记「尚无候选域名」；新增或更换用词补对应记录，未知项按 [entry.md](playbooks/entry.md#4--判读)处理。
 
 | 检查项 | 客观通过条件 | 证据落点 | 怎么做 | 复查 |
 |---|---|---|---|---|
-| **主词与域名用词已实测 / 已确认** | 逐词通过[主词与域名用词实测闸门](#主词与域名用词实测闸门)，入口卡无缺证据项 | `.rankup/research/<词根>-<日期>.md` 入口卡 ①：GT 同框读数文件或已确认来源 | 先回读已有证据；缺证据按 [`playbooks/entry.md`](playbooks/entry.md) ① 自测 | 会过期 / 新增或更换用词 |
-| **平台与App市场证据** | 已记录macOS/iOS/iPad/Web分发形态；不交付Android App；App按research.md分支与demand-sources.md证据表逐项有状态，公开估计与自有后台分开，网页低量未被误用为App否决 | `.rankup/research/` | App证据表；无权限记未知，不编下载/收入/留存 | 每轮 |
-| **否决清单已对过** | 本轮每个候选词/方向/功能开跑前都在 `.rankup/rejected.md` 里查过：命中的要么直接跳过并在报告里引用那一行，要么写明「复活：<复活条件> 已于 <日期> 满足，证据 <…>」再继续；**没有第三种** | `.rankup/research/<词根>-<date>.md` 开头的「已否决对照」段 | `grep -i "<词根或功能名>" .rankup/rejected.md .rankup/decisions.md`，再翻 `.rankup/research/` 有没有同词根旧报告 | 每轮 |
-| **入口环节已走（Trends 同框 gpts）** | 每个进裁决的词都有入口卡：Trends 同框 `gpts` 的比值 r、判读档与日期（判据只看 [`trends.md`「gpts 基线判读」](trends.md#gpts-基线判读到底怎么才算有搜索量唯一判据源)）与缩量读数；「有人做」一栏有记录或写「未发现（不减分）」；付费工具 / 游戏站 / 平台类有 AI 侧一行（或「待验证」）；路线（含 GEO 观察 / 暂缓）已按 seo-geo.md 步骤 4 写；需求信号与推荐位难度信号分开记 | `.rankup/research/<词根>-<日期>.md` 开头「入口环节」 | [`playbooks/entry.md`](playbooks/entry.md) | 会过期 |
-| **多引擎首页实勘** | 目标词/方向在 **Google + Bing + 目标市场本地引擎**（做非英语市场时必看）各搜过一遍，**且是无痕/隔离窗口、显式指定了地区与语言**；每个引擎按 [`demand-sources.md`](demand-sources.md)「每个引擎记下这七样」一节逐样记全，带引擎+国家+日期（七样是什么以那一节为准，本表不复述）。**引擎之间不一致要写出来，不能只留一个「综合印象」** | `.rankup/keywords.md`（词级）或 `.rankup/decisions.md`（方向级） | 见 [`demand-sources.md`](demand-sources.md) 第一·五节。**入口趋势初筛之后，P2 深查取数之前；入口 ② 已有实勘记录直接引用**，不许拿 `serp-query.mjs` / 官方 Skill 的 `serp` 这类二手接口代替——它们看不到版式、SERP 特性和 AI 答案。DuckDuckGo 用的是 Bing 索引，**和 Bing 不算两个独立样本** | 会过期 |
-| **非英语候选词已过三关** | 每个非英语「做」的词有来源标注且非 `翻译假设` 状态；有目标地区下拉/相关搜索命中，或本地竞品 Title/H1 出现过，两处至少命中一处；locale 精确到语言-地区；预设页面类型与 SERP 实际页面类型一致。英语市场记 N/A | `.rankup/keywords.md` | 三关判法源自【经验】（独立开发者出海经验分享），见 [`playbooks/research/p2-keyword-root.md`](playbooks/research/p2-keyword-root.md#小语种候选词三关与本地竞品取词) | 会过期 |
-| **词根已扩树且有停止条件** | 用户给的词按词根处理：先亲眼搜过，再扩成树（面板相关词 + Google/Bing/DDG 下拉联想）；**不超过两层**；每片停止扩的叶子写了停止原因（月量低于阈值 / 竞争复核判打不动 / 已到两层；KD 只排复核顺序，不单独作停止原因）；三引擎下拉的原始 manifest 落盘 | `.rankup/research/` + `.rankup/keywords.md` | `scripts/demand/suggest.mjs <词根> --engine google,bing,ddg --hl <语种> --gl <地区> --json --out`，顺序见 [`playbooks/research.md`](playbooks/research.md) 步骤 2。**0 条不等于没词**，先看 manifest 里的 status | 会过期 |
-| **探索广度闸已过** | 词→词/词→问题/词→站/站→词/站→站五个动作各至少跑过一轮（不适用的写明原因）；词池里出现过至少一个不含种子字面串的候选词根；探索日志（动作/输入/新增词根数/新增站数/**触发器**/备注）落在报告第 3 节，且不存在「已触发-未换动作」而无原因的行。**三轮跑满仍无非种子词根时，允许带日志进阶段 4，但裁决只能标证据不足/未验证，不许下「不能做」的否定结论** | `.rankup/research/<词根>-<date>.md` 第 3 节 | 见 [`playbooks/research.md`](playbooks/research.md#五个取数动作与编排探索循环) | 每轮 |
-| 需求证据 | 每个进入开发的机会都有两条证据，且**分属不同类别**（用户表达 / 付费行为 / 搜索表达，三类里取两类；同一类里的两个平台只算一条），至少一条是直接信号（GSC 曝光 / Suggest / 持续投放 / 可核验收入）。证据不足的仍标 `RESEARCH`，没有被写成已验证 | `.rankup/decisions.md` | `scripts/demand/` 取数 → [`demand-sources/validation-chain.md`](demand-sources/validation-chain.md) 第十节的候选验证链路；互证口径见 [`demand-discovery.md`](experiences/demand-discovery.md) 三·通则 4 | 一次 |
-| **社区验证已做（四平台各有状态行）** | 每个候选词有近 14 天的社区信号：Reddit / X / YouTube / B 站至少两处的帖数或互动量，带链接与日期；零讨论如实记「社区无信号」而不是空着。**数据平台只有 28 天窗口，这一腿不能省** | `.rankup/keywords.md` | `reddit-wishes` 与 `/agent-reach`，顺序见 [`playbooks/research.md`](playbooks/research.md) 步骤 5 | 会过期 |
-| **AI 侧探针已跑（付费工具 / 游戏站 / 平台类必做）** | 每个进裁决的候选（这三类）有一份 `ai-probe.mjs` 汇总：N、K、C 三型都有，写明通道、每型次数、日期、模型版本；判定（被占 / 先验闸 / 空位待验）按 [`seo-geo.md`](seo-geo.md) 步骤 4 写进裁决（网页通道拿不到搜索词，先验闸写「未判」）；原始记录（`raw/`、事件流）放仓库外，路径已记，仓库里没有原始 JSON；纯内容站与流量站记 N/A 与理由 | `.rankup/research/<词根>-<date>.md` 入口卡 ③；第 4 节与 `.rankup/decisions.md` 只留指针 | `scripts/demand/ai-probe.mjs`，步骤见 [`seo-geo.md`](seo-geo.md) 步骤 2 到 4；没跑就写「未测」，不写通过 | 会过期（30 天或模型大版本变化） |
-| **AI 探针通道已隔离** | 报告写明通道与隔离声明：Codex 通道用脚本内置的空 `CODEX_HOME`（不是 `fleet code`，不是默认 `~/.codex`）；网页版通道只用关闭记忆的干净账号，且用户确认后传了 `--memory-clean`（没传的汇总带「未确认无记忆污染」标记，只作参考），并注明它是强制联网样本、每次提问在账号里留了一条对话；不满足的样本标「作废」，没有进入任何判断，也没有与别的通道混算 | 同上（环境卡一行） | 隔离前提与原因见 [`seo-geo.md`](seo-geo.md) 步骤 2 | 每轮 |
-| **AI 需求读数未写 0、未越权** | AI 侧需求（提示研究、AI 引荐、自有站读数）只以「区间 + 口径 + 日期」写入，取不到写「未知」；没有把提示研究的主题量除以同词 Google 量，没有把 Semrush 与 Similarweb 的 AI 引荐读数相加，没有把 AI 需求当闸门的通过或否决依据（它只是二次加权项） | 同上 | 「不要做」清单见 [`seo-geo.md`](seo-geo.md) 步骤 1；各面板读法见 [`provider-capabilities.md`](provider-capabilities.md)「三·五」 | 会过期 |
-| 每个「做」的词有完整裁决 | 六项证据 + 社区信号同时对得上：搜索量、KD、SERP 构成、意图核验、链接预算、目标页面、社区信号。**意图核验与搜索量核实是两条分开可见的记录**，且意图是按 SERP 前十的页面类型判的，不是按字面猜的 | `.rankup/keywords.md` | 官方 Skill 调用 `keyword_difficulty "<词>" --gl <国>`；量用同市场的 `keyword_ideas` 或 `keyword_volume`；判断读 [`webcafe-topics.md`](experiences/webcafe-topics.md) 一；意图核验做法见 [`lifecycle/stage-1-research.md`](lifecycle/stage-1-research.md) 段 1 · 1.2 | 会过期 |
-| SERP 快照是当天的 | 每个词的 SERP 构成带日期；写了「窗口在关闭」的词另带一个不超过一个月的复测日期 | `.rankup/keywords.md` | 拉一次真实 top10。**先读 [`seo-serp.md`](seo-serp.md) 的 `google.com/goto` 一节**——二手 SERP 通道会降级但照样 200，盘面「突然空了」先怀疑通道 | 会过期 |
-| **月量已用 Trends 锚点交叉验证** | 每片进入裁决的叶子在入口卡 ① 都有面板月量、Trends 折算区间、档位与日期（新词单独查询，无法分辨按 trends.md 说明）；可判时有锚点折算值与相对 Semrush/Similarweb 的偏差倍数，或明确标注「Trends 无法分辨」（12 个月多数月份指数为 0）——**没有这两种状态之一的候选词不许进裁决** | `.rankup/keywords.md` | `playbooks/research.md` P2 阶段 3 的锚点交叉验证步骤；判据与折算表见 [`trends.md`](trends.md)「〇·六」与其中的 gpts 基线判读表 | 会过期 |
-| **词表已反查竞品补第二轮** | 自己扩的词池与 **3–5 个同赛道、站龄 9–24 个月竞品的实际排名词库**（每站前 100 词）做过差集，差集里的词逐个补测了量与难度。**被自己判过「太难」的头词也测了**。补漏后**重算了按量加权的 CPC** | `.rankup/keywords.md` | `backlink/scripts/semrush-report.mjs` 取排名词报表；规则见 [`demand-sources/competitors-and-roots.md`](demand-sources/competitors-and-roots.md) 九·六 | 一次 |
-| **候选被判不做前已完成站找词 + 词找站反查** | 每个被判「量太少、不做」的候选，裁决前已完成三步复核：①站找词（同类站用 Similarweb 搜索占比 + Semrush organic positions 汇出真实带量词清单）与词找站（反查该词清单的 SERP 归属）双腿；②面板月量与 Trends 锚点交叉验证，Trends 判不了则保留面板数；③28 天盲区的社区验证（P2 阶段 5，面板 0 量也必须做）。新词另按 trends.md 短时窗口复核；未完成只记「暂缓」，不能直接否决 | `.rankup/research/<词根>-<date>.md` | 见 [`playbooks/research/p2-keyword-root.md`](playbooks/research/p2-keyword-root.md) P2「否决前必须反查」+ P4 阶段 5 反查动作 | 会过期 |
-| **排上去值不值已折成钱** | 同赛道竞品的**真实流量**（面板，不是关键词模型）已取到并折成收入区间，与词池的模型上界并排写出。**面板与模型的倍差有归因**，不是只写「口径不同」。竞品低于面板收录门槛的，如实记为「无可观测流量」 | `.rankup/roadmap.md`（进立项前置条件）与 `.rankup/decisions.md` | `similarweb-query.mjs` + `semrush-overview.mjs` 取数，`seo-webcafe.mjs money` 折算；**判断读 [`demand-sources/validation-chain.md`](demand-sources/validation-chain.md) 十·五与 [②·六·四](demand-sources/validation-chain.md#②六四-semrush-的自然流量什么时候不能信先看它的词库分布再决定信不信总数)**——单个大头词以 #5–#10 撑起竞品过半模型流量时，模型高估 4–13 倍，以面板为准 | 会过期 |
-| 量化的继续/停止标准 | `roadmap.md` 有阶段目标与放弃条件，且放弃条件是可判定的数字或事实，不是「效果不好就停」 | `.rankup/roadmap.md` | 判据取自 [`zero-to-one.md`](experiences/zero-to-one.md) 的止损线一节 | 一次 |
+| 主词与域名用词记录 | 回读上节覆盖记录，新增短语未沿用其他词的证据 | 入口卡①、原始证据指针 | 先复用存量，缺项按上节指针补 | 新增/更换用词、证据失效 |
+| 平台与 App 市场证据 | 分发形态与适用项有状态，公开估计与自有后台分开，网页读数未替代 App 证据 | `.rankup/research/` | [research.md App 分支](playbooks/research.md#app-市场验证分支)与 [demand-sources.md](demand-sources.md) | 每轮 |
+| 否决清单对照 | 已查旧结论；复用或复活有原证据与条件指针 | 研究报告「已否决对照」 | 查 `.rankup/rejected.md`、`decisions.md` 与旧报告 | 每轮 |
+| 入口卡与 GT 卡 | 入口卡字段可回读；GT 原始读数、量级判读与缺测状态有指针 | `.rankup/research/<词根>-<日期>.md` 入口卡① | [entry.md 产出](playbooks/entry.md#2--产出)；[trends.md](trends.md) | 按唯一源 |
+| ChatGPT 问法链路与三清单 | 问法池、环境卡、首次回答、追问及三张清单均可追溯原始证据；缺项有状态 | 同上入口卡②；原始记录路径 | [seo-geo.md 步骤 2–3](seo-geo.md#步骤-2探针采样)，有效样本先复用 | 按 [步骤 6](seo-geo.md#步骤-6复测节奏) |
+| 逐问法 Google 与意图证据 | 每条长尾问法有 Google 卡指针，市场与日期可查；意图记录与 GT 卡分别可见 | 入口卡③、`.rankup/keywords.md` | [seo-serp.md](seo-serp.md#逐问法-google-读法) | 按 [SERP 有效期](seo-serp.md#serp-快照有保质期窗口在关闭必须带复测日期) |
+| 本地词与反查补漏 | 非英语来源、探索日志、竞品差集、停止原因与新意图补测状态可查；不适用有理由 | 入口卡③、研究报告第 3 节 | [P2](playbooks/research/p2-keyword-root.md)，不重复扩树或反查阈值 | 新意图/证据失效 |
+| 两路结论与页面移交 | SEO/GEO 的结论与支持、反证、未知有原证据指针；页面清单承接问法与任务 | 入口卡④、`keywords.md`；`decisions.md` 只留结论与指针 | [entry.md 判读](playbooks/entry.md#4--判读)；[段 2](lifecycle/stage-2-positioning.md) | 新证据/事实变化 |
+| 背景与局限 | 本轮采集的社区、流量、收入及估算均带来源、口径、日期或缺测状态 | 研究报告与 `.rankup/decisions.md` | 来源见 [demand-sources.md](demand-sources.md)，只核记录覆盖 | 按来源 |
 
 ## 段 2 · 立项与定位
 
@@ -126,9 +110,9 @@
 
 | 检查项 | 客观通过条件 | 证据落点 | 怎么做 | 复查 |
 |---|---|---|---|---|
-| **立项 / 建站前用词实测闸门已过** | 回读段 1 [主词与域名用词实测闸门](#主词与域名用词实测闸门)，拟立项及建站用词逐项勾选；推荐 / 购买域名前同样复核 | 入口卡 ① 的 GT 同框读数文件或已确认来源指针，状态记 `.rankup/checks.md` | 引用段 1 判据，不另定一套 | 立项 / 推荐或购买域名 / 建站前 |
-| **单语种裁定已落** | 一行裁决：做哪个语种/市场 + W1 的并排数据（各语种量 / KD / CPC）+ 为什么不做多语言 + 扩张候选。**起步没有规划多语言路由**；多语言只在「单语站已拿到流量」的扩张期出现 | `.rankup/decisions.md` | [`trends.md`](trends.md) W1 探测；判据见 [`lifecycle/stage-2-positioning.md`](lifecycle/stage-2-positioning.md) 段 2 · 2.1 | 一次 |
-| **意图 → 形态 → 变现对得上** | 产品形态与变现方式是从段 1 的网页/商店意图与原生使用任务证据推出来的（信息型 → 内容站接广告；工具型 → 工具页/客户端；持续使用型 → 订阅），三者写在同一行 | `.rankup/PROJECT.md` | 对照 [`lifecycle/stage-2-positioning.md`](lifecycle/stage-2-positioning.md) 段 2 · 2.2 的表；变现细节路由到 [`monetization.md`](monetization.md) | 一次 |
+| **立项 / 建站前用词记录已核** | 回读段 1 [用词记录](#主词与域名用词实测闸门)，拟用短语有证据与状态 | 入口卡①与 `.rankup/checks.md` | 复用段 1 记录 | 新增/更换用词、证据失效 |
+| **语种与市场决定已落** | 选定市场、语言与扩张候选有两路证据指针及理由 | `.rankup/decisions.md` | [stage-2-positioning.md](lifecycle/stage-2-positioning.md) | 新证据/范围变化 |
+| **问法簇 → 页面 → 形态已映射** | 页面清单、用户任务、真实能力与承接问法有关联；产品形态与变现备注可回读 | `.rankup/PROJECT.md`、`keywords.md` 与页面清单 | [stage-2-positioning.md](lifecycle/stage-2-positioning.md)；变现见 [monetization.md](monetization.md) | 新页面/任务变化 |
 | 关键路径有可测试的验收标准 | `plan.md` 每条 P0 都写了动作、证据、预期影响和完成判定 | `.rankup/plan.md` | 手写 | 每轮 |
 | 每个 Cloudflare 服务都有理由 | 每个服务写明需求、binding、环境边界和失败处理；**没有「以后可能需要」而提前创建的资源** | `.rankup/architecture.md` | 对照 [`cloudflare-stack.md`](cloudflare-stack.md) 逐项填 | 一次 |
 | 域名是待定项 | `infrastructure.md` 的域名一栏写「待段 5 定稿」，本段没有选域名、没有买域名 | `.rankup/infrastructure.md` | 域名裁决在段 5，这里只留位 | 一次 |
@@ -191,7 +175,8 @@ Web组件、Cloudflare和后续URL/SEO检查仅适用Web面；原生App按[`life
 
 | 检查项 | 客观通过条件 | 证据落点 | 怎么做 | 复查 |
 |---|---|---|---|---|
-| **每页目标词已登记** | 每个进 sitemap 的页面在 `keywords.md` 有「URL ↔ 目标短语」一行，短语是原字符串；没登记的页面不进闸门 3 | `.rankup/keywords.md` | 见 [段 4 操作](lifecycle/stage-4-prelaunch.md) 段 4 · B 节第 6 条 | 动了页面 |
+| **有用内容与可信度** | 本轮新增或实质改动的可索引页逐页通过 [`seo-helpful-content.md` 单页级自检表](seo-helpful-content.md#单页级自检表)，≥15/16、关键项全为 2、无 0 分与红线 | 逐 URL 分数、范围与证据进 `.rankup/audit.md` | 按单页表核对真实投入、增量、准确性、责任与 AI 披露 | 动了页面 |
+| **每页目标词已登记** | 每个进 sitemap 的页面在 `keywords.md` 有「URL ↔ 目标短语」一行，短语是原字符串，并关联承接问法簇、任务与页面清单证据；没登记的页面不进闸门 3 | `.rankup/keywords.md` | 页面映射见 [段 2](lifecycle/stage-2-positioning.md)，实施见 [段 4](lifecycle/stage-4-prelaunch.md) | 动了页面 |
 | **无关区块不进 SSR 文本** | 价格表、UI 控件标签、单位、法务文案等不属于目标文案的区块已改客户端加载或交互门控注入（想被 AI 引用的价格表与推荐位除外，保持 SSR，见 [`seo-ssr.md`](seo-ssr.md) 做法一边界）；`--density-only` top15 里没有 UI 词；用交互门控的，无头零输入下 SSR 不含该区块、单击后出现 | 密度输出 + 无头测试记录进 `.rankup/audit.md` | [`seo-ssr.md`](seo-ssr.md)「交互门控注入」 | 动了页面 |
 | **每页独立 title/description/og:image 且有图** | 全站 title、description、`og:image` 三样逐页互不重复；每页至少一张真实 `<img>`；`og:image` ≥1200px 宽且尺寸声明是真值；**全站共用一张 `og:image` 不通过** | seo-audit `--json` + `.rankup/audit.md` | [段 4 操作](lifecycle/stage-4-prelaunch.md) B8 | 动了页面 |
 | **文案闸门（起稿即带，不是起稿后再改）** | 中文正文过 `/write` 阶段四：`check_prose.py` 的「需要修改」为空（冒号、破折号、「不是A而是B」及意思层面的先否后肯清零）、无矫饰比喻、无模型口癖、长句≤45 字为主；日韩无破折号；英文按 `/ai-seo` Information Gain 自查，**长句按句量不按段量**（40 词），无 AI 词汇，无 not-X-but-Y；每语种 title 30–60、description 70–160 | `.rankup/evidence/copy-check/<页>-<语种>.md` | `/write` 阶段四、`/ai-seo`；抽文案与检查固化成项目脚本，起稿 prompt 带闸门并循环到 0；起稿即校验可减少返工 | 动了页面 |
@@ -247,6 +232,7 @@ Web组件、Cloudflare和后续URL/SEO检查仅适用Web面；原生App按[`life
 | 两边 sitemap 已提交 | GSC 与 Bing 都提交过，记的是**快照日期**不是实时值 | `.rankup/integrations.md` | `webmaster-sitemap.mjs <gsc\|bing> submit` | 动了 URL |
 | **`hello@<domain>` 收信与防冒充分别通过** | 转发规则存在、收过测试邮件，JSON-LD `contactPoint.email`、`/about`、外链联络三处同一 `hello@`；SPF / DKIM / DMARC 按 §8.6 主动核查，拒收/隔离策略生效，外发认证通过或有依据标不适用；仅 `p=none`、用途未知或 DNS 未生效不能标完成 | 线上 HTML + CLI/API 回读 + 权威/公共 DNS + `.rankup/integrations.md` 用途依据、变更前后及回滚记录 | [`cloudflare-stack.md`](cloudflare-stack.md) §8.6 | 新建/绑定域名、接邮箱、上线及现站 review |
 | **Cloudflare AI 爬虫阻止已关闭** | Bot Management 的 `ai_bots_protection`、`ai_training`、`ai_search`、`ai_user` 均回读为 `disabled`；托管 robots.txt 无 `ai-train=no` 或 AI 爬虫 `Disallow: /` | `.rankup/integrations.md` | [`cloudflare-stack.md`](cloudflare-stack.md) §8.5、§8.7；仅看 robots.txt 不足以发现边缘 403 | 新 zone / 改了安全配置 |
+| **上线站推荐位探测与整改闭环** | 按闭环完成 ChatGPT 网页版探测、建议甄别、整改发布与复审，记录出现率及区间、未达标或停止原因；不得把知情复审混作自然推荐 | `.rankup/geo-loop/<日期>.md`，原始证据指向仓库外 | [`seo-geo-recommendation-loop.md`](seo-geo-recommendation-loop.md) | 沿用 [`seo-geo.md`](seo-geo.md) 步骤 6 复测节奏 |
 | **AI 爬虫上线实测** | 各 AI 爬虫 UA 请求首页、一个内页、`robots.txt`、`llms.txt` 全部 200，且 robots.txt 不对任何 AI 爬虫写 `Disallow: /`；`llms.txt` 404 单列缺失，不能算拦截或全过 | Bot Management 四字段回读 + 逐 UA 状态表进 `.rankup/audit.md` | `node <rankup-skill-dir>/scripts/ai-crawler-access.mjs --url <正式域名>`；设置见 [`cloudflare-stack.md`](cloudflare-stack.md) §8.5、§8.8 | 新 zone / 上线 / 改了安全规则 |
 | **索引已放开并复核** | 索引开关应在部署验证阶段（5.4 第 22 条）就已翻开，这里只是复核不是第一次翻；正式首页与代表内页按 D1 完成 SSR / 水合 / 真实 SPA 导航一致性复核，索引开关为开，无冲突 noindex、robots 无误挡；preview 仍封锁；段 4 闸门 1、2、4 的设计项转绿 | D1 三阶段证据 + robots/响应头进 `.rankup/audit.md` | [`lifecycle/stage-5-launch.md`](lifecycle/stage-5-launch.md) 段 5.6 第 27–28 条，判据复用 D1 | 放开索引 / 动了索引配置或 head |
 | **占位专项复查（硬性红线，放开索引前必过）** | 段 4 的占位专项已在**本域名**（正式域名，不是预览域）线上重跑一遍，零命中；**上一轮在预览域跑过的结果不采信**，域名换了、内容可能也动过 | grep 输出（逐 URL）+ 人工抽查记录进 `.rankup/audit.md` | 正则与人工抽查范围同段 4 闸门；域名定稿绑定后立即重跑，不等放开索引前才想起来 | 一次 |

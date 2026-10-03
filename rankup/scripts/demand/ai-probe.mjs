@@ -7,7 +7,7 @@
  *     ③ 多次重复的稳定度（名单 Jaccard、Top1 一致率）；
  *     ④ 与 Google 前 10 的域名重合；
  *     ⑤ AI 给每个推荐打的类型标签（dedicated_product / listicle_blog / marketplace / big_platform…），
- *        据此给出「推荐位空/被占」的提示（提示，不是结论，结论归读结果的人）。
+ *        仅记录类型计数，不自动给出推荐位判决。
  *   适用产品：付费工具、游戏站、平台类——凡是「用户会直接问 AI 要推荐」的需求。
  *
  * 示例（<...> 换成自己的词和目录；--out 指向仓库外的任意目录）：
@@ -103,7 +103,7 @@
  *   raw/<N|K|C>-<rep>.answer.md    答案原文
  *   google-serp.json               抓到/传入的 Google 前 10
  *   summary.json                   机器可读汇总（banner、memoryClean、memoryScopesSeen、稳定度、Top1 一致率、与 Google 重合、
- *                                  引用来源分布 citedDomainFrequency、推荐位提示）。memoryClean：网页通道 unknown|user-confirmed；
+ *                                  引用来源分布 citedDomainFrequency、首次回答外部产品点名率）。memoryClean：网页通道 unknown|user-confirmed；
  *                                  codex 通道恒为 n/a-isolated-codex-home（空 CODEX_HOME，无账号记忆）。
  *   summary.md                     人读摘要（网页通道且未确认记忆时，第一行就是「未确认无记忆污染，仅供参考」）
  *   退出码：0 全部成功；2 参数错误；3 有提问失败（限流/登录失效/超时，已记录，可 --resume 续跑）。
@@ -172,7 +172,7 @@ export function urlsIn(text) {
 }
 const uniq = (a) => [...new Set(a.filter(Boolean))];
 
-// 列表页/博客榜单的启发式：只用来给「推荐位空/被占」一个提示
+// 列表页/博客榜单的启发式：只记录 URL 类型占比
 const LISTICLE_RE = /(\/blog\/|\/blogs\/|\/articles?\/|\/best[-_/]|\/top[-_]?\d*|\/alternatives|\/vs[-_/]|\/compare|\/guide|\/review|\/roundup|\/list)/i;
 const LISTICLE_HOSTS = /(^|\.)(medium\.com|reddit\.com|quora\.com|pcmag\.com|techradar\.com|zapier\.com|forbes\.com|g2\.com|capterra\.com|producthunt\.com|youtube\.com|wikipedia\.org|substack\.com|linkedin\.com|tomsguide\.com|cnet\.com|theverge\.com)$/i;
 export const looksLikeListicle = (url) => { try { const u = new URL(url); return LISTICLE_RE.test(u.pathname) || LISTICLE_HOSTS.test(u.hostname); } catch { return false; } };
@@ -583,18 +583,49 @@ export function summarizeGroup(records, googleDomains, topicTokens) {
 }
 
 function slotHint({ top1Modal, consistency, kinds, listicleShare, topicMatch }) {
-  const dedicated = kinds.dedicated_product || 0;
-  const listicle = kinds.listicle_blog || 0;
-  const tot = Object.values(kinds).reduce((a, b) => a + b, 0) || 1;
-  if (!top1Modal) return 'unknown（没有解析出名单）';
-  if (consistency >= 2 / 3 - 1e-9 && dedicated / tot >= 0.5 && listicle / tot < 0.25) return `occupied（Top1 ${top1Modal} 稳定，且推荐以专门产品为主${topicMatch ? '，域名主标签与词素匹配' : ''}）`;
-  if (listicle / tot >= 0.4 || (listicleShare ?? 0) >= 0.6) return 'open-ish（推荐/引用以博客榜单为主）';
-  return `mixed（Top1 ${top1Modal} 一致率 ${(consistency * 100).toFixed(0)}%，需人工读答案定夺）`;
+  return `历史 slotHint 字段（不参与裁决）：Top1 众数 ${top1Modal || '无'}；一致率 ${(consistency * 100).toFixed(0)}%；类型计数 ${JSON.stringify(kinds)}；博客榜单 URL 占比 ${listicleShare ?? '未知'}；域名词素匹配数 ${topicMatch}`;
+}
+
+// 只使用已有推荐/文本域名解析；引用和检索命中本身不等于点名。
+function firstResponseNamesExternalProduct(r) {
+  const first = r.turns?.[0];
+  if (!(first ? first.ok : r.ok)) return null;
+  const reco = first ? extractReco({ answer: first.answer }) : (r.reco || extractReco(r));
+  const ext = (d) => d && !['chatgpt.com', 'openai.com'].includes(regDomain(d));
+  if (uniq([...reco.list.map(x => x.domain), ...reco.linkDomains, ...(first?.textDomains || [])]).some(ext)) return true;
+  if (reco.list.some(x => x.name && !/^(chatgpt|openai)$/i.test(String(x.name).trim()))) return true;
+  // 没解析到域名或名称，不能据此断言「没有点名」：纯文本里的产品名在不调用模型时无法识别。
+  // 只有后续追问里 ChatGPT 自己记录的推荐清单（{"recommendations":[...]}）明确为空，才记「否」（自报，口径单列）；其余记「未知」。
+  for (const t of (r.turns || []).slice(1)) {
+    const m = String(t?.answer || '').match(/\{[^{}]*"recommendations"\s*:\s*\[\s*\][^{}]*\}/);
+    if (m) return false;
+  }
+  return null;
+}
+
+function summarizeQuestions(results) {
+  const groups = new Map();
+  for (const r of results) {
+    const prompt = r.turns?.[0]?.prompt || r.prompt;
+    const key = JSON.stringify([r.channel, !!r.turns, prompt]);
+    if (!groups.has(key)) groups.set(key, { prompt, channel: r.channel, sampleMode: r.turns ? 'multi-turn-natural' : 'historical-wrapped', samples: [] });
+    groups.get(key).samples.push({ label: r.label, firstResponseNamesExternalProduct: firstResponseNamesExternalProduct(r) });
+  }
+  return [...groups.values()].map(g => {
+    const known = g.samples.filter(r => r.firstResponseNamesExternalProduct !== null);
+    const k = known.filter(r => r.firstResponseNamesExternalProduct).length;
+    const n = known.length;
+    const z2 = 1.96 ** 2;
+    const center = n ? (k / n + z2 / (2 * n)) / (1 + z2 / n) : null;
+    const half = n ? 1.96 * Math.sqrt(k / n * (1 - k / n) / n + z2 / (4 * n ** 2)) / (1 + z2 / n) : null;
+    return { ...g, namedCount: k, nKnown: n, nUnknown: g.samples.length - n,
+      namingRate: n ? round(k / n, 4) : null, namingRateWilson95: n ? [round(center - half, 4), round(center + half, 4)] : null };
+  });
 }
 
 // ───────────────────────── 主流程 ─────────────────────────
 
-const HELP = 'ai-probe.mjs --topic <词> --need-prompt <文本> --out <目录> [--keyword-prompt <文本>] [--reps 3] [--google-top a.com,b.com | --google-serp-file f | --fetch-google] [--channel codex|chatgpt-web [--temporary] [--memory-clean]] [--kinds N,K,C] [--followup-prompt <文本>] [--multi-turn [--turns <整数>] [--turn2-prompt <文本>] [--turn3-prompt <文本>] [--followup <文本> ...]] [--keep-open] [--dry-run] [--resume]（详见文件头注释）';
+const HELP = 'ai-probe.mjs --topic <词> --need-prompt <文本> --out <目录> [--keyword-prompt <文本>] [--reps 3] [--google-top a.com,b.com | --google-serp-file f | --fetch-google] [--channel codex|chatgpt-web [--temporary] [--memory-clean]] [--kinds N,K,C] [--followup-prompt <文本>] [--multi-turn [--turns <整数>] [--turn2-prompt <文本>] [--turn3-prompt <文本>] [--followup <文本> ...]] [--keep-open] [--dry-run] [--resume] [--summarize-only]（详见文件头注释）\n新流程自然采样以 ChatGPT 网页版为准：--channel chatgpt-web --memory-clean --multi-turn；默认通道仍为 codex。Codex 通道与旧 N/K 包装样本仅作历史兼容，不冒充自然样本。';
 
 async function main() {
   const args = parseArgs();
@@ -673,7 +704,7 @@ async function main() {
   const queue = args['summarize-only'] ? [] : [...jobs];
   if (args['summarize-only']) {
     // 只重算汇总：读 raw/*.json，不发任何提问
-    for (const f of fs.existsSync(rawDir) ? fs.readdirSync(rawDir) : []) if (f.endsWith('.json')) { try { const r = JSON.parse(fs.readFileSync(path.join(rawDir, f), 'utf8')); r.answer = cleanText(r.answer); r.reco = extractReco(r); results.push(r); } catch { /* skip */ } }
+    for (const f of fs.existsSync(rawDir) ? fs.readdirSync(rawDir) : []) if (f.endsWith('.json')) { try { const r = JSON.parse(fs.readFileSync(path.join(rawDir, f), 'utf8')); r.answer = cleanText(r.answer); r.reco = extractReco(r); r.firstResponseNamesExternalProduct = firstResponseNamesExternalProduct(r); results.push(r); } catch { /* skip */ } }
     log(`--summarize-only：读到 ${results.length} 条记录`);
   }
   let lastStart = 0; let abortAll = null;
@@ -717,6 +748,7 @@ async function main() {
       rec.memoryScopeConflict = !!(webChannel && memoryFlag && rec.web?.memory_scope === 'global_enabled');
       if (rec.memoryScopeConflict) log(`[警告] ${job.label}：你传了 --memory-clean，但会话 payload 显示 memory_scope=global_enabled（账号记忆是开着的）——声明与页面矛盾，这批结果仍可能被账号记忆污染。`);
       rec.reco = extractReco(rec);
+      rec.firstResponseNamesExternalProduct = firstResponseNamesExternalProduct(rec);
       rec.textDomains = rec.reco.linkDomains;
       fs.writeFileSync(jsonPath, JSON.stringify(rec, null, 2));
       fs.writeFileSync(`${rawBase}.answer.md`, `${answer}\n`);
@@ -745,6 +777,7 @@ async function main() {
     memoryClean: summaryMemoryClean, memoryScopesSeen,
     topic, keyword, channel: summaryChannel, model: summaryChannel === 'codex' ? model : null, effort: summaryChannel === 'codex' ? effort : null, generatedAt: new Date().toISOString(),
     aliases: ALIASES,
+    questions: summarizeQuestions(results),
     caveat: 'n 很小，只是一次探针，不是统计结论；' + (multiTurn || results.some(r => r.turns) ? '多轮自然提问不带探针尾巴；域名只按引用/文本链接计数，不等于确认推荐；' : '探针尾巴会让模型多讲弱点；') + 'codex 通道≠网页版 ChatGPT；网页通道拿不到搜索词（firstQueryNamesPickShare 恒为 null）。',
     google: { top10: googleDomains, source: args['google-serp-file'] ? 'file' : args['google-top'] ? 'arg' : args['fetch-google'] ? 'opencli-google' : 'none' },
     N: summarizeGroup(by('N'), googleDomains, tokens),
@@ -767,13 +800,18 @@ function renderMd(s, results) {
   L.push(`# AI 探针：${s.topic}`, '', `- 通道：${s.channel}${s.model ? `（${s.model} ${s.effort}）` : ''}；memoryClean=${s.memoryClean}${s.memoryScopesSeen?.length ? `；payload memory_scope=${s.memoryScopesSeen.join('/')}` : ''}；生成：${s.generatedAt}`, `- ${s.caveat}`, `- Google 前 10（${s.google.source}）：${s.google.top10.join(', ') || '（无）'}`, ...(Object.keys(s.aliases || {}).length ? [`- 域名别名（折成同一产品）：${JSON.stringify(s.aliases)}`] : []), '');
   for (const k of ['N', 'K']) {
     const g = s[k];
-    L.push(`## ${k} 型（${k === 'N' ? '需求描述，不含关键词' : '关键词直问'}）`, '', `- 成功 ${g.nOk}/${g.n}；联网占比 ${g.searchedShare}；首轮搜索词里已带最终推荐产品名的占比 ${g.firstQueryNamesPickShare}（=先凭记忆选人再联网核实）；全部搜索都是 site: 限定的占比 ${g.preSitedShare}；平均 ${g.avgDurationS}s`,
+    L.push(`## ${k} 型（${k === 'N' ? '需求描述，不含关键词' : '关键词直问'}）`, '', `- 成功 ${g.nOk}/${g.n}；联网占比 ${g.searchedShare}；首轮搜索词里已带最终推荐产品名的占比 ${g.firstQueryNamesPickShare}（仅记录词面包含，不推断因果）；全部搜索都是 site: 限定的占比 ${g.preSitedShare}；平均 ${g.avgDurationS}s`,
       `- 每个域名出现次数：${Object.entries(g.perDomainFrequency).map(([d, c]) => `${d}×${c}`).join('、') || '（无）'}`,
       `- 每次都出现的域名：${g.coreAllRuns.join('、') || '（无）'}；≥2 次占并集：${g.stableShare_ge2}；两两 Jaccard 均值：${g.pairwiseJaccard}`,
       `- Top1 每次：${g.top1PerRun.join(' / ')}；一致率 ${g.top1Consistency}（众数 ${g.top1Modal || '无'}）`,
       `- 与 Google 前 10 重合：推荐并集里 ${g.googleOverlap.count} 个（${g.googleOverlap.recoUnionInGoogleTop10.join('、') || '无'}）；Top1 在前 10：${g.googleOverlap.top1InGoogleTop10}；检索命中里在前 10 的：${g.googleOverlap.retrievedInGoogleTop10.join('、') || '无'}`,
       `- 引用来源（cited）：${Object.entries(g.citedDomainFrequency).map(([d, c]) => `${d}×${c}`).join('、') || '（无）'}；有引用的占比 ${g.citedShare}；引用里在 Google 前 10 的：${g.googleOverlap.citedInGoogleTop10.join('、') || '无'}`,
-      `- AI 自标类型计数：${JSON.stringify(g.kindsCount)}；推荐名单之外的检索/引用 URL 里博客榜单占比 ${g.listicleShareOfUrls}`, `- 推荐位提示：${g.slotHint}`, '');
+      `- AI 自标类型计数：${JSON.stringify(g.kindsCount)}；推荐名单之外的检索/引用 URL 里博客榜单占比 ${g.listicleShareOfUrls}`, `- 历史兼容字段 slotHint：${g.slotHint}`, '');
+  }
+  L.push('## 按问法：首次回答外部产品点名率', '', '只用已有推荐/文本域名解析判断点名（是/否）；引用或检索命中不单独算点名，失败为未知。解析不能识别没有域名的纯名称，须回读原回答。回答中没有任何外部产品时，说明该问法下推荐位不存在（ChatGPT 自己当工具），不等于被筛掉；解析空名单本身不能证明原文没有产品。这是 2026-10-03 oc-maker 试点的实测发现（8 个问法里 6 个无外部推荐）。', '');
+  for (const q of s.questions) {
+    L.push(`- 问法：${q.prompt}；通道 ${q.channel}；样本 ${q.sampleMode}；点名率 ${q.namedCount}/${q.nKnown}（${q.namingRate ?? '未知'}）；95% Wilson 区间 ${q.namingRateWilson95?.join('–') || '未知'}；未知 ${q.nUnknown}`);
+    for (const r of q.samples) L.push(`  - ${r.label}：首次回答是否点名外部产品/网站=${r.firstResponseNamesExternalProduct === null ? '未知' : r.firstResponseNamesExternalProduct ? '是' : '否'}`);
   }
   const multi = results.filter(r => r.turns);
   if (multi.length) {

@@ -96,6 +96,7 @@ function parseArgs(argv) {
     const a = argv[i];
     if (a === "--rising-only") opts.risingOnly = true;
     else if (a === "--raw") opts.raw = true;
+    else if (a === "--no-gpts") opts.noGpts = true;
     else if (a === "--keep-session") opts.keepSession = true;
     else if (a === "--session") {
       if (i + 1 >= argv.length) die(`选项 ${a} 缺少值`);
@@ -215,7 +216,7 @@ function runRestQuery(kws, opts, widgetId, path, reqPatch = null) {
   const t0 = Date.now();
   let stopReason = "completed", restErr = null, state = null, restBody = null, status = null;
   try {
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    for (let attempt = 1; attempt <= (opts.restAttempts ?? 3); attempt++) {
       openExplore(session, url, attempts);
       state = pageState(session, widgetId);
       if (opts.batch && state.captcha) fail("captcha", "Google 验证码，停止采集");
@@ -228,7 +229,7 @@ function runRestQuery(kws, opts, widgetId, path, reqPatch = null) {
       if (state.redirectedToNew) rest = { ...rest, ok: false, err: "旧版页面被重定向到新版" };
       restErr = rest.err || null;
       const retry = status !== 400 && (state.oops || status === 429 || status === 302 || rest.redirected);
-      const waitSeconds = !rest.ok && retry && attempt < 3 ? attempt * 30 : 0;
+      const waitSeconds = !rest.ok && retry && attempt < (opts.restAttempts ?? 3) ? attempt * 30 : 0;
       attempts.push({ attempt, reason: restErr || "REST success", waitSeconds, status, page: state });
       if (!quiet) writeManifest(dir, { route: "old-explore", dataPath: "rest", attempts });
       if (!rest.ok) {
@@ -283,14 +284,68 @@ function widgetEmptyExit(evidenceDir, whatFor, reasonLine) {
 }
 
 function cmdCompare(kws, opts) {
-  if (!kws.length) die("compare 需要至少 1 个关键词，最多 5 个");
-  if (kws.length > 5) die("Google Trends 一次最多对比 5 个关键词");
-  const { restBody, geo, timeframe, evidenceDir, noData } = runRestQuery(kws, opts, "TIMESERIES", "multiline");
-  if (noData) { console.log("热度曲线：Google 明示数据不足（no-data）"); return; }
-  const timeline = JSON.parse(restBody).default.timelineData;
-  const rows = timeline.map(pt => [pt.time ? epochDay(pt.time) : (pt.formattedAxisTime || ""),
-    ...kws.map((_, i) => pt.hasData?.[i] === false || pt.value?.[i] == null ? "" : String(pt.value[i]))]);
-  printCompare(kws, geo, timeframe, rows, evidenceDir);
+  if (!kws.length) die("compare 需要至少 1 个关键词");
+  const gptsAdded = !opts.noGpts && !kws.some(k => k.toLowerCase() === "gpts");
+  const anchor = Number(opts.anchor ?? process.env.RANKUP_GPTS_ANCHOR ?? 5000);
+  const candidates = opts.noGpts ? kws : kws.filter(k => k.toLowerCase() !== "gpts");
+  const size = opts.noGpts ? 5 : 4;
+  const batches = [];
+  for (let i = 0; i < candidates.length; i += size)
+    batches.push(opts.noGpts ? candidates.slice(i, i + size) : [...candidates.slice(i, i + size), "gpts"]);
+  if (!batches.length) batches.push(["gpts"]);
+  const session = opts.session ?? defaultSession();
+  console.log(`对比共分 ${batches.length} 批；每批独立查询与判读${gptsAdded ? "；自动追加 gpts" : ""}。`);
+  if (opts.noGpts) console.log("未同框 gpts（用户显式 --no-gpts）");
+  try {
+    for (const [index, list] of batches.entries()) {
+      if (index) msleep(30_000);
+      console.log(`\n### 第 ${index + 1}/${batches.length} 批`);
+      const { restBody, geo, timeframe, evidenceDir, noData } = runRestQuery(list,
+        { ...opts, session, keepSession: true, batch: true, restAttempts: 2 }, "TIMESERIES", "multiline");
+      const timeline = JSON.parse(restBody).default?.timelineData || [];
+      const rows = timeline.map(pt => [pt.time ? epochDay(pt.time) : (pt.formattedAxisTime || ""),
+        ...list.map((_, i) => pt.hasData?.[i] === false || pt.value?.[i] == null ? "" : String(pt.value[i]))]);
+      if (noData) console.log("热度曲线：Google 明示数据不足（no-data）");
+      printCompare(list, geo, timeframe, rows, evidenceDir, { gptsAdded, anchor, batch: index + 1 });
+      if (!opts.noGpts) printGptsBaseline(list, geo, rows, anchor, opts.anchor !== undefined);
+    }
+  } finally {
+    if (!opts.keepSession) closeSession(session);
+    else console.error(`[gt-browser] 会话 ${session} 已保留，用完请 close。`);
+  }
+}
+
+function printGptsBaseline(kws, geo, rows, anchor, explicitAnchor) {
+  const mean = i => {
+    const values = rows.map(r => r[i + 1]).filter(v => v !== "").map(Number);
+    return values.length ? values.reduce((sum, v) => sum + v, 0) / values.length : null;
+  };
+  const baseline = mean(kws.indexOf("gpts"));
+  const monthly = geo === "US" || explicitAnchor;
+  console.log("\n## gpts 基线判读\n");
+  if (!monthly) console.log(`锚点 ${anchor} 为美国口径，非 US 只比较相对大小\n`);
+  console.log("100 是组内窗口峰值；0 是低于展示分辨率或样本不足，不是零搜索。\n");
+  const readings = kws.flatMap((k, i) => {
+    if (k === "gpts") return [];
+    const value = mean(i);
+    let ratio = "—", interval = "—", judgment;
+    if (baseline === null || baseline === 0) judgment = "gpts 数据缺失，无法判读";
+    else if (value === null) judgment = "候选词数据缺失，无法判读";
+    else {
+      const r = value / baseline;
+      ratio = r.toFixed(3);
+      if (value === 0) judgment = "低于展示分辨率（≠ 零搜索）";
+      else {
+        judgment = r > 1.35 ? "大于 gpts 量级" : r < 0.65 ? "小于 gpts 量级" : "约等于 gpts 量级（区间重叠）";
+        if (monthly) interval = [.65, 1.35].map(f => (Math.round(r * anchor * f / 100) * 100).toLocaleString("en-US")).join("–");
+      }
+    }
+    return [[k, value === null ? "—" : value.toFixed(3), baseline === null ? "—" : baseline.toFixed(3), ratio,
+      ...(monthly ? [interval] : []), judgment]];
+  });
+  console.log(mdTable(["词", "周读数均值", "gpts 周读数均值", "r", ...(monthly ? ["折合月量区间"] : []), "判读"], readings));
+  if (baseline === null || baseline === 0) console.log("\ngpts 数据缺失，无法判读");
+  console.log("\ngpts 自身有涨落周期，判读只用窗口均值；锚点 ≈5000/月为用户定的衡量标准，详见 references/trends.md「gpts 基线判读」");
 }
 
 function epochDay(epoch) { return new Date(Number(epoch) * 1000).toISOString().slice(0, 10); }
@@ -313,10 +368,10 @@ function assertTimelineWindow(rows, timeframe, now = Date.now()) {
   }
 }
 
-function printCompare(kws, geo, timeframe, rows, evidenceDir) {
-  assertTimelineWindow(rows, timeframe);
+function printCompare(kws, geo, timeframe, rows, evidenceDir, metadata) {
+  if (rows.length) assertTimelineWindow(rows, timeframe);
   const measured = rows.some(r => r.slice(1).some(v => v !== ""));
-  writeFileSync(join(evidenceDir, "compare-result.json"), JSON.stringify({keywords:kws, geo, timeframe,
+  writeFileSync(join(evidenceDir, "compare-result.json"), JSON.stringify({keywords:kws, geo, timeframe, ...metadata,
     status: measured ? "ok" : "insufficient", start:rows[0]?.[0], end:rows.at(-1)?.[0], rows}, null, 2) + "\n");
   console.log(`## 热度对比：${kws.join(" vs ")}`);
   console.log(scopeLine(geo, timeframe));
@@ -528,7 +583,11 @@ function main() {
       [
         "gt-browser — Google Trends 旧版 Explore 页的 OpenCLI 路由",
         "",
-        "  node gt-browser.mjs compare KW1 [KW2...]  热度对比",
+        "  node gt-browser.mjs compare KW1 [KW2...]  热度对比（默认追加 gpts，不重复）",
+        "    超过 4 个候选词顺序分批，每批最多 4 词 + gpts，独立判读；批间等待 30 秒",
+        "  --no-gpts  compare 独立窗口，不加基线、不判读；每批最多 5 词",
+        "  --anchor N  gpts 月量锚点（默认 RANKUP_GPTS_ANCHOR 或 5000），误差 ±35%",
+        "    默认仅 --geo US 折合月量；显式 --anchor 可用于其他地区",
         "  node gt-browser.mjs region  KW1 [KW2...]  地区分布",
         "  node gt-browser.mjs related KW             相关查询（仅单词）",
         "  node gt-browser.mjs related-batch KW... --out DIR [--keywords-file FILE]",

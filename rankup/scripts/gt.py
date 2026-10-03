@@ -7,6 +7,8 @@
 
 子命令：
   compare KW1 KW2 ...   关键词热度对比曲线（interest over time，0-100 归一化）
+                       默认追加 gpts，不重复；超过 4 个候选词顺序分批，
+                       每批最多 4 词 + gpts，独立判读，批间等待 30 秒
   region  KW1 [KW2...]  地区热度分布（哪个国家搜得多）
   related KW             相关查询（rising 飙升词 + top 高频词，仅支持单个关键词）
   hot                    每日热搜榜（走 opencli，跟新旧版 Explore 切换无关）
@@ -15,6 +17,9 @@
 通用选项：
   --geo CODE     地区代码，如 US/JP/GB；留空 "" = 全球
   --time RANGE   时间范围：1h/4h/1d/7d/28d/30d/1m/3m/12m/5y/all 或 2024-01-01:2025-01-01（默认 12m）
+  --no-gpts      compare 独立窗口，不加基线、不输出判读；每批最多 5 词
+  --anchor N     gpts 月量锚点（默认 RANKUP_GPTS_ANCHOR 或 5000），误差 ±35%
+                 默认仅 --geo US 折合月量；显式 --anchor 可用于其他地区
   --raw          保留兼容选项（新版 compare 输出的已是未聚合的周级数据）
   --property P   搜索类型：web（默认）/images/news/youtube/shopping
   --category N   Trends 类目编号（0=全部）

@@ -43,7 +43,7 @@ function compare(term, time, index) {
   mkdirSync(dir, { recursive: true });
   let error;
   try {
-    const output = call('node', [gt, 'compare', term, 'gpts', '--geo', region, '--time', time, '--session', session, '--keep-session'], dir);
+    const output = call('node', [gt, 'compare', term, '--geo', region, '--time', time, '--session', session, '--keep-session'], dir);
     writeFileSync(join(dir, 'output.md'), output);
   } catch (e) { error = String(e.stderr || e.message); }
   const evidenceRoot = join(dir, '.rankup/evidence');
