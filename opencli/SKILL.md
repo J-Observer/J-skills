@@ -264,17 +264,17 @@ browser 与 adapter 都借不到时只建**一个**替身窗口共用；用户�
 | 只取数、不需要页面真正渲染 | 必须显式 `--window background` | 禁止加 foreground / active |
 | 网站验收、截图、E2E、懒加载报表需要真渲染 | 必须用 `--window dedicated` | 禁止手写 `--window-slot`、`--window-display` 指向主屏、手算位置 |
 | 看手机 / H5 版式 | 必须用 `--window dedicated --half` | 禁止靠改 bounds 宽度模拟 |
-| 需要指定窗口宽高（如 390 / 1360 视口对比） | 必须用 `--window dedicated --window-bounds 0,0,<宽>,<高>`：仅当 bounds 中心点落在用户当前屏时才迁到自动宫格，保留宽高（不超过目标屏工作区）；0,0 不保证迁移，见表后例外 | 禁止把 left/top 写成主屏以外的坐标来“挑位置”（挑位置交给宫格） |
+| 需要指定窗口宽高（如 390 / 1360 视口对比） | 必须用 `--window dedicated --window-bounds 0,0,<宽>,<高>`：仅当 bounds 与用户当前屏有重叠时才迁到自动宫格，保留宽高（不超过目标屏工作区）；0,0 不保证迁移，见表后例外 | 禁止把 left/top 写成主屏以外的坐标来“挑位置”（挑位置交给宫格） |
 | 多个页面需同时可见 | 必须每个页面各用一个独立会话名，各自 `--window dedicated` | 禁止一个会话里 tab new / tab select |
 | 用户要亲自过验证码 | 必须用 `--window foreground`，并告诉用户去哪个标签页点什么 | 禁止其他任何情况用 foreground |
 | 配额站（Semrush/Similarweb 等） | 必须固定站点会话名 + 一次访问一个 batch（沿用本 Skill 配额站一节） | 禁止并行多开 |
 
-显式 bounds 的中心点落在用户当前屏时才迁到自动宫格；自动选屏会排除用户当前屏，优先用其他外接/虚拟屏，只有一块屏时回主屏。用户当前屏在负坐标副屏时，`0,0,…` 的中心若在主屏，原 bounds 会被保留，窗口可出现在主屏。当前屏探测不可用时以主屏为迁移判断的备用。
+显式 bounds 与用户当前屏有重叠时才迁到自动宫格；自动选屏会排除用户当前屏，优先用其他外接/虚拟屏，只有一块屏时回主屏。用户当前屏在负坐标副屏时，`0,0,…` 若与用户当前屏完全不相交，原 bounds 会被保留，窗口可出现在主屏。当前屏探测不可用时以主屏为迁移判断的备用。
 出现主屏位置时先看 `window status -f json` 的 `placement.source`、`relocatedFrom` 和当前屏是否就是主屏，再结合屏幕数量判断；需要迁移却未迁移时再查扩展版本是否 ≥ 1.5.3。
 
 `dedicated` 用专用 slot 窗口保持页面可见，适合懒加载报表、网站验收和截图；仍使用用户同一 Chrome 与登录态。扩展 ≥ 1.2.0、CLI ≥ 1.10.0；先用 `opencli browser window status -f json` 确认 `supported` 和 `dedicated-window` capability。用 `--window-slot` 将需同时可见的会话分开；窗口定位、环境变量、外来标签策略和旧版 `isolated` + 虚拟屏方案见 [`references/field-notes.md`](references/field-notes.md#专用窗口与旧版可见性方案)。
 
-默认自动选屏会排除用户当前屏，优先用其他外接/虚拟屏，不抢焦点；没有其他屏时回主屏。当前屏在副屏时可用主屏，显式 bounds 另按上面的中心点规则处理。池跨所有副屏自动铺开：外接屏优先、按 id 排序，先填满一块屏的动态网格再用下一块，各屏使用自己的工作区坐标（支持负坐标）；自然容量内互不遮挡，全部副屏自然容量用完后才在最后一块屏层叠。层叠窗口可能被 Chrome 判为 `hidden`，懒加载报表要避免超过自然容量。
+默认自动选屏会排除用户当前屏，优先用其他外接/虚拟屏，不抢焦点；没有其他屏时回主屏。当前屏在副屏时可用主屏，显式 bounds 另按上面的重叠规则处理。池跨所有副屏自动铺开：外接屏优先、按 id 排序，先填满一块屏的动态网格再用下一块，各屏使用自己的工作区坐标（支持负坐标）；自然容量内互不遮挡，全部副屏自然容量用完后才在最后一块屏层叠。层叠窗口可能被 Chrome 判为 `hidden`，懒加载报表要避免超过自然容量。
 
 默认空闲 15 秒回收，`OPENCLI_DEDICATED_IDLE_MS` 可覆盖；lease 结束时 setTimeout 检查，alarm 与每次获取/创建前的惰性回收兜底。池上限随显示器自适应（所有自动化副屏 naturalCapacity 之和，下限 4，不再是固定值）；`window status -f json` 的 `pool.capacity` 是当前上限，`pool.naturalCapacity` 是所有自动化副屏的非重叠容量总和，`pool.automationDisplays` 列出各屏 id、name、area 和 naturalCapacity；兼容字段 `automationDisplay` 仅指第一块屏。建议配置大分辨率虚拟屏（如 5120×2880 约 20 格，池上限随之变大）或多块虚拟屏；`--window-display <名称片段>` / `OPENCLI_WINDOW_DISPLAY` 可钉到指定屏，显式指定时沿用匹配屏的旧分格规则，不跨到其他屏。
 
