@@ -270,3 +270,5 @@ zip）再 `gh release create` 手工把产物挂上去，别指望 Actions 自�
 - 合完还要**实跑一遍最小闭环**：`opencli doctor` 三行绿，
   再 `open` 一个真实页面并 `extract` 出内容。单测绿而端到端挂，
   正是护栏那次事故的形态。
+
+- `feat/window-layout`（待合并/启用）：dedicated 按每屏分辨率算固定网格与容量，鼠标仅影响新窗口选屏；屏幕事件/命令前/30 秒 alarm 自动对账，新增 `browser window relayout [-f json]`，status 增加每屏 cols/rows/tile 及窗口 displayId/reconciledAt。

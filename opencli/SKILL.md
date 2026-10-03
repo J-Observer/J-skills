@@ -287,28 +287,31 @@ browser 与 adapter 都借不到时只建**一个**替身窗口共用；用户�
 | 只取数、不需要页面真正渲染 | 必须显式 `--window background` | 禁止加 foreground / active |
 | 网站验收、截图、E2E、懒加载报表需要真渲染 | 必须用 `--window dedicated` | 禁止手写 `--window-slot`、`--window-display` 指向主屏、手算位置 |
 | 看手机 / H5 版式 | 必须用 `--window dedicated --half` | 禁止靠改 bounds 宽度模拟 |
-| 需要指定窗口宽高（如 390 / 1360 视口对比） | 必须用 `--window dedicated --window-bounds 0,0,<宽>,<高>`：仅当 bounds 与用户当前屏有重叠时才迁到自动宫格，保留宽高（不超过目标屏工作区）；0,0 不保证迁移，见表后例外 | 禁止把 left/top 写成主屏以外的坐标来“挑位置”（挑位置交给宫格） |
+| 需要指定窗口宽高（如 390 / 1360 视口对比） | 必须用 `--window dedicated --window-bounds 0,0,<宽>,<高>`：仅当 bounds 与用户当前屏有重叠时才转为自动宫格并采用格子尺寸；未转为 auto 的显式 bounds 保留宽高，0,0 不保证迁移，见表后例外 | 禁止把 left/top 写成主屏以外的坐标来“挑位置”（挑位置交给宫格） |
 | 多个页面需同时可见 | 必须每个页面各用一个独立会话名，各自 `--window dedicated` | 禁止一个会话里 tab new / tab select |
 | 用户要亲自过验证码 | 必须用 `--window foreground`，并告诉用户去哪个标签页点什么 | 禁止其他任何情况用 foreground |
 | 配额站（Semrush/Similarweb 等） | 必须固定站点会话名 + 一次访问一个 batch（沿用本 Skill 配额站一节） | 禁止并行多开 |
 
-显式 bounds 与用户当前屏有重叠时才迁到自动宫格；自动选屏会排除用户当前屏，优先用其他外接/虚拟屏，只有一块屏时回主屏。用户当前屏在负坐标副屏时，`0,0,…` 若与用户当前屏完全不相交，原 bounds 会被保留，窗口可出现在主屏。当前屏探测不可用时以主屏为迁移判断的备用。
+显式 bounds 与用户当前屏有重叠时才转为自动宫格，尺寸跟随格子，不再长期保留迁移前的宽高。自动化屏幕集合固定为全部非主屏，按外接/虚拟屏优先、id 数值顺序排列；没有可用非主屏时才用主屏。鼠标所在屏只影响新窗口选屏偏好，其他自动化屏还有空槽时优先用其他屏，否则照常用鼠标屏。用户当前屏在负坐标副屏时，`0,0,…` 若与用户当前屏完全不相交，原 bounds 会被保留，窗口可出现在主屏。当前屏探测不可用时以主屏为迁移判断的备用。
 出现主屏位置时先看 `window status -f json` 的 `placement.source`、`relocatedFrom` 和当前屏是否就是主屏，再结合屏幕数量判断；需要迁移却未迁移时再查扩展版本是否 ≥ 1.5.3。
 
 `dedicated` 用专用 slot 窗口保持页面可见，适合懒加载报表、网站验收和截图；仍使用用户同一 Chrome 与登录态。扩展 ≥ 1.2.0、CLI ≥ 1.10.0；先用 `opencli browser window status -f json` 确认 `supported` 和 `dedicated-window` capability。用 `--window-slot` 将需同时可见的会话分开；窗口定位、环境变量、外来标签策略和旧版 `isolated` + 虚拟屏方案见 [`references/field-notes.md`](references/field-notes.md#专用窗口与旧版可见性方案)。
 
-默认自动选屏会排除用户当前屏，优先用其他外接/虚拟屏，不抢焦点；没有其他屏时回主屏。当前屏在副屏时可用主屏，显式 bounds 另按上面的重叠规则处理。池跨所有副屏自动铺开：外接屏优先、按 id 排序，先填满一块屏的动态网格再用下一块，各屏使用自己的工作区坐标（支持负坐标）；自然容量内互不遮挡，全部副屏自然容量用完后才在最后一块屏层叠。层叠窗口可能被 Chrome 判为 `hidden`，懒加载报表要避免超过自然容量。
+自动网格由每块屏幕自己的 workArea 分辨率计算，目标尺寸接近 1280×900，最小 900×620（屏幕本身更小时退化），最大优先控制在 1600×1100；若整数分格无法同时满足上下限，优先保证最小尺寸和铺满工作区。格子无大间隙，与当前窗口数无关。例如 5120×2850 是 4×3 格、约 1280×950；2560×1440 是 2×2 格、1280×720；1512×949 是 1×1。窗口持久占用「displayId + tileIndex」固定槽位，行优先从左上开始，先填满一块屏再填下一块（鼠标屏的新建偏好例外）；优先复用最小空槽。开关窗口不会移动或缩放其他窗口，鼠标移动也不会迁移已有窗口。所有屏的格子用完后才在最后一块屏层叠；层叠窗口可能被 Chrome 判为 `hidden`，懒加载报表要避免超过自然容量。
 
-默认空闲 15 秒回收，`OPENCLI_DEDICATED_IDLE_MS` 可覆盖；lease 结束时 setTimeout 检查，alarm 与每次获取/创建前的惰性回收兜底。池上限随显示器自适应（所有自动化副屏 naturalCapacity 之和，下限 4，不再是固定值）；`window status -f json` 的 `pool.capacity` 是当前上限，`pool.naturalCapacity` 是所有自动化副屏的非重叠容量总和，`pool.automationDisplays` 列出各屏 id、name、area 和 naturalCapacity；兼容字段 `automationDisplay` 仅指第一块屏。建议配置大分辨率虚拟屏（如 5120×2880 约 20 格，池上限随之变大）或多块虚拟屏；`--window-display <名称片段>` / `OPENCLI_WINDOW_DISPLAY` 可钉到指定屏，显式指定时沿用匹配屏的旧分格规则，不跨到其他屏。
+自动放置窗口（`placement.source==='auto'`）会在屏幕变化、每条命令获取/创建窗口前以及约 30 秒 alarm 时串行对账；拖离槽位会归位，最大化、全屏、最小化会先恢复 `normal` 再归位，不传 `focused`。屏幕重建或移除时只迁移失去屏幕的窗口，分辨率变化时更新该屏格子。显式 bounds / display 放置不受自动对账影响。`opencli browser window relayout` 可立即对账并显示旧位置→新位置；`-f json` 返回 `windows[]` 的 `old`、`new`（各含 bounds/state）、`displayId`、`tileIndex`、`changed` 和可选 `error`。
+
+默认空闲 15 秒回收，`OPENCLI_DEDICATED_IDLE_MS` 可覆盖；lease 结束时 setTimeout 检查，alarm 与每次获取/创建前的惰性回收兜底。池上限是所有自动化屏格子数之和，下限 4；`window status -f json` 的 `pool.capacity` 是上限，`pool.naturalCapacity` 是非重叠容量总和，`pool.automationDisplays[]` 列出各屏 id、name、area、naturalCapacity、`cols`、`rows`、`tile: {width,height}`，可直接看每屏 cols×rows 和格子大小；整除余下的像素补到边缘格子。兼容字段 `automationDisplay` 仅指第一块屏，`windows[]` 保留 tileIndex 并增加 `displayId`、可选 `reconciledAt`（最后完成归位或首次对齐的时间，毫秒时间戳）。两块 5120×2850 工作区共 24 格。`--window-display <名称片段>` / `OPENCLI_WINDOW_DISPLAY` 仍沿用匹配屏的旧分格规则，不跨到其他屏。
 
 并行任务直接用各自会话，不提前排队等槽位；池满（`live>=pool.capacity`）时先按空闲时间回收无 holder/lease 的窗口（具名 slot 与 pool-N 都算），全部忙才报 `dedicated-pool-exhausted`，此时等任务释放。扩展改动需在 `chrome://extensions` reload 才生效；reload 会中断正在运行的会话，须等任务空闲再做。
 
 ```bash
 opencli browser <session> --window dedicated --window-slot <slot> open <url>
 opencli browser window status -f json
+opencli browser window relayout -f json
 ```
 
-**自动选屏与半宽（扩展 ≥ 1.5.0、CLI ≥ 1.13.0）**：不显式给 `--window-display` / `--window-bounds` 时，CLI 会探测你当前所在的屏（鼠标所在屏），新建或重排窗口时避开它，优先用其他外接/虚拟屏；只剩这一块屏时退回原行为，不报错。已存在的窗口不迁移。`window status` 的 placement 里有 `excludedDisplayBounds` 说明本次避开了哪块屏。调用方不需要关心屏幕和格子，也不要手动算位置或改窗口宽度。
+**自动选屏与半宽**：CLI 探测鼠标所在屏，仅给新窗口分配提供偏好，不改变自动化屏幕集合。已有窗口的屏幕和格子固定，不因鼠标变化或其他窗口开关重排。主屏仅在没有可用非主屏时作为候选。`placement.excludedDisplayBounds` 保留作兼容字段，不再表示鼠标屏被排除出集合；以 `windows[].displayId` 和 `pool.automationDisplays[]` 为准。调用方无需手算格子或位置。以上固定网格、自愈与 relayout 属于待合并的 `feat/window-layout` 行为，须在主线程验收并启用对应构建后使用。
 
 要看手机 / H5 版式时加 `--half`：窗口仍占一个完整格位，宽度只有格宽的一半，靠格内左侧；会话结束归还池后自动恢复整宽，`window status` / `window list` 的 `half` 字段可查。其余情况不要加。这只缩窗口宽度，不模拟手机 UA、触控或 DPR。
 
