@@ -58,10 +58,6 @@ function cli(args, timeout = 30000) {
       { encoding: "utf8", timeout, stdio: ["pipe", "pipe", "pipe"] }).trim()
   } catch (e) {
     const message = (e.stderr?.toString() || e.stdout?.toString() || e.message).trim()
-    if (!explicitWindow && windowMode === "dedicated" && /dedicated-pool-exhausted/.test(message)) {
-      windowMode = "background"
-      return cli(args, timeout)
-    }
     throw new Error(message)
   }
 }

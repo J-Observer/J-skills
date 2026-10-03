@@ -575,7 +575,7 @@ async function sourceSteamdb(o) {
 
   let payload = null;
   try {
-    await run(['browser', o.session, '--window', 'background', 'open', url]);
+    await run(['browser', o.session, '--window', 'dedicated', 'open', url]);
   } catch (e) {
     await bail('steamdb-open-failed', `打开 ${url} 失败：${e.message}`);
   }

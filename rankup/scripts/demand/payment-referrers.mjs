@@ -272,7 +272,7 @@ async function cmdSimilarweb(args) {
   // 只关自己开的这一个会话，**绝不调用 cleanup**（那会连别人的标签页一起端掉）。
   let openedSession = null;
   try {
-    const l = await lib.launchTool({ session, tool: 'similarweb', window: 'background', wait: 8, timeout: 60 });
+    const l = await lib.launchTool({ session, tool: 'similarweb', window: 'dedicated', wait: 8, timeout: 60 });
     openedSession = l.session ?? session ?? null;
     const ev = l.evalPage;
     console.error(`· 面板订阅到期 ${l.state.expiry ?? '—'}（剩 ${l.state.daysLeft ?? '—'} 天）· 配额 ${JSON.stringify(l.state.quotas ?? '—')}`);

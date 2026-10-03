@@ -106,7 +106,7 @@ async function wireAnalytics() {
 }
 function existingAnalyticsId(name, code) {
   const currentSession = `${session}-${name}`
-  const window = name === "ga4" ? ["--window", "dedicated", "--window-slot", "ga4-setup"] : ["--window", "background"]
+  const window = name === "ga4" ? ["--window", "dedicated", "--window-slot", "ga4-setup"] : ["--window", "dedicated"]
   try {
     run(`${name}-setup`, "status", ...(name === "ga4" ? ["--domain", domain] : []), ...browser(name), "--keep-session")
     return execFileSync("opencli", ["browser", currentSession, ...window, "eval", code],

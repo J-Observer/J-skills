@@ -247,7 +247,7 @@ async function viaPullpush({ query, subreddit, limit, template, ua }) {
  * 走用户本机那个真实的、已登录的 Chrome 里的 reddit 会话（strategy=cookie），
  * 所以既不用注册 OAuth app，也不吃匿名 RSS 那套限流。
  * 一次查询实测 ~13s，返回 score / comments / selftext 全字段。
- * 纪律：命令必须带 `--window background` 与 `--site-session persistent`，绝不用 foreground，
+ * 纪律：命令必须带 `--window dedicated` 与 `--site-session persistent`，绝不用 foreground，
  * 绝不跑 `browser cleanup`（那会关掉别的任务的标签页）；整批跑完只 close 自己的 `site:reddit` 会话。
  */
 async function viaOpencli({ query, subreddit, time, sort, limit, template, bin }) {
@@ -257,7 +257,7 @@ async function viaOpencli({ query, subreddit, time, sort, limit, template, bin }
   // 从没搜索」（搜索其实是页内 fetch，看不见），而且 reddit.com 首页经常 15s 内加载不完，导航超时后
   // 页内 fetch 拿到的不是 JSON，就是 2026-09-02 那次 `<anonymous>:50` 的报错。持久会话只导航一次，
   // 后续调用检测到已在 reddit.com 域就跳过导航（execution.ts shouldRunPreNav）。跑完由本脚本显式 close。
-  const args = ['reddit', 'search', query, '--window', 'background', '--site-session', 'persistent', '-f', 'json',
+  const args = ['reddit', 'search', query, '--window', 'dedicated', '--site-session', 'persistent', '-f', 'json',
     '--sort', sort, '--time', time, '--limit', String(Math.min(100, limit))];
   if (subreddit) args.push('--subreddit', subreddit);
   const { stdout } = await execFileP(bin, args, { maxBuffer: 64 * 1024 * 1024 });

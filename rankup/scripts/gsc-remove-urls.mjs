@@ -179,7 +179,7 @@ if (dryRun) {
 // 1. 打开 GSC 移除页面
 const gscUrl = `https://search.google.com/search-console/removals?resource_id=${encodeURIComponent(property)}`
 console.log(`打开 GSC 移除页面...`)
-cli(`open "${gscUrl}" --window background`)
+cli(`open "${gscUrl}" --window dedicated`)
 
 try {
   waitText(L.submittedList, 20000)

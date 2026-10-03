@@ -161,7 +161,7 @@ const wanted = (k) => {
 // ── OpenCLI 封装 ──────────────────────────────────────────
 function cli(action_, { timeout = 60000 } = {}) {
   try {
-    return execSync(`opencli browser "${session}" --window background ${action_}`,
+    return execSync(`opencli browser "${session}" --window dedicated ${action_}`,
       { encoding: "utf-8", timeout, stdio: ["pipe", "pipe", "pipe"] }).trim()
   } catch (e) {
     // 报错必须带上真实成因。旧版只回显 stderr，而 Node 会把

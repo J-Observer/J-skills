@@ -78,10 +78,8 @@
  *
  * ── OpenCLI 使用要点（写脚本时踩过的坑，供复用）──────────────────────
  *
- *  1. OpenCLI 默认 `--window dedicated`，而 dedicated 窗口池
- *     在单显示器上容量可能是 1 —— 别的会话占着就会报
- *     `dedicated-pool-exhausted`。本脚本所有调用都显式传
- *     `--window background`，不依赖默认值。
+ *  1. 所有 OpenCLI 调用显式传 `--window dedicated`，使用专用窗口，
+ *     不借用用户当前窗口；池满时保留 `dedicated-pool-exhausted` 错误。
  *  2. Google Auth Platform 这几个页面（/auth/overview、/auth/branding、
  *     /auth/audience、/auth/clients/*）会让 OpenCLI 的 `find`/`state`
  *     （用来built accessibility 快照）稳定抛
@@ -195,7 +193,7 @@ function usage() {
 
 function cli(args, { timeout = 30000 } = {}) {
   try {
-    return execFileSync("opencli", ["browser", opt.session, "--window", "background", ...args],
+    return execFileSync("opencli", ["browser", opt.session, "--window", "dedicated", ...args],
       { encoding: "utf8", timeout, stdio: ["pipe", "pipe", "pipe"] }).trim()
   } catch (e) {
     const err = (e.stderr?.toString() || e.stdout?.toString() || e.message || "").trim()

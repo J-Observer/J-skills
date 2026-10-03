@@ -170,7 +170,7 @@ export function sourceStatusSummary() {
  * `opencli browser <session> screenshot <path>` 形态写；判决书见
  * backlink/evidence/screenshot-chain-VERDICTS.md）。
  */
-export function captureBrowserScene(session, tag, { bin = 'opencli', windowMode = 'background' } = {}) {
+export function captureBrowserScene(session, tag, { bin = 'opencli', windowMode = 'dedicated' } = {}) {
   const safe = String(tag).replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 60) || 'scene';
   const out = { text: null, shot: null, shotError: null };
   try {

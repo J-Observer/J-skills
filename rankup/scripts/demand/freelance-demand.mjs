@@ -171,7 +171,7 @@ function browserSource() {
   try {
     for (let p = 1; p <= opt.pages; p++) {
       const u = pageUrl(p)
-      try { ocli(["browser", s, "--window", "background", "open", u]) }
+      try { ocli(["browser", s, "--window", "dedicated", "open", u]) }
       catch { process.stderr.write(`[warn] open 未确认完成，继续轮询：${u}\n`) }
       const raw = ocliEval(s, extractor(), 6)
       if (!raw || raw.error) {

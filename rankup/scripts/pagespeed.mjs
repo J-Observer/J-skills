@@ -73,9 +73,9 @@
  * `foreground` 本来就同时做 tab 切前台与 window 聚焦，天然满足「PSI 页面必须
  * 前台标签页才会渲染完成」这条 2026-08-31 就确认的硬要求（见文件头第 1 条），
  * 不需要再造一个只切 tab 不聚焦窗口的中间态。改动：
+ *   以下为历史实现；当前 `--no-foreground` 使用 dedicated 专用窗口。
  *   `openSession()` 默认（`opt.foreground=true`）传 `--window foreground`；
- *     `--no-foreground` 时传 `--window background`（不再是省略 `--window` 或
- *     传不存在的 `active`）。
+ *     `--no-foreground` 当前传 `--window dedicated`，不借用用户窗口。
  *   `waitForReady()` 里 `activateChromeIfDue()` 兜底逻辑保留不动——`foreground`
  *     只保证 opencli 发起 `open` 那一刻抢到 window 聚焦，用户之后手动切走、或
  *     系统把 Chrome 挤到后台，仍可能让标签页重新变 hidden，连续
@@ -279,7 +279,7 @@ plan          兜底方案，只打印要在浏览器里打开的链接 + 读数
   --out           collect 的落盘目录，不传则用 .rankup/evidence/pagespeed-<ts>/
   --sleep         collect 每个 URL 之间的等待秒数，默认 ${DEFAULT_SLEEP_BETWEEN_S}（避免连续
                   打 PSI 后端），传 0 关掉
-  --no-foreground 把 open 的 \`--window foreground\` 换成 \`--window background\`
+  --no-foreground 把 open 的 \`--window foreground\` 换成 \`--window dedicated\`
                   （也关掉轮询期间卡住才触发的 activate 兜底），退回旧的
                   「人守在电脑前，标签页自己保持可见」用法
   --help          显示帮助
@@ -362,12 +362,13 @@ function cli(session, args, { timeout = 120_000 } = {}) {
 function openSession(session, url, foreground) {
   // --window 是 `browser <session>` 之后、子命令之前的全局选项——
   // 挂在 `open` 之后不生效，2026-09-12 实测确认过顺序。
-  // opencli（本机 1.9.0，扩展 1.1.1）`--window` 只接受 background（默认）/
+  // 当前 --no-foreground 使用 dedicated 专用窗口，不借用用户当前窗口。
+  // 以下为旧版说明：opencli（本机 1.9.0，扩展 1.1.1）只接受 background /
   // foreground（raise + select）/ isolated 三档，没有 `active`——见文件头
   // 「第四次改动（已证伪）」与「第五次改动」。foreground 本身就会把这个 tab
   // 切到它所在窗口的当前标签、并把该窗口聚焦到系统前台；轮询里如果之后又被
   // 挤到 hidden，才靠 activateChromeIfDue() 兜底再抢一次。
-  const openArgs = ["--window", foreground ? "foreground" : "background", "open", url];
+  const openArgs = ["--window", foreground ? "foreground" : "dedicated", "open", url];
   return cli(session, openArgs, { timeout: 120_000 });
 }
 

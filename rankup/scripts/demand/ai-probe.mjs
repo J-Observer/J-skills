@@ -125,7 +125,7 @@
  *   - opencli 的 chatgpt 适配器（本机 2026-09-29 版）读不到新版网页 DOM（ask 发送成功但收不到回答 TIMEOUT、
  *     detail/read 报 EMPTY_RESULT）——所以网页通道只借它发送（--new --wait false），回答走页内 payload，完成判定看会话数据。
  *     隐藏窗口（默认 dedicated 池满时、background）下 composer 不可见，发送用 --window isolated；读 payload 只需同源 fetch，
- *     用 background 窗口的 opencli browser 会话即可。修 opencli 属另一件事，本脚本不动它。
+ *     用 dedicated 专用窗口的 opencli browser 会话即可。修 opencli 属另一件事，本脚本不动它。
  *   - 网页通道每提问一次就在用户的 ChatGPT 历史里留一条对话（含 N/K 探针提问），脚本不删除；批量采样会污染历史。
  *     `site:chatgpt` 是 opencli 适配器的持久会话，同一账号下并发的第二个 ask 会排队，脚本已把 chatgpt-web 强制为串行。
  *   - 网页版对英文提问可能用中文作答（账号语言/记忆迹象）；脚本不加「Answer in English」，以免偏离自然提问，解析不受影响。
@@ -459,12 +459,12 @@ async function runChatgptWebOnce({ prompt, timeoutS, web }) {
   let got = null; let last = null; let fails = 0; let reopens = 0; let lastErr = '';
   while (Date.now() < pollDeadline) {
     if (!web.ready) {
-      const o = oc(['browser', web.session, 'open', 'https://chatgpt.com/', '--window', 'background'], { timeoutS: 90 });
+      const o = oc(['browser', web.session, 'open', 'https://chatgpt.com/', '--window', 'dedicated'], { timeoutS: 90 });
       if (o.status !== 0) { lastErr = (o.stderr || o.stdout || o.spawnError || '').trim().slice(-200); if (++fails >= 3) return fail('page', `opencli browser ${web.session} open chatgpt.com 连续失败：${lastErr}`); await sleep(3000); continue; }
       web.ready = true; web.opened = true; fails = 0;
     }
     const chunkMs = Math.max(3000, Math.min(40000, pollDeadline - Date.now()));
-    const r = oc(['browser', web.session, 'eval', readerJs(conv, chunkMs), '--window', 'background'], { timeoutS: Math.ceil(chunkMs / 1000) + 40 });
+    const r = oc(['browser', web.session, 'eval', readerJs(conv, chunkMs), '--window', 'dedicated'], { timeoutS: Math.ceil(chunkMs / 1000) + 40 });
     if (r.spawnError === 'ENOENT') return fail('no-opencli', 'PATH 里找不到 opencli');
     const j = parseEvalJson(r.stdout);
     if (!j) { lastErr = (r.stderr || r.stdout || r.spawnError || '').trim().slice(-200); web.ready = false; if (++fails >= 3) return fail('eval-failed', `opencli browser eval 连续 3 次没有可解析输出：${lastErr}`); await sleep(3000); continue; }
