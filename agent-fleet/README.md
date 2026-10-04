@@ -11,6 +11,8 @@ fleet judge state.txt questions.json
 
 `brief.md` 也可以直接写成任务文本；默认当前目录、不限轮数、安静模式。`--verbose` 显示进度。短命令和模型对应关系见 [skill](skill/SKILL.md)。
 
+`fleet copy` 与 `fleet run --model kollab-gateway-copy` 自动原样前置 [文案语气规范](skill/references/copy-voice.md) 的 Paste-ready block；文件或块缺失会报错。brief 仍须提供事实清单、禁止项与输出格式。仅纯机械改写可用 `fleet copy brief.md --no-voice`（长命令同样支持）跳过语气块，其他通道保持不变。
+
 ## Kollab 文字模型与多模态
 
 认证优先用 `KOLLAB_API_KEY` 或 `KOLLAB_STANDALONE_API_KEY`（可用 `kollab api-key create` 创建），其次用进程级 `KOLLAB_API_TOKEN` 或已有 `kollab login` 会话。连接 TEST 必须显式设置 `KOLLAB_API_URL`，不要复用生产 profile。密钥只通过环境变量传给本机 `kollab`，无需厂商 key。
