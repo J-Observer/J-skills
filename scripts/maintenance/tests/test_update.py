@@ -42,6 +42,41 @@ class UpdateTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 assert_unchanged(root, hashes)
 
+    def test_local_registry_survives_repeated_deployments_and_divergence_blocks(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            installed = root / '.agents/skills'
+            rel = 'backlink/data/submission-targets.json'
+            registry = installed / rel
+            registry.parent.mkdir(parents=True)
+            registry.write_bytes(b'{"local": 1}')
+            (installed / 'backlink/SKILL.md').write_bytes(b'old')
+            lock = installed.parent / '.skill-lock.json'
+            lock.write_text(json.dumps({'skills': {'backlink': {}}}))
+            base = {'skills': {'backlink': 'backlink/SKILL.md'}, 'units': ['backlink'],
+                    'hashes': {rel: digest(b'{}'), 'backlink/SKILL.md': digest(b'old')}}
+            candidate = {'backlink/SKILL.md': b'new', rel: b'{}',
+                         'scripts/a': b'a', 'docs/a': b'a', 'platforms/a': b'a'}
+            with patch('update_local.tree', return_value=candidate), patch('update_local.git', return_value='treehash'), \
+                 patch('update_local.mirror_dirs', return_value=[]):
+                first = deploy(root, 'first', base, installed, root / 'state')
+                self.assertEqual(registry.read_bytes(), b'{"local": 1}')
+                self.assertEqual(first['sourceHashes'][rel], digest(b'{}'))
+                self.assertEqual(first['hashes'][rel], digest(registry.read_bytes()))
+                self.assertEqual((Path(first['backup']) / 'units' / rel).read_bytes(), b'{"local": 1}')
+                registry.write_bytes(b'{"local": 2}')
+                second = deploy(root, 'second', first, installed, root / 'state')
+                self.assertEqual(registry.read_bytes(), b'{"local": 2}')
+                candidate[rel] = b'{"upstream": 3}'
+                with self.assertRaisesRegex(RuntimeError, 'both changed'):
+                    deploy(root, 'third', second, installed, root / 'state')
+                self.assertEqual(registry.read_bytes(), b'{"local": 2}')
+                self.assertEqual(json.loads((installed / '.j-skills-managed.json').read_text())['commit'], 'second')
+                del candidate[rel]
+                with self.assertRaisesRegex(RuntimeError, 'both changed'):
+                    deploy(root, 'removed', second, installed, root / 'state')
+                self.assertFalse((root / 'state/pending.json').exists())
+
     def exercise_deployment(self, fail):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

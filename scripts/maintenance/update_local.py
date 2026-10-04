@@ -16,6 +16,8 @@ import zipfile
 from validate import validate
 
 HK = timezone(timedelta(hours=8))
+# This registry is intentionally updated by backlink collection workflows.
+LOCAL_DATA_FILES = {'backlink/data/submission-targets.json'}
 
 
 @contextmanager
@@ -100,6 +102,24 @@ def assert_unchanged(installed, hashes):
         raise RuntimeError('Installed files have local changes; preserved: ' + ', '.join(drift[:15]))
 
 
+def prepare_local_data(base, installed, managed):
+    """Preserve local registry edits only when upstream did not diverge."""
+    managed = dict(managed)
+    observed = dict(base['hashes'])
+    source_hashes = {p: digest(managed[p]) for p in LOCAL_DATA_FILES if p in managed}
+    for rel in LOCAL_DATA_FILES & base['hashes'].keys():
+        local = (installed / rel).read_bytes()
+        local_hash = digest(local)
+        source_hash = base.get('sourceHashes', {}).get(rel, base['hashes'][rel])
+        if local_hash != source_hash:
+            if source_hashes.get(rel) not in (source_hash, local_hash):
+                raise RuntimeError(f'Local data and upstream both changed; preserved for review: {rel}')
+            managed[rel] = local
+        observed[rel] = local_hash
+    assert_unchanged(installed, observed)
+    return managed, observed, source_hashes
+
+
 def is_link(path):
     return path.is_symlink() or path.is_junction()
 
@@ -133,7 +153,7 @@ def make_link(target, link):
 def deploy(repo, ref, base, installed, state_dir):
     files = tree(repo, ref)
     skills, units, managed = layout(files)
-    assert_unchanged(installed, base['hashes'])
+    managed, observed, source_hashes = prepare_local_data(base, installed, managed)
     old_units = set(base['units'])
     for name in units - old_units:
         if os.path.lexists(installed / name):
@@ -171,7 +191,7 @@ def deploy(repo, ref, base, installed, state_dir):
             npm = [str(node), str(node.parent / 'node_modules/npm/bin/npm-cli.js')] if os.name == 'nt' else ['npm']
             command([*npm, 'ci', '--ignore-scripts', '--no-audit', '--no-fund'], stage / 'agent-fleet', capture=False)
     assert_unchanged(stage, {p: digest(b) for p, b in managed.items()})
-    assert_unchanged(installed, base['hashes'])
+    assert_unchanged(installed, observed)
     mirrors = mirror_dirs(Path.home(), installed, base['skills'])
     for mirror in mirrors:
         for name in skills:
@@ -224,6 +244,7 @@ def deploy(repo, ref, base, installed, state_dir):
         write_json(lock_path, lock)
         manifest = {'source': 'J-Observer/J-skills', 'commit': ref, 'skills': skills,
                     'units': sorted(units), 'hashes': {p: digest(b) for p, b in managed.items()},
+                    'sourceHashes': source_hashes,
                     'backup': str(backup), 'updatedAt': datetime.now(HK).isoformat()}
         write_json(manifest_path, manifest)
         assert_unchanged(installed, manifest['hashes'])
@@ -283,7 +304,7 @@ def update(args):
         marker = installed / '.j-skills-managed.json'
         if marker.exists():
             base = json.loads(marker.read_text(encoding='utf-8'))
-            assert_unchanged(installed, base['hashes'])
+            assert_unchanged(installed, {p: h for p, h in base['hashes'].items() if p not in LOCAL_DATA_FILES})
         elif args.bootstrap_ref:
             skills, units, managed = layout(tree(repo, args.bootstrap_ref))
             # Shared resources are existing Junctions to the already-merged source.
