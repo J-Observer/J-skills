@@ -1,7 +1,10 @@
 # 跨项目资产登记表:含项目名与绝对路径,只在本机生成,绝不提交。
 # 由 scripts/registry.mjs 生成,validate-rankup.mjs 断言它不被 git 追踪。
-registry.md
+/registry.md
 
 # gt 合并进来时带过来的 KD 令牌(wc_mcp_ 开头)。真实密钥，绝不提交。
 # scripts/gt.py 与 scripts/seo-webcafe.mjs 都从这里或同名环境变量读。
 .env
+
+# 本地 Wrangler 缓存，不提交。
+.wrangler/

@@ -1,5 +1,7 @@
 # Rankup 集成与专项 Skill 路由
 
+
+AI 生成供应商 Kie 的可选接入、能力与脚本统一见 [Kie 分支](integrations/kie.md)；本页不重复其模型与操作。
 ## 目录
 
 - [已验证的 Skills CLI 命令](#已验证的-skills-cli-命令)
