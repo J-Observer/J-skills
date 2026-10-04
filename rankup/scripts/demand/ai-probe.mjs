@@ -154,7 +154,7 @@ import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from './_lib.mjs';
-import { regDomain, oc, parseEvalJson, classifyWebSend, failedPage, sendTurn as runTemporaryChat, closeSession } from './_chatgpt_web.mjs';
+import { regDomain, oc, parseEvalJson, classifyWebSend, failedPage, sendTurn as runTemporaryChat, closeSession, browserCommand, manageSession } from './_chatgpt_web.mjs';
 export { regDomain, parseEvalJson } from './_chatgpt_web.mjs';
 
 // ───────────────────────── 域名工具 ─────────────────────────
@@ -459,7 +459,7 @@ async function runChatgptWebOnce({ prompt, timeoutS, web }) {
   let got = null; let last = null; let fails = 0; let reopens = 0; let lastErr = '';
   while (Date.now() < pollDeadline) {
     if (!web.ready) {
-      const o = oc(['browser', web.session, 'open', 'https://chatgpt.com/', '--window', 'dedicated'], { timeoutS: 90 });
+      const o = browserCommand(web, ['open', 'https://chatgpt.com/'], { timeoutS: 90 });
       if (o.status !== 0) { lastErr = (o.stderr || o.stdout || o.spawnError || '').trim().slice(-200); if (++fails >= 3) return fail('page', `opencli browser ${web.session} open chatgpt.com 连续失败：${lastErr}`); await sleep(3000); continue; }
       web.ready = true; web.opened = true; fails = 0;
     }
@@ -709,7 +709,9 @@ async function main() {
   }
   let lastStart = 0; let abortAll = null;
   // 读会话数据用的 opencli browser 会话：描述性名字（不用 $$/随机串，方便一眼认出、也避免同名并发——同名会话别给两个任务用）
-  const webState = webChannel ? { session: String(args['web-session'] || 'ai-probe-web'), ready: false, opened: false, keepOpen, ...(keepOpen ? { idleTimeout: process.env.OPENCLI_BROWSER_IDLE_TIMEOUT || 86400 } : {}), temporary: multiTurn || (args['no-temporary'] !== true && args.temporary !== false) } : null;
+  const webState = webChannel ? { session: String(args['web-session'] || 'ai-probe-web'), ready: false, opened: false, keepOpen, keepAlive: keepOpen || multiTurn, temporary: multiTurn || (args['no-temporary'] !== true && args.temporary !== false) } : null;
+
+  if (webState) manageSession(webState);
 
   async function worker() {
     while (queue.length && !abortAll) {
@@ -757,10 +759,10 @@ async function main() {
       if (!rec.ok && ['quota-402', 'auth', 'model', 'no-codex', 'no-opencli', 'rate-limit', 'privacy-switch'].includes(rec.failure)) { abortAll = rec.failure; log(`遇到 ${rec.failure}：停止后续提问，交回人处理（不硬试）`); }
     }
   }
-  await Promise.all(Array.from({ length: concurrency }, () => worker()));
-  if (webState?.opened) {
-    if (keepOpen) console.log(`会话保持打开：${webState.session}`);
-    else closeSession(webState);
+  try {
+    await Promise.all(Array.from({ length: concurrency }, () => worker()));
+  } finally {
+    if (webState?.opened && (!keepOpen || abortAll || results.some(r => !r.ok))) closeSession(webState);
   }
 
   // 汇总
@@ -791,6 +793,10 @@ async function main() {
   fs.writeFileSync(path.join(outDir, 'summary.md'), renderMd(summary, results));
   if (!args['summarize-only']) fs.writeFileSync(path.join(outDir, 'run.log'), logLines.join('\n') + '\n');
   log(`汇总：${path.join(outDir, 'summary.md')}`);
+  if (webState?.opened && keepOpen && !summary.failures.length && !abortAll) {
+    webState.retained = true;
+    console.log(`会话保持打开：${webState.session}；用 opencli browser ${webState.session} close 关闭`);
+  }
   return summary.failures.length || abortAll ? 3 : 0;
 }
 

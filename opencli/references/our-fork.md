@@ -116,6 +116,7 @@ git log --oneline origin/main..HEAD   # 我们领先上游的部分
 |---|---|---|
 | **后台是默认值** | 扩展 + CLI | 默认变成前台：每条命令抬窗口、抢走用户正在看的标签页 |
 | **在用户当前窗口开标签页——`browser` 与 adapter 都是**（1.0.33 起；此前 adapter 自己开窗口） | 扩展 | 每次都新开一个 1280×900 的窗口砸在用户布局上。借不到 normal 窗口才新建，且 `sessions` 报 `windowFallbackReason` |
+| **空闲回收与临时保活**：browser 默认空闲 10 分钟回收，卡死命令有硬上限；`--keep-alive` / `--idle-timeout <秒>`（环境变量接受 `never`），重启保留设置，sessions 显示保活与期限 | 扩展 + CLI | 没有这套租约回收与保活参数 |
 | **每会话一个标签页组**，组名 `OpenCLI: <会话名>`（adapter 显示站点名） | 扩展 | 所有会话挤一个组、adapter 标签页不分组，看不出哪个标签页是哪件事的 |
 | **`--window isolated`** | 扩展 + CLI | 标志被**静默忽略**，行为等同 `background` |
 | **自动化跟着用户换窗口** | 扩展 | 一直往用户早就离开的那个窗口里堆 |
@@ -269,3 +270,5 @@ zip）再 `gh release create` 手工把产物挂上去，别指望 Actions 自�
 - 合完还要**实跑一遍最小闭环**：`opencli doctor` 三行绿，
   再 `open` 一个真实页面并 `extract` 出内容。单测绿而端到端挂，
   正是护栏那次事故的形态。
+
+- `feat/window-layout`（待合并/启用）：dedicated 按每屏分辨率算固定网格与容量，鼠标仅影响新窗口选屏；屏幕事件/命令前/30 秒 alarm 自动对账，新增 `browser window relayout [-f json]`，status 增加每屏 cols/rows/tile 及窗口 displayId/reconciledAt。
