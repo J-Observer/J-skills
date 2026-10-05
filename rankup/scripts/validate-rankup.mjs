@@ -18,6 +18,9 @@ const execFileAsync = promisify(execFile);
 const skillRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const expectedVersion = "3.38.3";
 const requiredReferences = [
+  "integrations/kie.md",
+  "integrations/kie-models.md",
+  "registry.md",
   "discipline.md",
   "monetization.md",
   "playbooks/research.md",

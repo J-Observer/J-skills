@@ -42,6 +42,7 @@ SEO 与 GEO 是最主要的获客与验证手段，**不是适用边界**：项�
 
 | 用户会说的话 | 段 | 入口 |
 |---|---|---|
+| 「做网站时需要 AI 视频/图片生成」「接 Kie」「Kie 音频可不可以用」 | 3 | [Kie 可选分支](references/integrations/kie.md) → [模型快照](references/integrations/kie-models.md)、[登记](references/registry.md)，按能力选供应商，Kie 不是必选 |
 | 有项目记录上下文的「继续」「接着上次做」「上次做到哪了」「看看这份计划」「我们开始执行这个项目的计划」 | 当前段 | 见「强制流程」开工与继续行 |
 | 「挖点需求」「最近有什么能做的」「找几个关键词」（没给具体词） | 1 | [`research/p1-discovery.md`](references/playbooks/research/p1-discovery.md) |
 | 「调研一下这个词」「这个词能不能做」「帮我扩词」「找个 xxx 的需求」 | 1 | [`entry.md`](references/playbooks/entry.md) → [`research/p2-keyword-root.md`](references/playbooks/research/p2-keyword-root.md)（任何词都是词根，按[五个取数动作](references/playbooks/research.md#五个取数动作与编排探索循环)全自动跑完，不反问） |

@@ -16,6 +16,7 @@ import { createPromptStream, ensureInbox, watchInbox } from './inbox.mjs';
 import { patchPidRecord, processCommand, readPidRecord, runIdFromLogPath, writePidRecord } from './pid.mjs';
 import { onProcessSignal } from './signals.mjs';
 import { SCOPE_LOCK } from './scope.mjs';
+import { prepareCopyPrompt, COPY_VOICE_PATH } from './copy-voice.mjs';
 
 /**
  * 默认追加给每个任务的执行者系统提示。
@@ -101,7 +102,7 @@ export function buildQueryOptions({ resolved, cwd, maxTurns, systemPrompt, resum
  * @param {string} [params.resumedFrom]  被续跑的原 run-id,只进返回值/简报
  * @returns {Promise<object>} 见文件底部的返回形状说明
  */
-export async function runTask({ friendlyModel, prompt, cwd, config, maxTurns, systemPrompt, progress, resume, resumedFrom }) {
+export async function runTask({ friendlyModel, prompt, cwd, config, maxTurns, systemPrompt, progress, resume, resumedFrom, noVoice, copyVoice }) {
   const startedAt = Date.now();
 
   // 进度输出对象:调用方(bin 的 run、run-many)注入,各自决定 quiet 和 label;以库方式
@@ -126,9 +127,12 @@ export async function runTask({ friendlyModel, prompt, cwd, config, maxTurns, sy
     finished: false,
   });
   try {
+    const preparedPrompt = prepareCopyPrompt({ friendlyModel, prompt, noVoice, copyVoice });
+    if (preparedPrompt !== prompt) output.log(`copy-voice: injected Paste-ready block from ${COPY_VOICE_PATH}`);
+    else if (noVoice && (copyVoice || ['copy', 'kollab-gateway-copy'].includes(friendlyModel))) output.log('copy-voice: skipped (--no-voice)');
     const inner = await runTaskInner({
       friendlyModel,
-      prompt,
+      prompt: preparedPrompt,
       cwd,
       config,
       maxTurns,

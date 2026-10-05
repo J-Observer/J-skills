@@ -7,7 +7,7 @@ export const MODEL_ALIASES = Object.freeze({
   gpt: 'kollab-gateway-gpt-sol',
 });
 
-const BOOLEAN_FLAGS = new Set(['quiet', 'verbose', 'low', 'review', 'json', 'full', 'expect-changes', 'judge']);
+const BOOLEAN_FLAGS = new Set(['quiet', 'verbose', 'low', 'review', 'json', 'full', 'expect-changes', 'judge', 'no-voice']);
 
 export function splitShortArgs(argv) {
   const positionals = [];

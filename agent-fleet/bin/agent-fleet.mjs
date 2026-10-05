@@ -52,6 +52,7 @@ const HELP_TEXT = `fleet ${PKG_VERSION} — 简短任务入口
 run 默认不限轮数、安静、当前目录；--verbose 显示进度。--quiet、--max-turns、--cwd、
 --system-prompt、--json、--full、--brief-lines、--expect-changes、--judge 可选。
 code 的 --review 使用只读沙箱与内置审查提示词；旧 agent-fleet 长命令继续可用。
+copy 自动注入文案语气规范；--no-voice 仅用于纯机械改写（长名 kollab-gateway-copy 同样支持）。
 `;
 
 /** 去掉 `--flag value` / `--flag` 后剩下的位置参数。 */
@@ -99,7 +100,7 @@ function outputOptions(flags, config) {
   };
 }
 
-async function cmdRun(argv) {
+async function cmdRun(argv, { copyVoice = false } = {}) {
   const flags = parseFlags(argv);
   if (flags.help) { console.log(HELP_TEXT); return; }
   if (!flags.model || !flags.prompt) {
@@ -119,6 +120,8 @@ async function cmdRun(argv) {
     config,
     maxTurns: flags['max-turns'] === undefined ? undefined : Number(flags['max-turns']),
     systemPrompt: flags['system-prompt'],
+    noVoice: Boolean(flags['no-voice']),
+    copyVoice,
     progress,
   });
 
@@ -379,7 +382,7 @@ function flagArgs(flags, omitted = []) {
 
 async function cmdShortRun(command, argv) {
   const options = shortRunOptions(command, argv);
-  await cmdRun(['--model', options.model, '--prompt', options.prompt, ...flagArgs(options.flags, ['model', 'prompt'])]);
+  await cmdRun(['--model', options.model, '--prompt', options.prompt, ...flagArgs(options.flags, ['model', 'prompt'])], { copyVoice: command === 'copy' });
 }
 
 async function cmdCode(argv) {

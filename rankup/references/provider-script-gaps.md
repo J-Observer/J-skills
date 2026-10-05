@@ -1,5 +1,7 @@
 # 面板能力 × 现有脚本：缺口与优先级
 
+
+AI 生成供应商 Kie 的可选接入、能力与脚本统一见 [Kie 分支](integrations/kie.md)；本页不重复其模型与操作。
 配套 [`provider-capabilities.md`](provider-capabilities.md)（平台有什么）读。
 **那份回答「面板能拿到什么」，这份回答「我们已经能自动拿到什么、还差什么、先补哪个」。**
 

@@ -33,7 +33,24 @@ description: 使用本机 fleet 分派 Codex GPT-6、Gemini、Grok 或 JEV 任�
 
 多模态认证优先用 `KOLLAB_API_KEY` 或 `KOLLAB_STANDALONE_API_KEY`（`kollab api-key create` 获取），其次用进程级 `KOLLAB_API_TOKEN` 或 `kollab login` 会话；TEST 必须显式设置 `KOLLAB_API_URL`，不要复用生产 profile。先运行 `fleet media list` 看实时支持清单和模型 id，再用 `fleet media run generate_image --model <id> --prompt "一只猫"`；默认文件写入当前目录 `fleet-media/`。其他工具按清单传 `--input-json` 的必填字段，详见 [多模态用法](references/media.md)。普通配图也可用 imagegen。
 
+## 启动方式（硬性，派单人自检）
+
+`fleet` 任务一律这样启动：**一条 Bash 调用，只放 `fleet ...` 这一条命令，用工具参数 `run_in_background: true`、`timeout: 7200000`**，输出用 `> 文件 2>&1` 重定向。**命令里绝不写结尾的 `&`、`nohup`、`disown`。**
+
+```text
+Bash(command="fleet code brief.md --cwd <目录> > /tmp/<名>.out 2>&1", run_in_background=true, timeout=7200000)
+```
+
+原因：命令自己再加 `&`，外层 shell 立刻退出，harness 马上发「后台命令已完成」的假通知，真正的 fleet/codex 进程变成无人认领的孤儿，**之后不会有真实完成通知**，主线程只能靠轮询或补 Monitor（2026-10-04 hotellobby 的 P0a/P0b 就这样出过错）。不套 `&` 时，fleet 进程退出才会触发完成通知。
+
+- 一个任务一次 Bash 调用；多个独立任务同一条消息里并行发多个 Bash 调用，不要在一条命令里串 `&`。
+- 核对：启动后 `pgrep -fl 'agent-fleet.mjs code'` 能看到进程，且 Bash 任务状态仍是 running。
+- 万一已经误套了 `&`：不要杀进程，用 Monitor 补一个带硬超时的 until 循环等报告文件；pgrep 的模式必须写成 `'[p]0a-xxx'` 这种括号形式，否则会匹配到 Monitor 自己的命令行，永远等不到结束。
+- 重派进同一个 worktree 前先 `pgrep -fl 'codex exec.*<worktree>'`，杀 fleet 外壳不等于杀掉 codex。
+
 ## 模型路由与任务边界
+
+写文案必须使用 `/marketing-psychology`、`/marketing-ideas`、`/write` 的原则并遵守 [references/copy-voice.md](references/copy-voice.md)，`fleet copy` 自动注入；写文案 brief 仍要给事实清单和禁止项。仅纯机械改写可用 `--no-voice` 跳过。
 
 大部分任务（编码、修 bug、补测试、调研、技术文档、报告、数据整理）优先 `fleet code`：本机 Codex `gpt-6.1-sol`，默认 medium，单文件且边界明确时用 `--low`。页面、营销和产品文案、翻译、多语言及母语校对一律 `fleet copy`，写能做什么和带来什么好处，不贬低竞品或用恐吓式对比。Grok 可分担擦边题材、其他调研或作为 GPT-6 备选；JEV 只做结构化判断。Claude 只做全局 CLAUDE.md §2 明确归它的任务。
 
