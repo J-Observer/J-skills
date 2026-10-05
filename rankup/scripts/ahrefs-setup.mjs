@@ -285,7 +285,14 @@ async function doStatus() {
       bail("ownership-not-loaded", "所有权页面未出现可确认的验证状态。")
     }
     const status = evalJs(`return ((document.body?.innerText||'').match(/所有权(?:已|未)验证[。.]|Ownership (?:verified|not verified)[.!]?/i)||[])[0]||''`)
-    console.log(`${site || id} | ${id} | ${status}`)
+    // 页面加载时 Ahrefs 会自动复查，绿色横幅不代表已保存；有域名时再以仪表盘「未冻结」回读。
+    let saved = ""
+    if (site && /已验证/.test(status)) {
+      const ids = projectIdsForSite()
+      const frozen = evalJs(`return [...document.querySelectorAll('[class*="projectHeader"]')].some(c=>/冻结|frozen/i.test(c.innerText) && c.innerText.includes(${JSON.stringify(site)}))`)
+      saved = ids.includes(String(id)) && frozen !== "true" ? " | 已保存（仪表盘未冻结）" : " | 未保存（仪表盘冻结或缺失）"
+    }
+    console.log(`${site || id} | ${id} | ${status}${saved}`)
     return
   }
   open("https://app.ahrefs.com/dashboard")
@@ -578,6 +585,37 @@ async function dnsOwnership() {
   bail("dns-verification-pending", "约 6 分钟内 Ahrefs 未确认 DNS TXT；记录已在 Cloudflare，稍后用 verify --dns 重试。")
 }
 
+
+// 所有权验证通过后必须「刷新页面 → 点保存」才真正落库（2026-10-05 用户实测：只看到绿色横幅、没点保存，Ahrefs 仍不监控）。
+// 刷新后「保存」是否可点会随页面自动复查而变，不能当落库信号；回读以仪表盘为准：项目卡片带 Site Explorer 链接且不带「冻结」。
+async function saveOwnership(projectId) {
+  const verified = `return /所有权已验证[。.]|Ownership verified[.!]?/i.test((document.body?.innerText||''))`
+  const saveBtn = `[...document.querySelectorAll('button')].find(b=>/^保存$|^Save$/i.test((b.textContent||'').trim()))`
+  // 带 return_to，与用户在 Ahrefs 里手点的链接一致：保存成功后页面会自己跳回仪表盘。
+  open(`https://app.ahrefs.com/project-settings/${projectId}/ownership?return_to=${encodeURIComponent("https://app.ahrefs.com/dashboard")}`)
+  waitPageReady(20)
+  waitFor(`return !/检查验证[.…]?/.test((document.body?.innerText||''))`, 35)
+  if (!waitFor(verified, 30)) {
+    try { reactClick(`[...document.querySelectorAll('button')].find(b=>/重新检查状态|Recheck status/i.test(b.textContent||''))`, "重新检查状态") } catch {}
+    if (!waitFor(verified, 30)) bail("ownership-banner-missing", "刷新后未见「所有权已验证」，无法保存。")
+  }
+  if (waitFor(`const b=${saveBtn};return !!b && !b.disabled`, 10)) {
+    stampAndClick(saveBtn, "保存所有权验证")
+    // 保存期间按钮是斜纹「处理中」状态，完成后页面跳回 return_to；这段时间不能导航离开，否则会打断保存（2026-10-05 实测）。
+    if (!waitFor(`return !location.pathname.endsWith('/ownership')`, 90)) bail("save-no-redirect", "点保存后 90 秒内页面没有跳回仪表盘；保存未确认，看现场截图。")
+    scene("saved")
+  } else {
+    scene("save-button-unavailable")
+  }
+  // 回读：仪表盘按域名找项目，必须存在且未冻结
+  const ids = projectIdsForSite()
+  const frozen = evalJs(`return [...document.querySelectorAll('[class*="projectHeader"]')].some(c=>/冻结|frozen/i.test(c.innerText) && c.innerText.includes(${JSON.stringify(site)}))`)
+  scene("verify-final")
+  if (!ids.includes(String(projectId))) bail("save-not-persisted", `仪表盘没有未冻结的 ${site} 项目（${projectId}）；未确认落库，看现场截图。`)
+  if (frozen === "true") bail("save-not-persisted", `${site} 项目在仪表盘仍显示冻结；保存未生效，看现场截图。`)
+  console.log(`${site}：所有权已验证并已保存；仪表盘回读项目 ${projectId} 未冻结。`)
+}
+
 async function doVerify() {
   const projectId = findProjectId()
   await doVerifyWithId(projectId)
@@ -594,7 +632,7 @@ async function doVerifyWithId(projectId) {
   const selected = verifyDns ? await dnsOwnership() : selectGscAccount()
   if (selected === "not-found") bail("gsc-section-not-found", "找不到 GSC 验证区域；看现场截图。")
   if (selected === "verified") {
-    console.log(`${site}：页面已显示所有权已验证，无需再次选择账户。`)
+    await saveOwnership(projectId)
     return
   }
 
@@ -610,11 +648,7 @@ async function doVerifyWithId(projectId) {
   }
   if (!isVerified) bail("verify-banner-not-seen", "3 分钟内未见「所有权已验证」；页面可见原文已随失败现场落盘，不把选中 GSC 账户当成功。")
 
-  // 设置页可能有「保存」；创建向导则要点「继续」。只点实际存在的按钮。
-  const save = evalJs(`return !![...document.querySelectorAll('button')].find(b=>/^保存$|^Save$/i.test(b.textContent.trim()))`)
-  if (save === "true") stampAndClick(`[...document.querySelectorAll('button')].find(b=>/^保存$|^Save$/i.test(b.textContent.trim()))`, "保存按钮")
-  scene("verify-final")
-  console.log(`${site}：页面出现「所有权已验证」横幅（${save === "true" ? "已点击保存" : "页面没有保存按钮"}）。`)
+  await saveOwnership(projectId)
 }
 
 // ── enable-wa：启用 Web Analytics 并获取追踪脚本 ────────────
