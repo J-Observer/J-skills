@@ -233,7 +233,7 @@ const steps = {
     },
   },
   ahrefs: {
-    done: () => has("ahrefs-setup", ["status", "--site", domain, ...browser("ahrefs")], /所有权已验证/),
+    done: () => has("ahrefs-setup", ["status", "--site", domain, ...browser("ahrefs")], /所有权已验证.*已保存/),
     apply: () => {
       run("ahrefs-setup", "create", "--site", domain, ...browser("ahrefs"))
       run("ahrefs-setup", "verify", "--site", domain, ...browser("ahrefs"))

@@ -4,7 +4,7 @@
 
 | 能力 | 已验证的例子 |
 |---|---|
-| 图片 `generate_image` / `edit_image` | `google/gemini-3.1-flash-image`（Nano Banana 2）、`google/gemini-3-pro-image`（Nano Banana Pro）、`google/gemini-2.5-flash-image`（Nano Banana）、`x-ai/grok-imagine-image-quality`（Grok Image）、`gpt-image-2` |
+| 图片 `generate_image` / `edit_image` | `google/gemini-3.1-flash-image`（Nano Banana 2）、`gemini-nano-banana-2.1`（Nano Banana 2.1）、`google/gemini-3-pro-image`（Nano Banana Pro）、`google/gemini-2.5-flash-image`（Nano Banana）、`x-ai/grok-imagine-image-quality`（Grok Image）、`gpt-image-2` |
 | 视频 | Seedance 2 / 2.5、Veo 3、Kling、Hailuo 3、Grok 视频 |
 | 3D / 音频 | Tripo 3D、Grok TTS / STT |
 | 文字 | `fleet media models` 查目录，`kollab model run` 一次性调用 |

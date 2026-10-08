@@ -32,6 +32,7 @@ import { collectStatus, deliverSay, formatStatusHuman, requestStop } from '../sr
 import { readPidRecord, resolveRunId } from '../src/pid.mjs';
 import { shortRunOptions, splitShortArgs, resolveBrief } from '../src/shortcuts.mjs';
 import { runCode } from '../src/code-runner.mjs';
+import { launchDetached, supervise, waitDetached } from '../src/detach.mjs';
 import { runMedia } from '../src/media.mjs';
 
 const PKG_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -41,9 +42,11 @@ const HELP_TEXT = `fleet ${PKG_VERSION} — 简短任务入口
 
   fleet copy|grok|bulk|gpt <brief文件或文本> [--cwd dir] [--verbose]
   fleet code <brief文件或文本> [--low] [--review] [--cwd dir]
+  fleet haiku|sonnet|opus|fable <brief.md|文本>   # Claude 官方端点，走每月 API 赠送额度
   fleet judge <state文件> <questions文件> [--json]
   fleet run --model name --prompt "任务" [--cwd dir] [--max-turns N]
   fleet run-many --config batch.json | status | tail [--follow]
+  fleet wait <id|latest> [--timeout 秒]
   fleet say <id|latest> "消息" | stop <id|latest> | resume <id|latest>
   fleet media list | run <tool> --model <id> --prompt "..." [--input-json '{}'] [--out dir]
   fleet media models [--source openrouter] [--search text]
@@ -51,6 +54,8 @@ const HELP_TEXT = `fleet ${PKG_VERSION} — 简短任务入口
 
 run 默认不限轮数、安静、当前目录；--verbose 显示进度。--quiet、--max-turns、--cwd、
 --system-prompt、--json、--full、--brief-lines、--expect-changes、--judge 可选。
+code/copy/grok/bulk/gpt/run/run-many 默认独立运行并等待；--no-wait 立即返回，--attach 前台，--detach 兼容默认。
+--name 短名、--report 路径；status [--running] [--json]；wait/tail 支持短名或 runId 前缀。
 code 的 --review 使用只读沙箱与内置审查提示词；旧 agent-fleet 长命令继续可用。
 copy 自动注入文案语气规范；--no-voice 仅用于纯机械改写（长名 kollab-gateway-copy 同样支持）。
 `;
@@ -100,6 +105,15 @@ function outputOptions(flags, config) {
   };
 }
 
+async function printRunResult(result, options) {
+  const output = await renderRunOutput(result, {
+    ...options,
+    onBrief: process.env.FLEET_DETACHED_RUN_ID && process.send ? brief => process.send({ brief }) : undefined,
+  });
+  process.send?.({ output });
+  process.stdout.write(output);
+}
+
 async function cmdRun(argv, { copyVoice = false } = {}) {
   const flags = parseFlags(argv);
   if (flags.help) { console.log(HELP_TEXT); return; }
@@ -125,7 +139,7 @@ async function cmdRun(argv, { copyVoice = false } = {}) {
     progress,
   });
 
-  process.stdout.write(await renderRunOutput(result, outputOptions(flags, config)));
+  await printRunResult(result, outputOptions(flags, config));
   // 退出码:成功 0;失败 1;失败且是上游 402/credit budget 用尽(不重试、立即停)2。
   process.exitCode = result.ok ? 0 : result.fatal402 ? 2 : 1;
 }
@@ -169,7 +183,11 @@ async function cmdRunMany(argv) {
     return;
   }
 
-  process.stdout.write(await renderManyOutput(results, outputOptions(flags, config)));
+  const output = await renderManyOutput(results, { ...outputOptions(flags, config),
+    onBrief: brief => process.send?.({ brief }),
+  });
+  process.send?.({ output, resultText: results.map(r => r.result ?? r.error ?? '').join('\n\n') });
+  process.stdout.write(output);
   process.exitCode = results.some((r) => !r.ok) ? 1 : 0;
 }
 
@@ -238,8 +256,8 @@ async function cmdJudge(argv) {
 
 /** tail 子命令:打印 ~/.agent-fleet/runs 下最新一次运行的进度日志;--follow 持续跟随到 done 行。 */
 async function cmdTail(argv) {
-  const flags = parseFlags(argv);
-  const outcome = await tailLatestLog({ follow: Boolean(flags.follow) });
+  const { flags, positionals } = splitShortArgs(argv);
+  const outcome = await tailLatestLog({ follow: Boolean(flags.follow), spec: positionals[0], cwd: matchCwd(flags) });
   if (!outcome.ok) {
     console.error(outcome.error);
     process.exitCode = 1;
@@ -253,7 +271,8 @@ function matchCwd(flags) {
 function cmdStatus(argv) {
   const flags = parseFlags(argv);
   const rows = collectStatus(flags.cwd ? { cwd: resolvePath(flags.cwd) } : {});
-  process.stdout.write(formatStatusHuman(rows));
+  const selected = rows.filter(r => !flags.running || ['running', 'abnormal'].includes(r.state));
+  process.stdout.write(flags.json ? `${JSON.stringify(selected, null, 2)}\n` : formatStatusHuman(selected));
 }
 
 function cmdSay(argv) {
@@ -314,6 +333,11 @@ async function cmdResume(argv) {
     process.exitCode = 1;
     return;
   }
+  if (rec.model === 'gpt-6.1-sol') {
+    console.error('Codex 任务暂不支持 fleet resume；请重新派发 brief。');
+    process.exitCode = 1;
+    return;
+  }
   if (!rec.sessionId) {
     console.error(`任务 ${runId} 的 pid.json 没有 sessionId,无法 resume。`);
     process.exitCode = 1;
@@ -336,7 +360,7 @@ async function cmdResume(argv) {
     resume: rec.sessionId,
     resumedFrom: runId,
   });
-  process.stdout.write(await renderRunOutput(result, outputOptions(flags, config)));
+  await printRunResult(result, outputOptions(flags, config));
   process.exitCode = result.ok ? 0 : result.fatal402 ? 2 : 1;
 }
 
@@ -399,7 +423,7 @@ async function cmdCode(argv) {
     },
   });
   if (!result) return;
-  process.stdout.write(await renderRunOutput(result, outputOptions(flags)));
+  await printRunResult(result, outputOptions(flags));
   process.exitCode = result.ok ? 0 : 1;
 }
 
@@ -423,11 +447,43 @@ async function main() {
   }
 
   try {
+    if (command === '__supervise') { await supervise(fileURLToPath(import.meta.url)); return; }
+    if (['code', 'copy', 'grok', 'bulk', 'gpt', 'haiku', 'sonnet', 'opus', 'fable', 'run', 'run-many'].includes(command)
+      && !process.env.FLEET_DETACHED_RUN_ID && !rest.includes('--attach')) {
+      const { flags, positionals } = splitShortArgs(rest);
+      if (flags.help) { console.log(HELP_TEXT); return; }
+      if (command === 'run' && (!flags.model || !flags.prompt)) throw new Error('run 需要 --model 和 --prompt');
+      if (command === 'run-many' && !flags.config) throw new Error('run-many 需要 --config');
+      const brief = command === 'run-many' ? flags.config : flags.prompt ?? positionals[0];
+      const text = command === 'run-many' ? '' : resolveBrief(brief);
+      const args = flagArgs(flags, ['detach', 'attach', 'no-wait', 'name', 'report', 'prompt']);
+      if (flags.prompt !== undefined) args.push('--prompt', flags.prompt);
+      const runId = await launchDetached(fileURLToPath(import.meta.url), [command, ...positionals, ...args], {
+        cwd: flags.cwd ? resolvePath(flags.cwd) : process.cwd(),
+        model: command === 'code' ? 'gpt-6.1-sol' : command === 'run-many' ? 'run-many' : flags.model ?? shortRunOptions(command, rest).model,
+        briefPath: brief && existsSync(brief) ? resolvePath(brief) : null,
+        name: flags.name ?? text.match(/^归类[^\r\n]*/m)?.[0],
+        reportPath: flags.report || text.match(/^REPORT:\s*(.+)$/m)?.[1]?.trim(),
+        noWait: Boolean(flags['no-wait']),
+      });
+      if (!flags['no-wait']) process.exitCode = await waitDetached(runId, { originalOutput: true });
+      return;
+    }
     switch (command) {
+      case 'wait': {
+        const { flags, positionals } = splitShortArgs(rest);
+        if (!positionals[0]) throw new Error('用法: fleet wait <runId|latest> [--timeout 秒]');
+        process.exitCode = await waitDetached(positionals[0], { cwd: matchCwd(flags), timeout: flags.timeout });
+        break;
+      }
       case 'copy':
       case 'grok':
       case 'bulk':
       case 'gpt':
+      case 'haiku':
+      case 'sonnet':
+      case 'opus':
+      case 'fable':
         await cmdShortRun(command, rest);
         break;
       case 'code':
@@ -481,4 +537,4 @@ async function main() {
   }
 }
 
-main();
+main().finally(() => { if (process.env.FLEET_DETACHED_RUN_ID && process.connected) process.disconnect(); });

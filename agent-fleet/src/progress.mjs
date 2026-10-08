@@ -36,7 +36,7 @@ export function createProgress({ quiet = false, label = 'run' } = {}) {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   // label 只可能来自模型名/序号,但调用方传什么不归这里管,统一白名单净化一次。
   const safeLabel = String(label).replace(/[^\p{L}\p{N}#._-]+/gu, '-') || 'run';
-  const logPath = join(dir, `${stamp}-${safeLabel}.log`);
+  const logPath = join(dir, `${(process.env.FLEET_DETACHED_RUN_ID ? `${process.env.FLEET_DETACHED_RUN_ID}${process.env.FLEET_DETACHED_BATCH ? `-task-${safeLabel}` : ''}` : `${stamp}-${safeLabel}`)}.log`);
   // 先建出空文件:进度还没来时 tail 也能 stat 到这份日志,而不是"目录里什么都没有"。
   appendFileSync(logPath, '');
 

@@ -227,6 +227,7 @@ async function briefsFor(results, { briefLines, expectChanges, judge, config }) 
 export async function renderRunOutput(result, opts = {}) {
   const briefLines = opts.briefLines ?? DEFAULT_BRIEF_LINES;
   const [brief] = await briefsFor([result], { ...opts, briefLines });
+  opts.onBrief?.(brief);
   if (opts.full) {
     if (opts.json) {
       return `${JSON.stringify({ ...result, verdict: brief.verdict, verdictNote: brief.verdictNote, hasControlTokens: brief.hasControlTokens, preview: brief.preview }, null, 2)}\n`;
@@ -240,6 +241,7 @@ export async function renderRunOutput(result, opts = {}) {
 export async function renderManyOutput(results, opts = {}) {
   const briefLines = opts.briefLines ?? DEFAULT_BRIEF_LINES;
   const briefs = await briefsFor(results, { ...opts, briefLines });
+  opts.onBrief?.(briefs);
   if (opts.full) {
     if (opts.json) return `${JSON.stringify(results.map((r, i) => ({ ...r, verdict: briefs[i].verdict })), null, 2)}\n`;
     return `${results.map(formatFullHuman).join('\n')}\n共 ${results.length} 个任务,成功 ${results.filter((r) => r.ok).length} 个,失败 ${results.filter((r) => !r.ok).length} 个。\n`;

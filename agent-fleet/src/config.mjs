@@ -173,6 +173,14 @@ function validateEntry(name, def) {
     subagentModel = def.subagentModel;
   }
 
+  let maxOutputTokens;
+  if ('maxOutputTokens' in def) {
+    if (!Number.isInteger(def.maxOutputTokens) || def.maxOutputTokens <= 0) {
+      throw new ConfigError(`models.config.json 里的 "${name}" 的 maxOutputTokens 必须是正整数。`);
+    }
+    maxOutputTokens = def.maxOutputTokens;
+  }
+
   const protocol = def.protocol ?? 'anthropic-messages';
   if (!VALID_PROTOCOLS.has(protocol)) {
     throw new ConfigError(
@@ -199,6 +207,7 @@ function validateEntry(name, def) {
     headerEnvs: validateHeaderEnvs(name, def),
     requiresGateway: Boolean(def.requiresGateway),
     ...(subagentModel ? { subagentModel } : {}),
+    ...(maxOutputTokens !== undefined ? { maxOutputTokens } : {}),
   };
 }
 

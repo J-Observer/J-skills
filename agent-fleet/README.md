@@ -7,11 +7,33 @@ ln -sf /Users/kcsx/Project/kcsx/macmini/yan-skills/agent-fleet/bin/fleet ~/.loca
 fleet copy brief.md --cwd /path/to/project
 fleet code brief.md --cwd /path/to/project
 fleet judge state.txt questions.json
+fleet haiku brief.md   # Claude 官方端点，走每月 API 赠送额度；sonnet/opus/fable 同理
 ```
 
 `brief.md` 也可以直接写成任务文本；默认当前目录、不限轮数、安静模式。`--verbose` 显示进度。短命令和模型对应关系见 [skill](skill/SKILL.md)。
 
 `fleet copy` 与 `fleet run --model kollab-gateway-copy` 自动原样前置 [文案语气规范](skill/references/copy-voice.md) 的 Paste-ready block；文件或块缺失会报错。brief 仍须提供事实清单、禁止项与输出格式。仅纯机械改写可用 `fleet copy brief.md --no-voice`（长命令同样支持）跳过语气块，其他通道保持不变。
+
+## 默认独立运行：跨会话接续
+
+```bash
+fleet code brief.md --cwd /path/to/project --name demo --report /tmp/demo.md
+fleet copy brief.md  # grok / bulk / gpt / run / run-many 同样默认独立运行
+fleet code brief.md --no-wait  # 就绪后立即返回 runId 和文件路径
+fleet code brief.md --attach  # 旧前台行为，随派发者进程组结束
+fleet status --running --json
+fleet wait demo  # 也支持完整 runId、唯一前缀、latest
+fleet tail demo --follow
+fleet stop latest
+```
+
+默认由独立监督进程运行，launcher 继续阻塞到终态，打印原简报并按 verdict 退出；`--json` / `--full` 仍输出原格式。`--detach` 是默认行为的兼容别名，立即返回需用 `--no-wait`。关闭终端、退出 Claude 或杀 launcher 整组不影响任务；启动失败明确报错，不退回前台。命令不需要 `&` / nohup / disown。
+
+新会话先 `fleet status --running`，对已有任务逐个 `fleet wait <id>` 接着等，不要重派。`status` 默认跨 cwd 列出全部非终态及最近24小时终态，`--running` 只列 running/abnormal，`--json` 返回数组；每行包含 runId、短名、模型、状态、时长、cwd、报告路径及最后心跳。`--name`、`--report` 可指定元数据，未传时从 brief 的“归类…”行及 `REPORT:` 行提取。
+
+状态保存在 `~/.agent-fleet/runs/<runId>.json`，原子更新监督/执行 PID、每30秒心跳、结果/日志路径及简报。PID死亡或心跳超过90秒判为 abnormal；若最后心跳早于启动+10分钟，提示可能重启/强制休眠中断及 `fleet resume <id>`。`wait` 每两秒只读状态与 PID，终态立即返回简报；超时只结束等待，任务继续。`wait` / `tail` 支持短名、唯一runId前缀，`latest` 指当前目录最近任务（包括终态）；stop/say/resume 的 latest 保持当前目录最近存活任务规则。
+
+网关任务支持 say/resume；Codex 暂不支持，会明确提示。macOS 沿用系统 caffeinate 防空闲睡眠；机器重启、合盖强制休眠仍会中断或暂停，不提供重启恢复。监督器被 SIGKILL 时标 abnormal，可用完整runId stop 清理存活执行器。
 
 ## Kollab 文字模型与多模态
 
@@ -246,6 +268,9 @@ agent-fleet resume <run-id> "接着把剩下的做完"
 - `--brief-lines <n>`:简报预览行数,默认 3
 - `--expect-changes`:声明任务需要改文件;运行期间零提交、零改动时 `verdict=suspect`
 - `--judge`:进程内调 JEV,问「最终回复是否满足任务要求」;置信度 < 0.55 → `needs-review`;无 `TYPESAFE_API_KEY` 则跳过并在简报注明
+
+`models.config.json` 的可选字段 `maxOutputTokens` 必须是正整数，限制该模型每次请求的最大输出 token 数；fleet 将它传为 `CLAUDE_CODE_MAX_OUTPUT_TOKENS`，未配置则沿用默认值。Kollab 网关条目统一设为 16000。
+Kollab 网关 402 会话预算：本小时预算按首次请求时的余额定死，充值后要到下一个整点（UTC）才放开；期间用 `maxOutputTokens` 限制即可通过（仍须有足够预算）。
 
 ### 自定义请求头(只有自备网关才会用到)
 
