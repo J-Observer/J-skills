@@ -272,7 +272,10 @@ function cmdStatus(argv) {
   const flags = parseFlags(argv);
   const rows = collectStatus(flags.cwd ? { cwd: resolvePath(flags.cwd) } : {});
   const selected = rows.filter(r => !flags.running || ['running', 'abnormal'].includes(r.state));
-  process.stdout.write(flags.json ? `${JSON.stringify(selected, null, 2)}\n` : formatStatusHuman(selected));
+  process.stdout.write(flags.json ? `${JSON.stringify(selected, null, 2)}\n`
+    : selected.length ? selected.map(r =>
+      `${formatStatusHuman([r]).trimEnd()}${r.launchDetached ? '  ⚠ detached-launch' : ''}\n`).join('')
+    : formatStatusHuman(selected));
 }
 
 function cmdSay(argv) {

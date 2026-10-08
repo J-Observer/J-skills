@@ -200,6 +200,43 @@ assert(abnormalRows.some(r=>r.runId===synthetic.runId && r.status==='abnormal'))
 assert.match((await cliRun(['status','--running'])).stdout,/可能因机器重启\/强制休眠中断，可用 fleet resume synthetic-abnormal/);
 console.log('PASS default blocking / no-wait / attach / aliases / batch / metadata / status filtering / finished wait');
 
+// 仅用已有执行器桩：短命 shell 退出，真实模拟 launcher 孤儿化。
+for (const [label, marker, warned] of [
+  ['claudecode', {CLAUDECODE:'1', CLAUDE_CODE_ENTRYPOINT:''}, true],
+  ['entrypoint', {CLAUDECODE:'', CLAUDE_CODE_ENTRYPOINT:'cli'}, true],
+  ['terminal', {CLAUDECODE:'', CLAUDE_CODE_ENTRYPOINT:''}, false],
+]) {
+  const outPath=join(scratch,`orphan-${label}.out`), errPath=join(scratch,`orphan-${label}.err`);
+  const orphanEnv={...env,...marker,FLEET_NODE:process.execPath,FLEET_CLI:cli,FLEET_CWD:scratch,
+    FLEET_OUT:outPath,FLEET_ERR:errPath,FLEET_NAME:`orphan-${label}`,FLEET_TEST_SLEEP:'5'};
+  const shell=spawn('/bin/sh',['-c','"$FLEET_NODE" "$FLEET_CLI" code fixture --cwd "$FLEET_CWD" --name "$FLEET_NAME" > "$FLEET_OUT" 2> "$FLEET_ERR" &'],{env:orphanEnv,stdio:'ignore'});
+  await new Promise((resolve,reject)=>{shell.once('error',reject);shell.once('close',resolve);});
+  await sleep(2200);
+  const rows=JSON.parse((await cliRun(['status','--running','--json'])).stdout);
+  const row=rows.find(r=>r.name===orphanEnv.FLEET_NAME);
+  assert(row, 'orphan fixture still running');
+  const stderr=readFileSync(errPath,'utf8');
+  const log=readFileSync(row.logPath,'utf8');
+  if(warned) {
+    assert.equal(row.launchDetached,true);
+    assert.match(stderr,/检测到脱离启动/);assert(stderr.includes(row.runId));
+    assert(log.startsWith(stderr.trim()),'warning at log head');
+    assert.match((await cliRun(['status','--running'])).stdout,/⚠ detached-launch/);
+  } else {
+    assert.equal(stderr,'');assert(!Object.hasOwn(row,'launchDetached'));assert(!log.includes('检测到脱离启动'));
+  }
+  assert.equal((await cliRun(['wait',row.runId])).code,0,'execution exit unchanged');
+  const finalRow=JSON.parse((await cliRun(['status','--json'])).stdout).find(r=>r.runId===row.runId);
+  assert.equal(Boolean(finalRow.launchDetached),warned,'terminal metadata keeps guard result');
+  assert.match(readFileSync(row.logPath,'utf8'),/stub log/,'log output preserved');
+  assert.match(readFileSync(outPath,'utf8'),/verdict: ok/,'launcher still prints original summary');
+}
+const normalGuard=await cliRun(['code','fixture','--cwd',scratch,'--name','normal-guard'],{CLAUDECODE:'1',FLEET_TEST_SLEEP:'3'});
+assert.equal(normalGuard.code,0);assert.equal(normalGuard.stderr,'','normal parent has no added output');
+const normalRow=JSON.parse((await cliRun(['status','--json'])).stdout).find(r=>r.name==='normal-guard');
+assert(!Object.hasOwn(normalRow,'launchDetached'));assert(!readFileSync(normalRow.logPath,'utf8').includes('检测到脱离启动'));
+console.log('PASS launch guard: CLAUDECODE / ENTRYPOINT orphan warnings, log head, running and terminal status; terminal orphan and normal parent silent');
+
 // 默认启动独立子shell：launcher仍在等待时杀整组，新shell按短名发现和等待。
 const demoOut=join(scratch,'demo-launch.txt');const demoErr=join(scratch,'demo-launch.err');
 const demoCommand='"$FLEET_NODE" "$FLEET_CLI" run --model stub --prompt demo --models-config "$FLEET_CFG" --cwd "$FLEET_CWD" --name survival-demo --report "$FLEET_REPORT" > "$FLEET_DEMO_OUT" 2> "$FLEET_DEMO_ERR"';

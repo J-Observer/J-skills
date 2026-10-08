@@ -29,6 +29,8 @@ fleet stop latest
 
 默认由独立监督进程运行，launcher 继续阻塞到终态，打印原简报并按 verdict 退出；`--json` / `--full` 仍输出原格式。`--detach` 是默认行为的兼容别名，立即返回需用 `--no-wait`。关闭终端、退出 Claude 或杀 launcher 整组不影响任务；启动失败明确报错，不退回前台。命令不需要 `&` / nohup / disown。
 
+Claude Code 派单写法与误加 `&` 后的补救见 [Skill 顶部「派单前必读」](skill/SKILL.md)。默认等待 launcher 在 Claude 工具环境下检测到父进程变化时会告警，并在 status 标出 `⚠ detached-launch`（JSON 字段 `launchDetached: true`）；任务继续执行，不要杀掉重派。
+
 新会话先 `fleet status --running`，对已有任务逐个 `fleet wait <id>` 接着等，不要重派。`status` 默认跨 cwd 列出全部非终态及最近24小时终态，`--running` 只列 running/abnormal，`--json` 返回数组；每行包含 runId、短名、模型、状态、时长、cwd、报告路径及最后心跳。`--name`、`--report` 可指定元数据，未传时从 brief 的“归类…”行及 `REPORT:` 行提取。
 
 状态保存在 `~/.agent-fleet/runs/<runId>.json`，原子更新监督/执行 PID、每30秒心跳、结果/日志路径及简报。PID死亡或心跳超过90秒判为 abnormal；若最后心跳早于启动+10分钟，提示可能重启/强制休眠中断及 `fleet resume <id>`。`wait` 每两秒只读状态与 PID，终态立即返回简报；超时只结束等待，任务继续。`wait` / `tail` 支持短名、唯一runId前缀，`latest` 指当前目录最近任务（包括终态）；stop/say/resume 的 latest 保持当前目录最近存活任务规则。
@@ -561,3 +563,9 @@ agent-fleet 会把 `CLAUDE_CONFIG_DIR` 指向自己专属的 `~/.agent-fleet/cla
 - 处理来路不明的目录时,**先把它当成不可信代码看待**,或者干脆别用这个工具;
 - 真要跑,放进容器/一次性虚拟机里跑,别在装着你全部凭据的主力机器上跑;
 - `.env` 里只放这个工具真正需要的第三方 key,别把它和别的凭据堆在同一个 shell 环境里。
+
+## fleet-go 快速派单
+
+`fleet-go new fix-card --kind code --auth local --goal "修复窄屏卡片溢出" --write /path/to/project --body task.md` 自动拼标准块、lint、写 brief 并前台执行 fleet；也支持 heredoc 正文。`--dry-run` 只打印，`--no-launch` 只落盘。块在 `skill/templates/blocks/`，可直接编辑；paid 必须传 `--budget`，生产目标与回滚条件写在独有正文。
+
+修订用 `fleet-go amend fix-card "补充要求"`；优先 `--say`，不支持插话则保留修订并提示，确需重来才用 `--restart`（先 stop 并核验残留）。`fleet-go lint brief.md` 检查格式与启动禁令；`fleet-go status` 给运行摘要。brief 和用于恢复命令的 `.brief.json` 放在 `~/.agent-reports/<日期>/`，同名拒绝覆盖。启动仍用工具 `run_in_background:true`，脚本不后台化。需要 Python 3，无新增 npm 依赖。
