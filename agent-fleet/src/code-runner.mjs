@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 import { snapshotGit, inspectGit } from './brief.mjs';
 import { runsDir } from './progress.mjs';
+import { writePidRecord, processCommand } from './pid.mjs';
 import { SCOPE_LOCK } from './scope.mjs';
 
 const REVIEW_REFERENCE = fileURLToPath(new URL('../skill/references/codex-coding.md', import.meta.url));
@@ -28,12 +29,12 @@ export async function runCode({ prompt, cwd = process.cwd(), low = false, review
   const fullPrompt = review ? `${reviewPrompt()}\n\n${prompt}` : `${SCOPE_LOCK}\n\n${prompt}`;
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   mkdirSync(runsDir(), { recursive: true });
-  const base = join(runsDir(), `${stamp}-codex`);
+  const base = join(runsDir(), process.env.FLEET_DETACHED_RUN_ID || `${stamp}-codex`);
   const logPath = `${base}.log`;
   const resultPath = `${base}.result.md`;
   const before = snapshotGit(workdir);
   const startedAt = Date.now();
-  const fd = openSync(logPath, 'w');
+  const fd = openSync(logPath, process.env.FLEET_DETACHED_RUN_ID ? 'a' : 'w');
   // 非 review 运行使用 danger-full-access：用户要求 Codex 拥有最大权限（含网络/代理），workspace-write 会断网导致 AWS 等取数任务全部失败；review 保持 read-only 以维持 checker 只读边界。
   const args = ['exec', '--skip-git-repo-check', '-m', 'gpt-6.1-sol', '-c', `model_reasoning_effort=${low ? 'low' : 'medium'}`, '--sandbox', review ? 'read-only' : 'danger-full-access', '-C', workdir, '-o', resultPath, '-'];
   let child;
@@ -42,12 +43,17 @@ export async function runCode({ prompt, cwd = process.cwd(), low = false, review
   } finally {
     closeSync(fd);
   }
+  const detachedId = process.env.FLEET_DETACHED_RUN_ID;
+  if (detachedId) writePidRecord(detachedId, { pid: process.pid, command: processCommand(process.pid),
+    model: 'gpt-6.1-sol', cwd: workdir, startedAt: new Date(startedAt).toISOString(), logPath, finished: false });
   const outcome = await new Promise((done) => {
     child.once('error', (error) => done({ error }));
     child.once('close', (code, signal) => done({ code, signal }));
     child.stdin.on('error', () => {});
     child.stdin.end(fullPrompt);
   });
+  if (detachedId) writePidRecord(detachedId, { pid: process.pid, command: processCommand(process.pid),
+    model: 'gpt-6.1-sol', cwd: workdir, startedAt: new Date(startedAt).toISOString(), logPath, finished: true });
   const log = readFileSync(logPath, 'utf8');
   const reason = outcome.code === 0 ? null : codexFallbackReason(outcome.error, log);
   if (reason) {

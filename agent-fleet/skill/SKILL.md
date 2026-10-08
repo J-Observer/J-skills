@@ -1,6 +1,6 @@
 ---
 name: agent-fleet
-description: 使用本机 fleet 分派 Codex GPT-6、Gemini、Grok 或 JEV 任务，或调用 Kollab 图片/视频/音频/多模态能力时使用；包括用户点名 agent-fleet、Nano Banana、nanobanana、香蕉、便宜模型、多模型并行，用户说“让 Codex 或 GPT-6 做某事”的编码、调研与 review 派单，以及按全局 CLAUDE.md §2 路由任务。只做单一模型的直接任务且无需 fleet 时不触发；用户明确要直接操作 Codex CLI 原生命令（自选 sandbox、codex review、apply、resume）时用 codex Skill；普通生成图片也可用 imagegen。
+description: 使用本机 fleet 分派 Codex GPT-6.1 Sol、Gemini、Grok 或 JEV 任务，或调用 Kollab 图片/视频/音频/多模态能力时使用；包括用户点名 agent-fleet、Nano Banana、nanobanana、香蕉、便宜模型、多模型并行，用户说“让 Codex 或 GPT-6.1 Sol 做某事”的编码、调研与 review 派单，以及按全局 CLAUDE.md §2 路由任务。只做单一模型的直接任务且无需 fleet 时不触发；用户明确要直接操作 Codex CLI 原生命令（自选 sandbox、codex review、apply、resume）时用 codex Skill；普通生成图片也可用 imagegen。
 ---
 
 # agent-fleet
@@ -16,13 +16,14 @@ description: 使用本机 fleet 分派 Codex GPT-6、Gemini、Grok 或 JEV 任�
 | `fleet web start/say/close/list`；兼容 `fleet web "问题" [--followup "追问" ...] [--close]` | 网页版 ChatGPT，少量串行问答 |
 | `fleet bulk brief.md` | Gemini 批量处理 |
 | `fleet gpt brief.md` | 托管 GPT 任务 |
-| `fleet code brief.md [--low] [--cwd dir]` | 本机 Codex GPT-6：默认入口 |
+| `fleet code brief.md [--low] [--cwd dir]` | 本机 Codex GPT-6.1 Sol：默认入口 |
 | `fleet code brief.md --review` | 本机 Codex 只读审查 |
+| `fleet haiku\|sonnet\|opus\|fable brief.md` | Claude 官方端点直连，走订阅附赠的每月 API 额度（`ANTHROPIC_CREDIT_API_KEY`），**不占 Claude App 用量**；Claude 侧任务优先走这里 |
 | `fleet judge state.txt questions.json` | JEV 结构化判断 |
 | `fleet run --model name --prompt "任务"` | 旧的完整模型入口 |
 | `fleet run-many --config batch.json` | 批量任务 |
 | `fleet status` / `fleet tail [--follow]` | 看任务和日志 |
-| `fleet say latest "消息"` | 向运行中的任务插话 |
+| `fleet say latest "消息"` | 向运行中的任务插话（**只对网关模型任务有效，`fleet code` 的 Codex 任务无法插话**，改方向只能 stop 后重派） |
 | `fleet stop latest` / `fleet resume latest` | 收尾或续跑 |
 | `fleet list-models` / `fleet help` | 看配置或用法 |
 | `fleet media list` | 看 Kollab 当前托管的图片、视频、音频、视觉工具与必填参数 |
@@ -33,6 +34,9 @@ description: 使用本机 fleet 分派 Codex GPT-6、Gemini、Grok 或 JEV 任�
 
 多模态认证优先用 `KOLLAB_API_KEY` 或 `KOLLAB_STANDALONE_API_KEY`（`kollab api-key create` 获取），其次用进程级 `KOLLAB_API_TOKEN` 或 `kollab login` 会话；TEST 必须显式设置 `KOLLAB_API_URL`，不要复用生产 profile。先运行 `fleet media list` 看实时支持清单和模型 id，再用 `fleet media run generate_image --model <id> --prompt "一只猫"`；默认文件写入当前目录 `fleet-media/`。其他工具按清单传 `--input-json` 的必填字段，详见 [多模态用法](references/media.md)。普通配图也可用 imagegen。
 
+`models.config.json` 的可选字段 `maxOutputTokens` 必须是正整数，限制该模型每次请求的最大输出 token 数；fleet 将它传为 `CLAUDE_CODE_MAX_OUTPUT_TOKENS`，未配置则沿用默认值。Kollab 网关条目统一设为 16000。
+Kollab 网关 402 会话预算：本小时预算按首次请求时的余额定死，充值后要到下一个整点（UTC）才放开；期间用 `maxOutputTokens` 限制即可通过（仍须有足够预算）。
+
 ## 启动方式（硬性，派单人自检）
 
 `fleet` 任务一律这样启动：**一条 Bash 调用，只放 `fleet ...` 这一条命令，用工具参数 `run_in_background: true`、`timeout: 7200000`**，输出用 `> 文件 2>&1` 重定向。**命令里绝不写结尾的 `&`、`nohup`、`disown`。**
@@ -41,30 +45,40 @@ description: 使用本机 fleet 分派 Codex GPT-6、Gemini、Grok 或 JEV 任�
 Bash(command="fleet code brief.md --cwd <目录> > /tmp/<名>.out 2>&1", run_in_background=true, timeout=7200000)
 ```
 
-原因：命令自己再加 `&`，外层 shell 立刻退出，harness 马上发「后台命令已完成」的假通知，真正的 fleet/codex 进程变成无人认领的孤儿，**之后不会有真实完成通知**，主线程只能靠轮询或补 Monitor（2026-10-04 hotellobby 的 P0a/P0b 就这样出过错）。不套 `&` 时，fleet 进程退出才会触发完成通知。
+默认独立运行（code/copy/grok/bulk/gpt/haiku/sonnet/opus/fable/run/run-many）：监督进程脱离派发者，launcher 等到终态才退出并给简报，关闭 Claude 不影响任务。`--detach` 兼容默认；脚本需立即返回用 `--no-wait`，旧前台行为用 `--attach`。可用 `--name <短名>`、`--report <路径>`；未传时从 brief 的“归类…”和 `REPORT:` 行提取。
+
+**新会话先 `fleet status --running`（机器读取用 `--json`），有未结束任务就对每个 `fleet wait <id>` 发一条 Bash，`run_in_background:true`、`timeout:7200000` 接着等，不要重派。** `wait` / `tail` 可用短名或唯一 runId 前缀，终态 wait 立即返回；`latest` 是当前 cwd 最近任务。默认 status 跨目录列出非终态与最近24小时终态。
+
+默认已脱离，不需要 `&` / nohup / disown；launcher 或 wait 退出才触发真实完成通知。
 
 - 一个任务一次 Bash 调用；多个独立任务同一条消息里并行发多个 Bash 调用，不要在一条命令里串 `&`。
-- 核对：启动后 `pgrep -fl 'agent-fleet.mjs code'` 能看到进程，且 Bash 任务状态仍是 running。
-- 万一已经误套了 `&`：不要杀进程，用 Monitor 补一个带硬超时的 until 循环等报告文件；pgrep 的模式必须写成 `'[p]0a-xxx'` 这种括号形式，否则会匹配到 Monitor 自己的命令行，永远等不到结束。
+- 核对：`fleet status --running --json` 能看到任务，且默认启动的 Bash 状态仍是 running。
+- 此前“误套 &”的旧坑：默认已脱离，不需要；用 `fleet wait <id>` 接上完成通知。
 - 重派进同一个 worktree 前先 `pgrep -fl 'codex exec.*<worktree>'`，杀 fleet 外壳不等于杀掉 codex。
 
 ## 模型路由与任务边界
 
 写文案必须使用 `/marketing-psychology`、`/marketing-ideas`、`/write` 的原则并遵守 [references/copy-voice.md](references/copy-voice.md)，`fleet copy` 自动注入；写文案 brief 仍要给事实清单和禁止项。仅纯机械改写可用 `--no-voice` 跳过。
 
-大部分任务（编码、修 bug、补测试、调研、技术文档、报告、数据整理）优先 `fleet code`：本机 Codex `gpt-6.1-sol`，默认 medium，单文件且边界明确时用 `--low`。页面、营销和产品文案、翻译、多语言及母语校对一律 `fleet copy`，写能做什么和带来什么好处，不贬低竞品或用恐吓式对比。Grok 可分担擦边题材、其他调研或作为 GPT-6 备选；JEV 只做结构化判断。Claude 只做全局 CLAUDE.md §2 明确归它的任务。
+大部分任务（编码、修 bug、补测试、调研、技术文档、报告、数据整理）优先 `fleet code`：本机 Codex `gpt-6.1-sol`，默认 medium，单文件且边界明确时用 `--low`。页面、营销和产品文案、翻译、多语言及母语校对一律 `fleet copy`，写能做什么和带来什么好处，不贬低竞品或用恐吓式对比。Grok 可分担擦边题材、其他调研或作为 GPT-6.1 Sol 备选；JEV 只做结构化判断。Claude 只做全局 CLAUDE.md §2 明确归它的任务。
 
-GPT-6 只做 brief 点名的事。除非逐项要求，不写测试或测试脚本、不先写测试、不加安全校验/防御代码/权限边界/输入校验/异常兜底、不重构或抽象封装、不加配置项、文档或注释、不改无关文件、不装依赖、不提交/推送/部署/发布、不调用外部写接口。已有测试和构建只在 brief 要求时运行；拿不准的事不做，最终回复用一行列「建议但未做」。未点名的产物算越界。brief 必须逐字包含：「只做本 brief 列出的事。不写测试、不加安全防护或边界校验、不重构、不做任何未点名的额外工作或 action；拿不准就不做，在回复里列一行建议。」
+**Claude 侧任务优先走 `fleet haiku|sonnet|opus|fable`（每月 API 赠送额度），其次才是 Claude Code 的 `Agent` 工具（`executor-haiku/sonnet/opus/fable`，消耗 Claude App 订阅用量）。** 四个条目直连 `https://api.anthropic.com`，key 在 `.env` 的 `ANTHROPIC_CREDIT_API_KEY`，2026-10-08 实测 Haiku 一次小请求扣约 $0.01（Console 余额 $200→$199.99）；**fleet 简报里的 `cost` 对这四个条目是错的（高估十几倍），花费以 Console Settings > Billing 为准**。额度每个计费周期清零，用不完就浪费，所以同等任务先用它。只能走 `Agent` 工具的情况：任务需要本应用自带的工具（Browser pane、MCP 连接器、读其他会话、ccd_* 工具）或本机登录态；额度用完（402/拒绝）时**停下问用户**，不自动改派 Agent 工具或别的模型。brief 写法与 `fleet code` 相同（第一行「归类…」、`REPORT:` 行、逐字规则句，fleet 据此取短名和报告路径），Haiku 的能力范围与 brief 必写三样（产物定义、路径白名单、停止条件）以全局 `~/.claude/CLAUDE.md` §5 的 `haiku` 条为准。它接管主线程原本「太小不值得派 Codex、于是自己动手」的事，不替代 GPT-6.1 Sol 做编码主力，Gemini 仍是文案唯一出口。
 
-GPT-6 走 ChatGPT 会员额度，按现有账号约定不额外花钱；其 brief 必须限定最终回复只给结论、改动路径和验证结果，约 15 行内，长内容写入文件。面向读者的文案交 Gemini。
+GPT-6.1 Sol 只做 brief 点名的事。除非逐项要求，不写测试或测试脚本、不先写测试、不加安全校验/防御代码/权限边界/输入校验/异常兜底、不重构或抽象封装、不加配置项、文档或注释、不改无关文件、不装依赖、不提交/推送/部署/发布、不调用外部写接口。已有测试和构建只在 brief 要求时运行；拿不准的事不做，最终回复用一行列「建议但未做」。未点名的产物算越界。brief 必须逐字包含：「只做本 brief 列出的事。不写测试、不加安全防护或边界校验、不重构、不做任何未点名的额外工作或 action；拿不准就不做，在回复里列一行建议。」
+
+GPT-6.1 Sol 走 ChatGPT 会员额度，按现有账号约定不额外花钱；其 brief 必须限定最终回复只给结论、改动路径和验证结果，约 15 行内，长内容写入文件。面向读者的文案交 Gemini。
 
 | 短名 | 实际模型 | 适合 |
 |---|---|---|
 | `copy` | `kollab-gateway-copy`（Gemini） | 文案、翻译（必须走这里，正面写） |
-| `grok` | `kollab-gateway-research` | 擦边题材、其他调研、GPT-6 备选 |
+| `grok` | `kollab-gateway-research` | 擦边题材、其他调研、GPT-6.1 Sol 备选 |
 | `bulk` | `kollab-gateway-bulk` | 批量转换 |
 | `gpt` | `kollab-gateway-gpt-sol` | GPT 托管任务 |
 | `code` | 本机 Codex `gpt-6.1-sol` | **默认执行者**：编码、调研、报告、通用任务；默认 medium，`--low` 为 low |
+| `haiku` | `claude-haiku`（claude-haiku-5-5，api.anthropic.com） | Claude 侧杂活：只读复核答题、日志/报告摘要、进度查看、路径核实、机械批量替换、单目的胶水脚本 |
+| `sonnet` | `claude-sonnet`（claude-sonnet-5-5） | 需要判断力的 Claude 侧实现、跨文件调研、E2E、review（原本派 executor-sonnet 的活） |
+| `opus` | `claude-opus`（claude-opus-5-5） | 深度判断、高风险改动，谨慎用，单价高 |
+| `fable` | `claude-fable`（claude-fable-5-1） | 方向不明时的顾问判断，谨慎用，单价最高 |
 | `judge` | `jev` | 分类、选择、打分 |
 | `web` | 网页版 ChatGPT（`chatgpt-web-ask.mjs`） | 联网调研、综述、对比、选题发散、竞品功能核对 |
 
@@ -121,7 +135,9 @@ fleet web "问题" --followup "追问1" --followup "追问2" --out answer.md --j
 
 **派单前先核实路径，再写进 brief。** 允许读写清单里的每个路径都用 `ls` 或 `test -e` 确认：已有文件确认存在；新文件确认上级目录存在，并明确写成「新建，路径为……」，不要写「放在已有的脚本目录」这类要执行者自己去猜的说法。执行者遇到路径对不上会按「行动范围」直接停止、不会自行换路径，一处路径写错就白跑一轮。各 Skill 的布局并不统一（例如 agent-fleet 的说明在 `agent-fleet/skill/SKILL.md`、可执行脚本在 `bin/`；rankup 与 opencli 的说明在各自根目录的 `SKILL.md`、脚本在 `scripts/`），以派单时的实际 `ls` 为准，不凭记忆。需要改文件时加 `--expect-changes`；涉及浏览器时写明用 opencli（`opencli browser <会话名>`），禁止 Playwright/agent-browser。最终回复列改动与验证结果，不能只说“已完成”。 取证类 brief（打开外站、查 DNS/RDAP、批量读页面）还要写**重试与降级规则**：打开失败先同 URL 重开或刷新，间隔约 5 秒，最多 5 次；单项仍取不到记「无法验证」继续后面的项，只有站点整体不可达、验证码、限流、登录墙才整体停；否则执行者会因一次瞬时失败按「做不到就停」整单收工。
 
-**brief 里带上已知坑清单（避免白跑一轮）**：浏览器自动化 Chromium 在重页面会崩，直接写 firefox.launch({headless:true}) 并每页独立实例（用的是 Playwright 自带的 Firefox，装在 ~/Library/Caches/ms-playwright/firefox-*，本机不需要安装 Firefox 应用，也不会弹窗）；页面有 Cookie 提示时先点「拒绝」或预置 localStorage 再测量；创建 worktree 前先 git worktree remove --force 并 git branch -D 清掉同名旧工作区；指定模型前先 `fleet list-models` 确认真有（gemini-3.1-pro 当前不在配置里，默认用 gemini-3.8-flash）；`fleet code` 整条命令放 Bash 后台，不套 &；pull --rebase 超时重试一次；macOS 的 sed 用 `sed -i ''`。
+**涉及数据、备份、数据库、云资源的 brief 必须逐字写明**：「不得在用户的 Mac 上安装任何软件（brew/pip/npm/docker 镜像等）；备份、恢复、DB 工具一律在 AWS 上（跳板机、ECS 任务、容器）执行，本机只保存行数和摘要。」原因：Codex 曾在用户 Mac 上擅自 `brew install postgresql@17 redis`。验收时顺手 grep 执行者日志里有没有本地安装命令。
+
+**brief 里带上已知坑清单（避免白跑一轮）**：浏览器自动化 Chromium 在重页面会崩，直接写 firefox.launch({headless:true}) 并每页独立实例（用的是 Playwright 自带的 Firefox，装在 ~/Library/Caches/ms-playwright/firefox-*，本机不需要安装 Firefox 应用，也不会弹窗）；页面有 Cookie 提示时先点「拒绝」或预置 localStorage 再测量；创建 worktree 前先 git worktree remove --force 并 git branch -D 清掉同名旧工作区；指定模型前先 `fleet list-models` 确认真有（gemini-3.1-pro 当前不在配置里，默认用 gemini-3.8-flash）；pull --rebase 超时重试一次；macOS 的 sed 用 `sed -i ''`。
 
 
 ## 安全边界

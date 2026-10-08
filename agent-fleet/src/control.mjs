@@ -1,5 +1,7 @@
 // status / say / stop 的控制面。只按 pid.json 里的 pid 操作,绝不 pkill/killall。
 
+import { existsSync, readFileSync } from 'node:fs';
+import { detachedState, listDetached, readState, stopDetached } from './detach.mjs';
 import { appendInbox } from './inbox.mjs';
 import {
   assertSafeToSignal,
@@ -12,10 +14,10 @@ import {
   signalProcessTree,
 } from './pid.mjs';
 
-function formatDuration(startedAt) {
+function formatDuration(startedAt, finishedAt) {
   const t = Date.parse(startedAt ?? '');
   if (!Number.isFinite(t)) return '?';
-  const sec = Math.max(0, Math.floor((Date.now() - t) / 1000));
+  const sec = Math.max(0, Math.floor(((Date.parse(finishedAt) || Date.now()) - t) / 1000));
   if (sec < 60) return `${sec}s`;
   const m = Math.floor(sec / 60);
   const s = sec % 60;
@@ -24,20 +26,32 @@ function formatDuration(startedAt) {
 
 export function collectStatus({ cwd } = {}) {
   const rows = [];
+  const detached = listDetached();
+  for (const rec of detached) {
+    if (cwd && !sameCwd(rec.cwd, cwd)) continue;
+    const state = detachedState(rec);
+    if (!['running', 'abnormal'].includes(state) && Date.now() - Date.parse(rec.finishedAt) > 86_400_000) continue;
+    rows.push({ ...rec, status: state, state, duration: formatDuration(rec.startedAt, rec.finishedAt) });
+  }
   for (const rec of listAllPidRecords()) {
+    if (detached.some(d => d.runId === rec.runId || rec.runId.startsWith(`${d.runId}-task-`))) continue;
     if (cwd && !sameCwd(rec.cwd, cwd)) continue;
     const alive = isPidAlive(rec.pid);
-    if (rec.finished && !alive) continue;
+    if (rec.finished && Date.now() - Date.parse(rec.finishedAt ?? rec.startedAt) > 86_400_000) continue;
     let state = 'running';
     if (!alive && !rec.finished) state = 'abnormal';
-    else if (rec.finished && alive) state = 'running';
+    else if (rec.finished) {
+      const log = rec.logPath && existsSync(rec.logPath) ? readFileSync(rec.logPath, 'utf8') : '';
+      state = /\] done error/.test(log) ? 'failed' : 'done';
+    }
     rows.push({
       runId: rec.runId,
+      name: rec.name ?? null, reportPath: rec.reportPath ?? null, heartbeatAt: rec.heartbeatAt ?? null, status: state,
       model: rec.model ?? '?',
       pid: rec.pid,
       cwd: rec.cwd ?? '',
       startedAt: rec.startedAt ?? null,
-      duration: formatDuration(rec.startedAt),
+      duration: formatDuration(rec.startedAt, rec.finishedAt),
       state,
       logPath: rec.logPath ?? null,
     });
@@ -49,10 +63,10 @@ export function collectStatus({ cwd } = {}) {
 export function formatStatusHuman(rows) {
   if (rows.length === 0) return '没有运行中的任务。\n';
   const lines = rows.map((r) => {
-    if (r.state === 'abnormal') {
-      return `${r.runId}  ${r.model}  pid=${r.pid}  ${r.duration}  ${r.cwd}  异常终止（可能被外部信号杀掉）`;
-    }
-    return `${r.runId}  ${r.model}  pid=${r.pid}  ${r.duration}  ${r.cwd}`;
+    const line = `${r.runId}  ${r.name ?? '(无短名)'}  ${r.model}  ${r.state}  ${r.duration}  cwd=${r.cwd}  report=${r.reportPath ?? '(无)'}  最后心跳=${r.heartbeatAt ?? '(无)'}`;
+    if (r.state !== 'abnormal') return line;
+    const interrupted = Date.parse(r.heartbeatAt) < Date.parse(r.startedAt) + 600_000;
+    return `${line}  异常终止（可能被外部信号杀掉）${interrupted ? `；可能因机器重启/强制休眠中断，可用 fleet resume ${r.runId}` : ''}`;
   });
   return `${lines.join('\n')}\n`;
 }
@@ -62,6 +76,7 @@ export function deliverSay(spec, text, { cwd } = {}) {
   const runId = resolveRunId(spec, cwd);
   const rec = readPidRecord(runId);
   if (!rec) throw new Error(`找不到任务 ${runId} 的 pid.json`);
+  if (rec.model === 'gpt-6.1-sol') throw new Error('Codex 任务不支持 fleet say；请 stop 后重新派发。');
   if (rec.finished || !isPidAlive(rec.pid)) {
     throw new Error(`任务 ${runId} 已不在运行,无法投递插话。`);
   }
@@ -79,6 +94,8 @@ function sleep(ms) {
  */
 export async function requestStop(spec, { grace = 60, sleepFn = sleep, cwd } = {}) {
   const runId = resolveRunId(spec, cwd);
+  const detached = readState(runId);
+  if (detached) return stopDetached(detached);
   const rec = readPidRecord(runId);
   if (!rec) throw new Error(`找不到任务 ${runId} 的 pid.json`);
   const graceSec = Number.isFinite(Number(grace)) ? Math.max(0, Number(grace)) : 60;

@@ -6,6 +6,7 @@ import { closeSync, existsSync, openSync, readdirSync, readSync, statSync } from
 import { join } from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
 
+import { detachedState, readState, resolveDetached } from './detach.mjs';
 import { runsDir } from './progress.mjs';
 
 /** 结束行判定:日志行形如 `[agent-fleet 12s] done ok cost=$0.0012`。 */
@@ -35,8 +36,8 @@ export function latestRunLogPath() {
  * @param {number}   [options.pollMs]  follow 模式的轮询间隔
  * @returns {Promise<{ok:boolean, path?:string, reachedDone?:boolean, error?:string}>}
  */
-export async function tailLatestLog({ follow = false, out = process.stdout.write.bind(process.stdout), pollMs = POLL_MS } = {}) {
-  const path = latestRunLogPath();
+export async function tailLatestLog({ follow = false, out = process.stdout.write.bind(process.stdout), pollMs = POLL_MS, spec, cwd } = {}) {
+  const path = spec ? readState(resolveDetached(spec, cwd))?.logPath : latestRunLogPath();
   if (!path) {
     return { ok: false, error: `在 ${runsDir()} 下没有找到任何日志文件(先跑一次 run / run-many 才会有日志)。` };
   }
@@ -63,10 +64,13 @@ export async function tailLatestLog({ follow = false, out = process.stdout.write
 
   try {
     pump(); // 先把已有内容全部吐出来
+    if (readState(path.split('/').pop().slice(0, -4))) seenDone = detachedState(readState(path.split('/').pop().slice(0, -4))) !== 'running';
     if (!follow || seenDone) return { ok: true, path, reachedDone: seenDone };
     while (!seenDone) {
       await new Promise((resolve) => setTimeout(resolve, pollMs));
       pump();
+      const rec = readState(path.split('/').pop().slice(0, -4));
+      if (rec) seenDone = detachedState(rec) !== 'running';
     }
     return { ok: true, path, reachedDone: true };
   } finally {

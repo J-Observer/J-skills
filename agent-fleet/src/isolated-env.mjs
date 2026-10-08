@@ -113,7 +113,7 @@ export function agentFleetConfigDir() {
 
 /**
  * 基于 process.env 构造一份干净的子进程环境。
- * @param {{ baseURL: string, apiKey: string, authHeader: 'x-api-key' | 'auth-token', headers?: Record<string,string>, subagentModel?: string }} resolved
+ * @param {{ baseURL: string, apiKey: string, authHeader: 'x-api-key' | 'auth-token', headers?: Record<string,string>, subagentModel?: string, maxOutputTokens?: number }} resolved
  * @returns {Record<string, string>}
  */
 export function buildIsolatedEnv(resolved) {
@@ -165,6 +165,10 @@ export function buildIsolatedEnv(resolved) {
   if (resolved.subagentModel) {
     env.CLAUDE_CODE_SUBAGENT_MODEL = SUBAGENT_MODEL_ALIAS;
     env[SUBAGENT_MODEL_ALIAS_ENV] = resolved.subagentModel;
+  }
+
+  if (resolved.maxOutputTokens !== undefined) {
+    env.CLAUDE_CODE_MAX_OUTPUT_TOKENS = String(resolved.maxOutputTokens);
   }
 
   return env;

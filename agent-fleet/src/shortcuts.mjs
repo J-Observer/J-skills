@@ -5,9 +5,14 @@ export const MODEL_ALIASES = Object.freeze({
   grok: 'kollab-gateway-research',
   bulk: 'kollab-gateway-bulk',
   gpt: 'kollab-gateway-gpt-sol',
+  // Claude 官方端点直连，走订阅附赠的每月 API 额度（ANTHROPIC_CREDIT_API_KEY），不占 Claude App 用量。
+  haiku: 'claude-haiku',
+  sonnet: 'claude-sonnet',
+  opus: 'claude-opus',
+  fable: 'claude-fable',
 });
 
-const BOOLEAN_FLAGS = new Set(['quiet', 'verbose', 'low', 'review', 'json', 'full', 'expect-changes', 'judge', 'no-voice']);
+const BOOLEAN_FLAGS = new Set(['quiet', 'verbose', 'low', 'review', 'json', 'full', 'expect-changes', 'judge', 'no-voice', 'detach', 'attach', 'no-wait', 'help']);
 
 export function splitShortArgs(argv) {
   const positionals = [];

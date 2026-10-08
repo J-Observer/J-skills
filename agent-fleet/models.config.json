@@ -35,6 +35,7 @@
   "kollab-gateway": {
     "description": "Kollab 自己的公开 LLM 网关(POST /api/llm,Anthropic Messages 兼容协议),用账号自助生成的 kollab_live_* standalone API key 鉴权,费用从该 key 绑定的 Space 额度实时扣除。不要求申请第三方官方 Key,是 DeepSeek/Kimi 之外的第三个即用选项,模型范围由 Kollab 侧放开、不做白名单过滤。默认模型选的是 gemini-3.8-flash(2026-09 用 `kollab model list` 确认 paidOnly=false,不占用付费档位):故意不用 claude-sonnet-4-6,否则账单虽然走 Kollab 自己的 Space 额度,但底层实际还是在消耗 Claude,起不到「用非 Claude 模型分担任务」的效果。当前使用线上环境 https://kollab.im/api/llm 和已有生产账号 key。下面 kollab-gateway-* 系列条目复用同一个 baseURL/apiKeyEnv,只是按任务用途换了 model,方便直接按名字调用而不用每次手改这个文件——具体推荐见 README「任务类型 → 推荐模型」一节,后续会随实际使用持续校准,不是写死的规则。",
     "baseURL": "https://kollab.im/api/llm",
+    "maxOutputTokens": 16000,
     "model": "gemini-3.8-flash",
     "apiKeyEnv": "KOLLAB_PROD_API_KEY",
     "authHeader": "x-api-key",
@@ -43,6 +44,7 @@
   "kollab-gateway-copy": {
     "description": "Kollab 网关,文案/创意用途:批量营销文案、社媒帖子、标题党变体、创意头脑风暴等对准确性要求不高、追求速度和多样性的写作任务。模型 gemini-3.8-flash,paidOnly=false。和默认 kollab-gateway 当前指向同一个模型,单独命名是为了不依赖默认值以后可能的调整,任务里显式写 --model kollab-gateway-copy 更稳。",
     "baseURL": "https://kollab.im/api/llm",
+    "maxOutputTokens": 16000,
     "model": "gemini-3.8-flash",
     "apiKeyEnv": "KOLLAB_PROD_API_KEY",
     "authHeader": "x-api-key",
@@ -51,6 +53,7 @@
   "kollab-gateway-research": {
     "description": "Kollab 网关,通用调研摘要与常规编程用途。模型 grok-4.7,paidOnly=false。",
     "baseURL": "https://kollab.im/api/llm",
+    "maxOutputTokens": 16000,
     "model": "grok-4.7",
     "apiKeyEnv": "KOLLAB_PROD_API_KEY",
     "authHeader": "x-api-key",
@@ -59,6 +62,7 @@
   "kollab-gateway-bulk": {
     "description": "Kollab 网关,批量机械任务用途:大批量翻译、格式转换、结构化抽取一类模式化、对模型能力要求不高的任务,优先图快图省。模型 gemini-3.5-flash-lite,paidOnly=false,是目录里响应最快的免费档模型之一。",
     "baseURL": "https://kollab.im/api/llm",
+    "maxOutputTokens": 16000,
     "model": "gemini-3.5-flash-lite",
     "apiKeyEnv": "KOLLAB_PROD_API_KEY",
     "authHeader": "x-api-key",
@@ -67,6 +71,7 @@
   "kollab-gateway-code": {
     "description": "Kollab 网关,编程任务例外用途:用户 2026-09-23 定调,GLM 5.3 经真实两轮验证(简单无工具调用请求 + 多轮工具调用编程任务,均未出现裸露 tool-call 控制 token)后开例外,允许编程类任务路由到这里。模型 glm-5.3-flash(`kollab model list` 确认的精确 ID,网关目录里没有不带后缀的 glm-5.3,这是唯一对应 5.3 版本的条目),paidOnly=false。即便通过验证,一旦某次实际输出中出现裸 tool-call 控制 token(如 <tool_call>、<minimax:tool_call> 等)仍应视为那次失败,不代表这条例外永久有效,需持续观察。",
     "baseURL": "https://kollab.im/api/llm",
+    "maxOutputTokens": 16000,
     "model": "glm-5.3-flash",
     "apiKeyEnv": "KOLLAB_PROD_API_KEY",
     "authHeader": "x-api-key",
@@ -83,6 +88,7 @@
   "kollab-gateway-gpt-sol": {
     "description": "Kollab 托管网关，复杂任务与高质量单次产出。模型 gpt-6-sol；费用从已有账号绑定的 Space 扣除。",
     "baseURL": "https://kollab.im/api/llm",
+    "maxOutputTokens": 16000,
     "model": "gpt-6-sol",
     "apiKeyEnv": "KOLLAB_PROD_API_KEY",
     "authHeader": "x-api-key",
@@ -91,6 +97,7 @@
   "kollab-gateway-gpt-luna": {
     "description": "Kollab 托管网关，轻量摘要与批量任务。模型 gpt-6-luna；费用从已有账号绑定的 Space 扣除。",
     "baseURL": "https://kollab.im/api/llm",
+    "maxOutputTokens": 16000,
     "model": "gpt-6-luna",
     "apiKeyEnv": "KOLLAB_PROD_API_KEY",
     "authHeader": "x-api-key",
@@ -99,9 +106,42 @@
   "kollab-gateway-deepseek": {
     "description": "Kollab 托管网关，低成本摘要与批量任务。模型 deepseek-v4.1-flash；费用从已有账号绑定的 Space 扣除。",
     "baseURL": "https://kollab.im/api/llm",
+    "maxOutputTokens": 16000,
     "model": "deepseek-v4.1-flash",
     "apiKeyEnv": "KOLLAB_PROD_API_KEY",
     "authHeader": "x-api-key",
     "subagentModel": "glm-5.3-flash"
+  },
+  "claude-haiku": {
+    "description": "Anthropic 官方端点直连,走 Max/Team 每月 API 额度(需 Console 组织关联订阅,key 放 ANTHROPIC_CREDIT_API_KEY)。Haiku 5.5:摘要、分类、验收、机械批量,最便宜。额度用完且无充值时请求会被拒,不会扣订阅;不要改派别的模型,停下问用户。",
+    "baseURL": "https://api.anthropic.com",
+    "model": "claude-haiku-5-5",
+    "apiKeyEnv": "ANTHROPIC_CREDIT_API_KEY",
+    "authHeader": "x-api-key",
+    "subagentModel": "claude-haiku-5-5"
+  },
+  "claude-sonnet": {
+    "description": "Anthropic 官方端点直连,走 Max/Team 每月 API 额度(需 Console 组织关联订阅,key 放 ANTHROPIC_CREDIT_API_KEY)。Sonnet 5.5:需要判断力的实现、调研、review。额度用完且无充值时请求会被拒,不会扣订阅;不要改派别的模型,停下问用户。",
+    "baseURL": "https://api.anthropic.com",
+    "model": "claude-sonnet-5-5",
+    "apiKeyEnv": "ANTHROPIC_CREDIT_API_KEY",
+    "authHeader": "x-api-key",
+    "subagentModel": "claude-sonnet-5-5"
+  },
+  "claude-opus": {
+    "description": "Anthropic 官方端点直连,走 Max/Team 每月 API 额度(需 Console 组织关联订阅,key 放 ANTHROPIC_CREDIT_API_KEY)。Opus 5.5:深度判断,谨慎使用。额度用完且无充值时请求会被拒,不会扣订阅;不要改派别的模型,停下问用户。",
+    "baseURL": "https://api.anthropic.com",
+    "model": "claude-opus-5-5",
+    "apiKeyEnv": "ANTHROPIC_CREDIT_API_KEY",
+    "authHeader": "x-api-key",
+    "subagentModel": "claude-opus-5-5"
+  },
+  "claude-fable": {
+    "description": "Anthropic 官方端点直连,走 Max/Team 每月 API 额度(需 Console 组织关联订阅,key 放 ANTHROPIC_CREDIT_API_KEY)。Fable 5.1:方向不明时的顾问判断,谨慎使用。额度用完且无充值时请求会被拒,不会扣订阅;不要改派别的模型,停下问用户。",
+    "baseURL": "https://api.anthropic.com",
+    "model": "claude-fable-5-1",
+    "apiKeyEnv": "ANTHROPIC_CREDIT_API_KEY",
+    "authHeader": "x-api-key",
+    "subagentModel": "claude-fable-5-1"
   }
 }

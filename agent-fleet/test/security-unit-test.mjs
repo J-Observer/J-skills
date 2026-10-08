@@ -407,6 +407,27 @@ try {
   const resolvedWithSubagent = resolveModel('m', withSubagent);
   assert(resolvedWithSubagent.subagentModel === 'glm-5.3-flash', 'resolveModel 把合法的 subagentModel 原样透传出来');
 
+  for (const maxOutputTokens of [0, -1, 1.5, '16000', null]) {
+    assertThrows(
+      () => loadModelsConfig(writeSubagentConfig({ maxOutputTokens })),
+      'maxOutputTokens 必须是正整数',
+      `非法 maxOutputTokens ${JSON.stringify(maxOutputTokens)} 被拒绝加载`,
+    );
+  }
+  const resolvedWithLimit = resolveModel('m', loadModelsConfig(writeSubagentConfig({ maxOutputTokens: 16000 })));
+  assert(resolvedWithLimit.maxOutputTokens === 16000, 'maxOutputTokens 经配置加载和 resolveModel 透传');
+  const savedOutputLimit = process.env.CLAUDE_CODE_MAX_OUTPUT_TOKENS;
+  try {
+    process.env.CLAUDE_CODE_MAX_OUTPUT_TOKENS = '32000';
+    assert(buildIsolatedEnv(resolvedWithLimit).CLAUDE_CODE_MAX_OUTPUT_TOKENS === '16000', '配置输出限制覆盖被剥离的宿主变量');
+    const resolvedWithoutLimit = resolveModel('m', loadModelsConfig(writeSubagentConfig({})));
+    assert(resolvedWithoutLimit.maxOutputTokens === undefined, '未配置时不添加 maxOutputTokens');
+    assert(buildIsolatedEnv(resolvedWithoutLimit).CLAUDE_CODE_MAX_OUTPUT_TOKENS === undefined, '未配置时不继承宿主输出限制');
+  } finally {
+    if (savedOutputLimit === undefined) delete process.env.CLAUDE_CODE_MAX_OUTPUT_TOKENS;
+    else process.env.CLAUDE_CODE_MAX_OUTPUT_TOKENS = savedOutputLimit;
+  }
+
   const withoutSubagent = loadModelsConfig(writeSubagentConfig({}));
   const resolvedWithoutSubagent = resolveModel('m', withoutSubagent);
   assert(resolvedWithoutSubagent.subagentModel === undefined, '没配 subagentModel 的模型条目,resolveModel 结果里这个字段是 undefined(行为不变)');
