@@ -5,6 +5,45 @@ description: 使用本机 fleet 分派 Codex GPT-6.1 Sol、Gemini、Grok 或 JEV
 
 # agent-fleet
 
+> **派单前必读**
+> ⓪ **默认用 `fleet-go new` 派单**（见下「快速派单」）：只写任务独有的正文，归类行、REPORT 行、授权覆盖、已知坑、验收、逐字规则句由它自动补全。不要再手写整份 brief、也不要用 python 拼接旧 brief；手写 brief + `fleet code` 只留给需要完全自定义的少数情形。
+> ① 唯一正确写法：一条 Bash 调用，命令只含 `fleet-go new ...` 或 `fleet <子命令> brief.md ...`，工具参数 `run_in_background: true`（可重定向到输出文件）。
+> ② 命令中一律禁止：末尾 `&`、`(... &)`、`> /dev/null 2>&1 &`、`nohup`、`setsid`、`disown`、`... & sleep`、`fleet ... && 别的命令 &`。
+> 这些写法会让任务脱离工具，没有完成通知，工具任务列表里也看不到。
+> ③ 补救：发现已经用错，或新会话接手未结束任务，**不要杀掉重派**；先 `fleet status --running --json`。
+> 对每个 run 各开一条新的 Bash：`fleet wait <runId>`，工具参数 `run_in_background: true`，重新挂上完成通知。
+> ④ 启动后自检：工具应返回「Command running in background with ID …」；输出文件持续有内容或任务仍是 running，而不是几秒内就 completed。
+
+## 快速派单（默认写法）
+一条 Bash 调用，工具参数 `run_in_background:true`，命令里不加 `&`；`fleet-go` 自身保持前台，完成即通知。正文只写独有内容（背景、要做的事、验收），其余样板自动带上。
+```sh
+# 改代码（本地，不部署）
+fleet-go new fix-card --kind code --auth local --write /path/to/project --goal "修复卡片布局" <<'BRIEF'
+只修卡片在窄屏溢出；验收：现有构建通过，窄屏可完整阅读。
+BRIEF
+
+# 只读复核（checker）
+fleet-go new review-card --kind review --auth review --read /path/to/project --goal "复核 fix-card 的改动" <<'BRIEF'
+对照 git diff 与 fix-card 报告，列必修项；结论写在最终回复里。
+BRIEF
+
+# 部署生产（授权边界与回滚条件占位由模板补全，正文写具体版本与回读清单）
+fleet-go new deploy-site --kind code --auth deploy-prod,readonly-web --goal "部署 <HEAD> 并回读" --body body.md
+
+# 花钱生成（必须带预算）
+fleet-go new gen-test --kind code --auth paid,local --budget "$1，失败最多重试 1 次" --goal "..." --body body.md
+
+# 文案 / 调研
+fleet-go new page-copy --kind copy --goal "写 XX 页英文文案，正面表述" --body body.md
+```
+- `--kind`：`code`（默认执行者）、`review`（只读复核）、`research`、`copy`（Gemini）、`grok`、`haiku`、`sonnet`。`--auth` 可叠加（`local`、`readonly-web`、`deploy-prod`、`paid`、`review`）；`--write/--read` 写明允许读写的路径；`--forbid` 补充禁止项；`--pitfalls a,b` 选已知坑块（按 kind 有默认）；`--report` 缺省为 `~/.agent-reports/<日期>/<name>.md`。
+- **先预览再派**：`fleet-go new ... --dry-run`（只打印 brief，命令写 stderr）；`--no-launch` 只写 brief 不派发；`fleet-go lint brief.md` 检查样板（归类行、REPORT 行、逐字规则句、授权/禁止小节、密钥字面量）。
+- **改方向**：用 `fleet-go amend <name> "补充要求"`，它给 brief 顶部追加「修订 N」并（`--say`）尽量发给运行中的任务；运行中的 Codex 不支持 say 时会提示，此时才考虑 `--restart`（先 `fleet stop`、确认进程退净再重启）。**不要手工 kill 后重派，也不要用脚本拼接旧 brief。**
+- 看进度：`fleet-go status`（人读摘要，脱离启动的任务带 ⚠）；仍可用 `fleet status --running --json`。
+- 一个任务一次 Bash 调用；多个独立任务同一条消息里并行发多条 Bash。同一份共享工作树同一时刻只能有一个写入者的任务，别并发。
+- 已有 Claude Code 的 PreToolUse hook `~/.claude/hooks/check-fleet-launch.py`：命令里带 `fleet`/`fleet-go` 派单子命令又带 `&`、`nohup`、`setsid`、`disown` 会被直接拦下。
+- 标准块在 `skill/templates/blocks/`（规则句取自 `~/.claude/CLAUDE.md` §4.1、报告模板取自 §4.2），想调整样板改这里，不要改每份 brief。
+
 本机多模型任务入口：使用 `fleet` 运行 brief，结束后按实际产物验收。先核对目标模型当前配置、真实 Key 是否存在、工作目录信任边界和任务归属；密钥只看状态，不打印值。
 
 ## 命令速查
@@ -38,6 +77,8 @@ description: 使用本机 fleet 分派 Codex GPT-6.1 Sol、Gemini、Grok 或 JEV
 Kollab 网关 402 会话预算：本小时预算按首次请求时的余额定死，充值后要到下一个整点（UTC）才放开；期间用 `maxOutputTokens` 限制即可通过（仍须有足够预算）。
 
 ## 启动方式（硬性，派单人自检）
+
+见顶部「派单前必读」。
 
 `fleet` 任务一律这样启动：**一条 Bash 调用，只放 `fleet ...` 这一条命令，用工具参数 `run_in_background: true`、`timeout: 7200000`**，输出用 `> 文件 2>&1` 重定向。**命令里绝不写结尾的 `&`、`nohup`、`disown`。**
 

@@ -44,6 +44,8 @@ export function resolveDetached(spec, cwd = process.cwd()) {
 }
 
 export async function launchDetached(cli, args, { cwd, model, briefPath, name, reportPath, noWait = false }) {
+  const launcherParent = process.ppid;
+  const claudeTool = Boolean(process.env.CLAUDECODE || process.env.CLAUDE_CODE_ENTRYPOINT);
   mkdirSync(runsDir(), { recursive: true });
   const runId = `${new Date().toISOString().replace(/[:.]/g, '-')}-detach-${randomUUID().slice(0, 8)}`;
   const base = join(runsDir(), runId);
@@ -69,7 +71,6 @@ export async function launchDetached(cli, args, { cwd, model, briefPath, name, r
     child.once('message', msg => {
       clearTimeout(timer);
       if (!msg.ready) return reject(new Error(msg.error || 'detach 启动失败'));
-      child.disconnect();
       child.unref();
       resolve();
     });
@@ -83,8 +84,25 @@ export async function launchDetached(cli, args, { cwd, model, briefPath, name, r
     child.unref();
     throw err;
   }
+  if (noWait || !claudeTool) child.disconnect();
+  else {
+    const guard = setTimeout(() => {
+      if (process.ppid === 1 || process.ppid !== launcherParent) {
+        const warning = detachedLaunchWarning(runId);
+        process.stderr.write(`${warning}\n`);
+        if (child.connected) child.send({ launchDetached: true }, () => {
+          if (child.connected) child.disconnect();
+        });
+      } else if (child.connected) child.disconnect();
+    }, 1500);
+    guard.unref();
+  }
   if (noWait) console.log(`runId: ${runId}\nstatus: ${statePath(runId)}\nresult: ${rec.resultPath}\nlog: ${rec.logPath}`);
   return runId;
+}
+
+function detachedLaunchWarning(runId) {
+  return `[agent-fleet] runId: ${runId} 检测到脱离启动：命令里可能带了 &/nohup，完成不会通知、任务列表看不到；请另开一条 Bash 用 fleet wait ${runId} 且 run_in_background:true 挂上通知，不要杀掉重派。`;
 }
 
 function killGroup(pid, signal) {
@@ -125,6 +143,13 @@ export async function supervise(cli) {
   rec = { ...payload.rec, pid: process.pid, command: processCommand(process.pid) };
   const beat = () => { rec.heartbeatAt = new Date().toISOString(); writeState(rec); };
   beat();
+  process.on('message', msg => {
+    if (!msg.launchDetached || rec.launchDetached) return;
+    rec.launchDetached = true;
+    // 执行器输出由监督器串行写入，前插警告不会覆盖并发追加的日志。
+    writeFileSync(rec.logPath, `${detachedLaunchWarning(rec.runId)}\n${readFileSync(rec.logPath, 'utf8')}`);
+    beat();
+  });
   if (existsSync('/usr/bin/caffeinate')) {
     const caffeine = spawn('/usr/bin/caffeinate', ['-i', '-w', String(process.pid)], { stdio: 'ignore' });
     caffeine.on('error', err => console.error(`caffeinate: ${err.message}`));
@@ -135,9 +160,10 @@ export async function supervise(cli) {
     writePidRecord(rec.runId, { pid: rec.pid, command: rec.command, model: rec.model, cwd: rec.cwd,
       startedAt: rec.startedAt, logPath: rec.logPath, finished: false });
     child = spawn(process.execPath, [cli, ...payload.args], {
-      detached: true, stdio: ['ignore', 'inherit', 'pipe', 'ipc'],
+      detached: true, stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
       env: { ...process.env, FLEET_DETACHED_RUN_ID: rec.runId, FLEET_DETACHED_BATCH: payload.args[0] === 'run-many' ? '1' : '' },
     });
+    child.stdout.on('data', chunk => appendFileSync(rec.logPath, chunk));
     rec.stderr = '';
     child.stderr.setEncoding('utf8');
     child.stderr.on('data', chunk => { rec.stderr += chunk.toString(); appendFileSync(rec.logPath, chunk); });
