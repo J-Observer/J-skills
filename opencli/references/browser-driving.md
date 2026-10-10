@@ -359,7 +359,7 @@ opencli 会静默退回主页面执行。** 症状很阴——你在"iframe 里"
 
 1. 只用 OpenCLI 驱动本机真实 Chrome；不用 Playwright、Firefox/Nightly、headless 或沙箱浏览器。
 2. 固定动作做成脚本，stdout 只给摘要和失败点；截图必须给路径，不能输出 base64 或整页 state。入口见 [`../scripts/accept.mjs`](../scripts/accept.mjs)，所有自有会话在 finally close。
-3. 缺口必须标记：当前扩展 console 空实现，`consoleCaptureSupported:false`，空数组不能当“无错误”；viewport 不跨命令保持，1440/390 各在同一 eval 内量。模板用同源 iframe 固定宽度、字体 ready 和图片 complete 后截图，测 iframe 的 innerWidth/scrollWidth；这不覆盖顶层导航、设备模拟或禁止嵌入的页面。外域阻断暂缺，`--forbid-external` 仅检测并记录已完成的 Resource Timing 外域资源，发现即失败；不保证覆盖在飞、worker 或完整请求链，不声称阻断。
+3. 缺口必须标记：新扩展支持导航前 console/pageerror 捕获，console 输出 `captureSupported/startedAt`；模板捕获可用时报告真实错误并使验收失败。新扩展支持 `viewport set <width> <height>`（DPR=1）及 `viewport reset`，open 前设置，后续交互/eval/截图保持，close 释放。模板探测后验证顶层读数；旧扩展不支持或探测失败时明确记录原因，回退同源 iframe 固定宽度，在同一 eval 内测 innerWidth/scrollWidth；旧 console 空数组标 `consoleCaptureSupported:false`，不能当“无错误”。iframe 不覆盖顶层导航或禁止嵌入的页面，两条路径均等待字体和图片；不模拟触摸/UA。外域阻断暂缺，`--forbid-external` 仅检测并记录已完成的 Resource Timing 外域资源，发现即失败；不保证覆盖在飞、worker 或完整请求链，不声称阻断。
 
 ```bash
 node <opencli-skill-dir>/scripts/accept.mjs --url http://localhost:3000/ --url /pricing --widths 1440,390 --height 900 --out /tmp/site-accept --forbid-external
@@ -376,3 +376,5 @@ batch 的 args 是对象，不是数组：
 ]
 ```
 修复版任一步 `ok:false` 或 fill `verified:false` 退出非零；默认继续，`--stop-on-error` 中止，结果的 `index/cmd/error` 定位失败步。旧版可能退出 0，调用方仍须检查结果数组。
+
+安装新构建后用 [`../scripts/live-check.mjs`](../scripts/live-check.mjs) 现场验证 console.error、未捕获异常、1440/390 持续宽度与截图、reset/close 恢复。它会创建本机静态页并操作自有 Chrome 会话；源码检查阶段只 `node --check`，不可当现场通过。

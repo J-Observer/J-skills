@@ -4,7 +4,7 @@
  * node accept.mjs --url http://localhost:3000/ --url /pricing --widths 1440,390 --height 900 --out /tmp/accept
  * --session 覆盖唯一会话名；--forbid-external 只检测并记录（发现即失败），不阻断。
  * OPENCLI_ACCEPT_CLI=/path/to/dist/src/main.js 可选择独立构建；默认调用已安装 opencli。
- * shortcut: 当前用同源 iframe 固定宽度，扩展支持持续 viewport 后改为顶层验收。
+ * shortcut: 旧扩展能力探测失败时回退同源 iframe，新扩展使用持续顶层 viewport。
  * iframe 不能覆盖顶层导航、设备/触摸、frame-ancestors/CSP 禁止嵌入的页面；超时会失败。
  */
 import assert from 'node:assert/strict';
@@ -14,9 +14,10 @@ import { resolve, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { defaultSession, validateSession, run } from './opencli-core.mjs';
 
-const summary = { passed: 0, failed: 0, artifacts: [], consoleCaptureSupported: false, failures: [] };
+const summary = { passed: 0, failed: 0, artifacts: [], consoleCaptureSupported: false, consoleErrors: [], viewportSupported: false, viewportFallbacks: [], failures: [] };
 let session;
 let opened = false;
+let consoleChecks = 0;
 const cliPath = process.env.OPENCLI_ACCEPT_CLI;
 async function browser(...args) {
   const argv = ['browser', session, '--window', 'dedicated', ...args];
@@ -72,9 +73,35 @@ try {
       const stem = join(out, `page-${index + 1}-${width}`);
       try {
         opened = true;
+        let persistent = false;
+        try {
+          const capability = JSON.parse(await browser('viewport', 'set', String(width), String(height)));
+          assert(capability.supported === true, 'Extension did not acknowledge persistent viewport');
+          persistent = true;
+          summary.viewportSupported = true;
+        } catch (error) {
+          summary.viewportFallbacks.push({ point, reason: error.message });
+          // If set partially succeeded, do not leave stale metrics around the fallback.
+          try { await browser('viewport', 'reset'); } catch { /* old CLI/extension */ }
+        }
+        // Read capture before target navigation, so a late attach cannot look like a clean page.
+        let preCapture = { captureSupported: false, startedAt: null };
+        if (persistent) {
+          await browser('open', 'about:blank');
+          preCapture = JSON.parse(await browser('console', '--level', 'error'));
+        } else {
+          try { preCapture = JSON.parse(await browser('console', '--level', 'error')); }
+          catch { /* legacy session may not exist until HTTP open */ }
+        }
+        const captureFrom = Date.now();
         await browser('open', url);
         await waitForPage(url);
-        await evaluate(`(() => {
+        if (persistent) {
+          const dimensions = await evaluate('({width:innerWidth,height:innerHeight})');
+          assert.equal(dimensions.width, width, 'Persistent viewport width was not applied');
+          assert.equal(dimensions.height, height, 'Persistent viewport height was not applied');
+        }
+        if (!persistent) await evaluate(`(() => {
           document.documentElement.style.cssText = 'margin:0;padding:0;border:0';
           document.body.style.cssText = 'margin:0;padding:0;border:0';
           const frame = document.createElement('iframe');
@@ -84,25 +111,32 @@ try {
           document.body.replaceChildren(frame);
           return { created: true };
         })()`);
-        await waitForPage(url, 'body', true);
+        if (!persistent) await waitForPage(url, 'body', true);
         const shot = `${stem}.png`;
         await browser('screenshot', shot, '--width', String(width), '--height', String(height));
         summary.artifacts.push(shot);
         const evidence = await evaluate(`(() => {
-          const w = document.querySelector('#opencli-accept-frame').contentWindow;
+          const w = ${persistent ? 'window' : "document.querySelector('#opencli-accept-frame').contentWindow"};
           const d = w.document;
           const externalRequests = [...new Set(w.performance.getEntriesByType('resource')
             .map(entry => entry.name).filter(url => /^https?:/.test(url) && new URL(url).origin !== w.location.origin))];
-          return { url: w.location.href, viewportSource: 'same-origin-iframe', innerWidth: w.innerWidth,
+          return { url: w.location.href, viewportSource: ${JSON.stringify(persistent ? 'persistent-viewport' : 'same-origin-iframe')}, innerWidth: w.innerWidth,
             scrollWidth: Math.max(d.documentElement.scrollWidth, d.body.scrollWidth), externalRequests };
         })()`);
-        // 当前扩展 console 空实现；空 messages 永远不能证明页面无错误。
-        await browser('console', '--level', 'error');
-        evidence.consoleCaptureSupported = false;
+        const capture = JSON.parse(await browser('console', '--level', 'error'));
+        evidence.consoleCaptureSupported = capture.captureSupported === true && preCapture.captureSupported === true && !!capture.startedAt
+          && capture.startedAt === preCapture.startedAt && new Date(capture.startedAt).getTime() <= captureFrom;
+        summary.consoleCaptureSupported = consoleChecks++ === 0 ? evidence.consoleCaptureSupported
+          : summary.consoleCaptureSupported && evidence.consoleCaptureSupported;
+        evidence.consoleStartedAt = capture.startedAt ?? null;
+        evidence.consoleErrors = evidence.consoleCaptureSupported
+          ? capture.messages.filter(message => new Date(message.timestamp).getTime() >= captureFrom) : [];
+        summary.consoleErrors.push(...evidence.consoleErrors.map(message => ({ point, ...message })));
         evidence.externalDetection = 'resource-timing; completed resources only; no blocking';
         const artifact = `${stem}.json`;
         await writeFile(artifact, JSON.stringify(evidence, null, 2) + '\n');
         summary.artifacts.push(artifact);
+        assert.equal(evidence.consoleErrors.length, 0, `Captured console errors: ${evidence.consoleErrors.map(message => message.text).join('; ')}`);
         assert.equal(evidence.innerWidth, width, `innerWidth ${evidence.innerWidth} does not match ${width}`);
         assert(evidence.scrollWidth <= evidence.innerWidth,
           `scrollWidth ${evidence.scrollWidth} exceeds innerWidth ${evidence.innerWidth}`);

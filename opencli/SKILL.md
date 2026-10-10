@@ -25,7 +25,7 @@ OpenCLI 把任意网站、Electron 桌面应用和外部 CLI 收敛成一条 `op
 node <opencli-skill-dir>/scripts/accept.mjs --url http://localhost:3000/ --url /pricing --widths 1440,390 --height 900 --out /tmp/site-accept
 ```
 
-**验收三铁律**：①只用 OpenCLI 驱动真实 Chrome，不用 Playwright、Firefox/Nightly 或沙箱浏览器；②固定验收做成脚本，只输出摘要，截图落盘；③能力缺口必须明说：console 空返回不能当无错误；viewport 不跨命令保持，桌面/手机各自在同一命令内量，模板用同源 iframe；外域只能检测记录，暂不能阻断。详见 [`references/browser-driving.md`](references/browser-driving.md#验收三铁律)。
+**验收三铁律**：①只用 OpenCLI 驱动真实 Chrome，不用 Playwright、Firefox/Nightly 或沙箱浏览器；②固定验收做成脚本，只输出摘要，截图落盘；③能力缺口必须明说：新扩展支持真实 console/pageerror 捕获与持续 viewport set/reset，模板探测能力并验证读数；旧扩展 console 空返回不能当无错误，viewport 回退同源 iframe 并记录原因；外域只能检测记录，暂不能阻断。详见 [`references/browser-driving.md`](references/browser-driving.md#验收三铁律)。
 
 OpenCLI 负责用户真实 Chrome 中的页面操作和数据获取；调研主题先进 `agent-reach`，SEO / 外链决策先进 `rankup` / `backlink`。公开文本先用 `curl` 或公开 API；需要登录态、截图、E2E、填表或浏览器实测时用本 Skill。提交决策归业务 Skill。浏览器只用用户本机已登录的 Chrome；沙箱浏览器（Playwright / agent-browser / headless）在本机不作为选项，含测试自己的站、E2E、截图，只有用户明确点名时才用。
 
