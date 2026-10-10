@@ -4,7 +4,7 @@
 只是把数据取回来，读 [`data-extraction.md`](data-extraction.md)。
 会话名和标签页归属的问题，读 [`session-laws.md`](session-laws.md)。
 
-**这条 CLI 的第一读者是 agent，不是人。** 每个子命令都返回结构化信封，
+**这条 CLI 的第一读者是 agent，不是人。** 动作命令通常返回结构化信封；eval/open/screenshot 等输出各异，
 明确告诉你匹配到了什么、有多确信、没匹配上该怎么办。**靠信封判断，不要猜。**
 
 ## 目录
@@ -353,3 +353,26 @@ opencli 会静默退回主页面执行。** 症状很阴——你在"iframe 里"
 | `frames`/`contexts` 都对，`eval --frame`/`--context` 还是读到主页面，面板反复开合后必现 | 扩展 1.1.0 的已知回归（OOPIF context 缓存按 tabId 撞号）。升级扩展到 ≥ 1.1.1 并在 `chrome://extensions` reload；命中会报 `frame_not_attached`。见[`our-fork.md`](our-fork.md) |
 | 读回来的页面根本不是你导航的那个 | 会话撞名。见 [`session-laws.md`](session-laws.md) 的诊断顺序 |
 | `doctor` 红、连不上、`session_not_found` | 见 [`troubleshooting.md`](troubleshooting.md) |
+
+
+## 验收三铁律
+
+1. 只用 OpenCLI 驱动本机真实 Chrome；不用 Playwright、Firefox/Nightly、headless 或沙箱浏览器。
+2. 固定动作做成脚本，stdout 只给摘要和失败点；截图必须给路径，不能输出 base64 或整页 state。入口见 [`../scripts/accept.mjs`](../scripts/accept.mjs)，所有自有会话在 finally close。
+3. 缺口必须标记：当前扩展 console 空实现，`consoleCaptureSupported:false`，空数组不能当“无错误”；viewport 不跨命令保持，1440/390 各在同一 eval 内量。模板用同源 iframe 固定宽度、字体 ready 和图片 complete 后截图，测 iframe 的 innerWidth/scrollWidth；这不覆盖顶层导航、设备模拟或禁止嵌入的页面。外域阻断暂缺，`--forbid-external` 仅检测并记录已完成的 Resource Timing 外域资源，发现即失败；不保证覆盖在飞、worker 或完整请求链，不声称阻断。
+
+```bash
+node <opencli-skill-dir>/scripts/accept.mjs --url http://localhost:3000/ --url /pricing --widths 1440,390 --height 900 --out /tmp/site-accept --forbid-external
+```
+
+`--session` 可指定任务自有名字，默认唯一；`OPENCLI_ACCEPT_CLI=/path/to/dist/src/main.js` 可验证独立构建。退出码反映 pass/fail；artifact JSON 留尺寸和外域记录，console 能力始终单独标记。异步 eval 轮询 URL/可见性带超时，超时明确失败。
+
+batch 的 args 是对象，不是数组：
+```json
+[
+  {"cmd":"open","args":{"url":"http://localhost:3000/"}},
+  {"cmd":"wait","args":{"selector":".loaded","timeout":10000}},
+  {"cmd":"screenshot","args":{"path":"/tmp/accept.png","width":390,"height":900,"annotate":true}}
+]
+```
+修复版任一步 `ok:false` 或 fill `verified:false` 退出非零；默认继续，`--stop-on-error` 中止，结果的 `index/cmd/error` 定位失败步。旧版可能退出 0，调用方仍须检查结果数组。

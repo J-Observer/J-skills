@@ -20,6 +20,13 @@ OpenCLI 把任意网站、Electron 桌面应用和外部 CLI 收敛成一条 `op
 
 ## 零、选入口与沉淀
 
+验收入口：[`scripts/accept.mjs`](scripts/accept.mjs)。例如：
+```bash
+node <opencli-skill-dir>/scripts/accept.mjs --url http://localhost:3000/ --url /pricing --widths 1440,390 --height 900 --out /tmp/site-accept
+```
+
+**验收三铁律**：①只用 OpenCLI 驱动真实 Chrome，不用 Playwright、Firefox/Nightly 或沙箱浏览器；②固定验收做成脚本，只输出摘要，截图落盘；③能力缺口必须明说：console 空返回不能当无错误；viewport 不跨命令保持，桌面/手机各自在同一命令内量，模板用同源 iframe；外域只能检测记录，暂不能阻断。详见 [`references/browser-driving.md`](references/browser-driving.md#验收三铁律)。
+
 OpenCLI 负责用户真实 Chrome 中的页面操作和数据获取；调研主题先进 `agent-reach`，SEO / 外链决策先进 `rankup` / `backlink`。公开文本先用 `curl` 或公开 API；需要登录态、截图、E2E、填表或浏览器实测时用本 Skill。提交决策归业务 Skill。浏览器只用用户本机已登录的 Chrome；沙箱浏览器（Playwright / agent-browser / headless）在本机不作为选项，含测试自己的站、E2E、截图，只有用户明确点名时才用。
 
 按顺序找：现成项目或 Skill 脚本 → HTTP API → `opencli <site> <command>` adapter → `opencli browser <session>` → 确需复用时写 adapter。先用 `opencli list`、`opencli <site> --help` 查现有能力；不要重走已经有脚本的链路。配额站先读第三节并运行 `scripts/pressure.mjs`。
@@ -417,13 +424,14 @@ opencli browser "$S" close
 
 ```bash
 opencli browser "$S" batch --commands '[
-  {"cmd": "open", "args": ["https://example.com"]},
-  {"cmd": "wait", "args": ["selector", ".loaded"]},
-  {"cmd": "state", "args": []}
+  {"cmd": "open", "args": {"url": "https://example.com"}},
+  {"cmd": "wait", "args": {"selector": ".loaded", "timeout": 10000}},
+  {"cmd": "state", "args": {"source": "dom"}}
 ]'
 ```
 
 返回 `{cmd, index, ok, result?, error?}` 数组；默认遇错继续，`--stop-on-error` 改为中止。
+修复版 CLI 任一步 `ok:false` 或 fill `verified:false` 整条命令退出非零，`index` 指出失败步；旧版可能退出 0，脚本仍须检查每步结果。截图参数用 `{path, width, height, fullPage, annotate}`。
 **条件逻辑**（每一步决定下一步）用顺序调用，不要硬塞进 batch。
 
 ### 模型驱动 `auto`（仅在已安装版本支持时）
