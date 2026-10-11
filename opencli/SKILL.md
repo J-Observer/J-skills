@@ -2,7 +2,7 @@
 name: opencli
 description: 当用户要用本机已登录 Chrome 操作或验收网页（含测试自己的站、E2E、截图）、读取登录后台、抓取无 API 的数据、填表，或排查 OpenCLI doctor、会话、adapter 故障，或明确提到 opencli、浏览器自动化、标签页被抢时使用。公开文本先用 HTTP；话题调研交 agent-reach；SEO 与选词决策交 rankup；外链选点、提交与 Semrush、Similarweb 报表判读交 backlink；本 Skill 只负责浏览器驱动、会话与取数机制。
 metadata:
-  version: "1.8.1"
+  version: "1.8.2"
 ---
 
 # OpenCLI
@@ -260,7 +260,7 @@ browser 与 adapter 都借不到时只建**一个**替身窗口共用；用户�
 
 | 错误做法 | 正确做法 | 为什么错 |
 |---|---|---|
-| `--window foreground`（除非用户要亲自操作） | 什么都不加（扩展 1.5.x 起默认 dedicated，不抢焦点）；只取数时显式 `--window background` | 实测会把用户的**活动标签页切走**（从第 1 个跳到第 3 个）。2026-08-23 那次测量里最前端**应用**不变；但之后的扩展在建标签页租约时会 `chrome.windows.update({focused:true})`，2026-09-13 起有用户反馈被反复抬到前台——「foreground 不换前台应用」已经不成立，别再据此放行 |
+| `--window foreground`（除非用户要亲自操作） | 什么都不加（扩展 1.5.x 起默认 dedicated，不抢焦点）；只取数也使用 dedicated 专用窗口 | 实测会把用户的**活动标签页切走**（从第 1 个跳到第 3 个）。2026-08-23 那次测量里最前端**应用**不变；但之后的扩展在建标签页租约时会 `chrome.windows.update({focused:true})`，2026-09-13 起有用户反馈被反复抬到前台——「foreground 不换前台应用」已经不成立，别再据此放行 |
 | 调 adapter 时用前台「方便看页面」 | `--keep-tab true` + `screenshot` / `state` | 调试是高频动作，一轮能打断十几次。标签页留着，用户想看自己切过去 |
 | 在旧扩展（< 1.0.33）上省略 `--window background` | 先看 `doctor` 的扩展版本；旧版就每条命令都显式带 | 旧版两层默认都是前台，省略等于每条命令都抬一次窗口 |
 | 给 `PUBLIC` / `LOCAL` 命令加 `--window` | 不加 | 它们不接受这个标志，会报 `unknown option '--window'`；这类命令本来也不开浏览器 |

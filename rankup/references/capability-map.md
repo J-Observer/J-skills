@@ -91,7 +91,7 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 | 站群反查 | 给一个域名，找出同一主体运营的其它站 | `scripts/demand/site-network.mjs` | 「他还做了哪些站」 |
 | 域名画像 | 注册日期 / 月访问 / 流量结构 / 核心搜索词（只采不判；默认官方 gefei CLI，按积分余额计费，缺值未知） | `scripts/demand/domain-profile.mjs` | 「这站是新站吗、量哪来的」 |
 | 收入站案例复核 | 薄编排：串起 AITDK/Similarweb/Semrush/sitemap/KD，产出各源对照与倍差事实 | `scripts/demand/revenue-site-audit.mjs` | 「帖子说这站月入 X，真的假的」 |
-| SERP 取数 | serper.dev 拿 Google 第一页 organic + relatedSearches + PAA | `scripts/demand/serp-query.mjs` | 「这个词首页排的是什么」 |
+| SERP 取数 | 浏览器读取 Google 第一页自然结果、相关搜索与 PAA；API 为可选兜底 | [SERP 取数路线](seo-serp.md#serp-取数路线) | 「这个词首页排的是什么」 |
 | 词根扩展 | 给词根并扩成可投喂数据平台的候选串（挖词的起手式） | `scripts/demand/word-roots.mjs` | 「我只有一个词根」 |
 | 搜索框下拉联想 | Google / Bing / DuckDuckGo 三引擎的搜索框联想，按语种带 `--hl` / `--gl`；扩树第二层的入口（词根 → 联想词 → 叶子再联想一次即停），只采集、每引擎独立落 manifest，0 条不等于没词 | `scripts/demand/suggest.mjs` | 「帮我扩树」「这个词大家还怎么搜」 |
 | CPC 折算 | 将 CPC 折成经营背景读数（纯计算，不联网；判读见 [entry.md](playbooks/entry.md#选词判据只看两个)） | `scripts/demand/keyword-value.mjs` | 「这批词值多少钱」 |
@@ -160,7 +160,7 @@ SKILL.md 段 6 与取数纪律只一行指回本文件，改脚本入口时只�
 
 | 能力 | 一句话能干什么 | 入口 | 典型触发说法 |
 |---|---|---|---|
-| 默认建站栈 | TanStack Start Monorepo 脚手架（shadcn 初始化命令唯一）+ Cloudflare-first 资源选型 | [`references/cloudflare-stack.md`](cloudflare-stack.md) + [`lifecycle/stage-3-build.md`](lifecycle/stage-3-build.md) 段 3 | 「新建个站」「搭个工具站」 |
+| 默认建站栈 | 用户指定模板起站；未指定则用默认 shadcn 命令初始化 TanStack Start Monorepo + Cloudflare-first 资源选型 | [`references/cloudflare-stack.md`](cloudflare-stack.md) + [`lifecycle/stage-3-build.md`](lifecycle/stage-3-build.md) 段 3 | 「新建个站」「搭个工具站」 |
 | 设计组件库参考 | 外部 shadcn 生态组件库（21st.dev 等），做页面级设计（Hero / landing page / 动画动效）时先浏览找案例再实现 | [`references/design-references.md`](design-references.md) | 「做个好看的页面」「找设计参考」「Hero 怎么设计」 |
 | 脚手架四个坑 | 每一条都实际踩过的初始化陷阱 | [`lifecycle/stage-3-build.md`](lifecycle/stage-3-build.md) 段 3 · 3.1 | 「init 报错了」 |
 | 域名接入 Cloudflare | zone onboarding 并读回 NS 对（Wrangler 没有 zone 命令）；`status` 只读、`create` 建 | `scripts/cf-zone-setup.mjs` | 「把域名挂到 CF」 |
@@ -268,7 +268,7 @@ rankup 只判「什么时候发、发多少」（SKILL.md 段 6 一行指回这�
 
 | 能力 | 一句话能干什么 | 入口 | 典型触发说法 |
 |---|---|---|---|
-| 数据获取优先级 | 现有脚本 → HTTP API → 用户浏览器 + 脚本 → 手动 OpenCLI；**跳级的唯一理由是上一级不存在** | [`references/discipline.md`](discipline.md)「取数优先级」 | 任何取数开工前 |
+| 数据获取优先级 | 现有脚本 → HTTP API → 用户浏览器 + 脚本 → 手动 OpenCLI；**跳级的唯一理由是上一级不存在**；公开 SERP 按 [专用路线](seo-serp.md#serp-取数路线) | [`references/discipline.md`](discipline.md)「取数优先级」 | 任何取数开工前 |
 | 会话纪律 | 一会话一标签页、不要硬编码会话名、Bash 里禁用 `$$`、Semrush/Similarweb 不传 `--session` | `opencli` Skill `references/session-laws.md` | 「标签页被抢了」 |
 | 落盘 SOP | 本地接收端优先，端口不能写死；退路才是下载目录 | `opencli` Skill `references/data-extraction.md` | 「数据落哪」 |
 | 网页版 AI 工具驱动 | 只有聊天网页形态、且**确认没有 HTTP API** 的工具 | `scripts/chatbot-drive.browser.js` | 罕用；先确认无 API |

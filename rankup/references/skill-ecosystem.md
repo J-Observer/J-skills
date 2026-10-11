@@ -21,7 +21,7 @@
 |---|---|
 | 「这个词能不能做」「这词多少量」「难不难」 | **rankup 自己**（官方 `gefei-keywords` Skill + `backlink/scripts/semrush-keyword.mjs`）。不要叫 keyword-research，它不带取数 |
 | 「帮我挖一批长尾词」→ 已经**有**几十上百个词，要分组排序 | **`/keyword-research`**。rankup 取数，它做意图分层与簇排序 |
-| 「帮我挖一批长尾词」→ 手上**只有**一个词根 | **rankup 自己**（`demand/word-roots.mjs` 扩形态 → `demand/serp-query.mjs --expand` 拿 relatedSearches/PAA → 再交给 keyword-research 分层） |
+| 「帮我挖一批长尾词」→ 手上**只有**一个词根 | **rankup 自己**（`demand/word-roots.mjs` 扩形态 → 按 [SERP 取数路线](seo-serp.md#serp-取数路线)拿相关搜索 / PAA → 再交给 keyword-research 分层） |
 | 「怎么被 AI 引用」「AEO/GEO 怎么做」→ 问的是**为什么、值不值** | **rankup 自己**（[`seo-ai-search.md`](seo-ai-search.md)：Google 官方指南、Information Gain、Preferred Sources；ChatGPT 侧的需求验证与推荐位见 [`seo-geo.md`](seo-geo.md)） |
 | 「怎么被 AI 引用」→ 问的是**这篇文章要写成什么形状** | **`/ai-seo`**（逐平台来源选择机制 + 内容改写模式 + llms.txt/OKF 知识包） |
 | 「加个结构化数据」「JSON-LD 怎么写」 | **`/seo-geo`**，且只读它的 `references/schema-templates.md`。rankup 全仓没有模板库 |
@@ -45,7 +45,7 @@
 |---|---|
 | **它能干什么** | 按搜索量、难度、意图、簇给关键词排优先级。带四份判读参考：`keyword-intent-taxonomy.md`（意图分类法）、`keyword-prioritization-framework.md`（优先级框架）、`topic-cluster-templates.md`（簇模板）、`example-report.md` |
 | **关键事实** | 它的 description 原文是「from provided or connected data」——**它自己不联网、不带任何取数脚本**，`references/` 之外只有一个 SKILL.md |
-| **与 rankup 的分工** | **零冲突，是纯补充。** rankup 负责把数拿到：官方 `gefei-keywords` Skill（KD + top9 盘面 + linkBudget）、`backlink/scripts/semrush-keyword.mjs`（分国家量/KD/CPC + globalVolume，`--bulk` 一次 100 词）、`demand/serp-query.mjs`（SERP + relatedSearches + PAA）、`demand/word-roots.mjs`（词根扩形态）、`demand/keyword-value.mjs`（CPC 折算）。**这些都只出数值，不出分组。** 一旦词表超过二三十条、需要按意图切成 informational/commercial/transactional 并聚成内容簇，rankup 没有任何文档写这件事 |
+| **与 rankup 的分工** | **零冲突，是纯补充。** rankup 负责把数拿到：官方 `gefei-keywords` Skill（KD + top9 盘面 + linkBudget）、`backlink/scripts/semrush-keyword.mjs`（分国家量/KD/CPC + globalVolume，`--bulk` 一次 100 词）、[SERP 取数路线](seo-serp.md#serp-取数路线)（自然结果 + 相关搜索 + PAA）、`demand/word-roots.mjs`（词根扩形态）、`demand/keyword-value.mjs`（CPC 折算）。**这些都只出数值，不出分组。** 一旦词表超过二三十条、需要按意图切成 informational/commercial/transactional 并聚成内容簇，rankup 没有任何文档写这件事 |
 | **什么时候加载** | 手上**已经有**一张词表（≥20 条，带 volume/kd），要决定先写哪几篇、怎么组内链簇 |
 | **什么时候不要加载** | 只想知道单个词难不难（用 `kd`）；还没有词表（先用 rankup 取数）；只要 CPC 折算（用 `keyword-value.mjs`） |
 | **取舍理由** | 接。rankup 的选词链条到「拿到数值」为止就断了，[`trends.md`](trends.md) W2 第四步那张决策表是**单词维度**的，没有簇维度。这是真缺口 |
@@ -78,8 +78,8 @@
 | **deep-research 能干什么** | 一个纯方法论文件（单 SKILL.md，零脚本）：先广后深的分层检索、从初检结果里识别维度、多角度交叉。它自称「用它替代 WebSearch」 |
 | **anysearch 能干什么** | 带 CLI 的实时检索：`search`、`batch_search`（并行多查询）、`extract`（URL 全文抽取）、`get_sub_domains`（垂直领域检索，finance/academic/security/gaming 等）。匿名可用，有 key 则限流更松 |
 | **与 rankup 的分工** | **补充。** rankup 的 `demand/` 全是**结构化源**——榜单接口、商店 API、sitemap、SERP JSON。一旦问题变成「这个赛道 2026 年发生了什么」「这次核心更新到底改了什么」「这个平台的政策变了没」，rankup 手上一件工具都没有，只剩裸 WebSearch。deep-research 给方法，anysearch 给执行 |
-| **和 `demand/serp-query.mjs` 的区别** | 不是一回事。`serp-query.mjs` 要的是**「谁排在前面」**（organic 名次、首页/内页构成、域名命中计数——用来判竞争度），走 serper.dev，`SERPER_API_KEY` 免费 2500 次。anysearch 要的是**「这件事的事实是什么」**（正文内容）。**判竞争度不要用 anysearch，查事实不要用 serp-query** |
-| **什么时候加载** | 对账与段 1 的赛道与市场调研；排障时要搞清某次算法更新的事实；写内容前的素材收集（这也是 human-writing「五件材料」门槛的补料通道） |
+| **和 `demand/serp-query.mjs` 的区别** | 不是一回事。`serp-query.mjs` 要的是**「谁排在前面」**（organic 名次、首页/内页构成、域名命中计数——用来判竞争度），仅为 serper.dev 的可选兜底；默认采集见 [SERP 取数路线](seo-serp.md#serp-取数路线)。anysearch 要的是**「这件事的事实是什么」**（正文内容）。**判竞争度不要用 anysearch，查事实不要用 serp-query** |
+| **什么时候加载** | 对账与段 1 的赛道与市场调研；排障时要搞清某次算法更新的事实；写内容前的素材收集（为 `/write` 挖素材与起稿补充可靠来源） |
 | **什么时候不要加载** | 已知要查的是榜单/商店/sitemap/SERP（rankup 有专用脚本，更准更快） |
 | **取舍理由** | 接。deep-research 只有一个文件，成本近乎为零；anysearch 补的是 rankup 结构性缺失的一整类通路 |
 
@@ -191,7 +191,7 @@ rankup 自己只保留 `cf-zone-setup.mjs`（zone onboarding，**Wrangler 没有
 | `skill-creator` | **不接** | 只在改 rankup 自身时才用得上，而那不是 rankup 的工作范围。改 Skill 走 [`evolution.md`](evolution.md) 的晋升门 |
 | `find-skills` | **已接入，找 Skill 的默认入口**（原排在 `skillsmp` 之后；`skillsmp` 已于 2026-09-28 移除） | 它已经写在 [`integrations.md`](integrations.md)（安装命令被 `validate-rankup.mjs` 的必需内容断言锁住），是「能力缺口 → 搜 Skill → 记进 `decisions.md`」那条流程的一环，**不要删**。但纯搜索场景 `/skillsmp` 的索引大得多（1.6M SKILL.md），**先 skillsmp 搜、搜到了再按 integrations.md 的流程装与登记** |
 | `agent-browser` | **不接** | 另一套浏览器自动化。rankup 全线绑 `opencli`（会话纪律、落盘 SOP、adapter 都在那）。两套混用会撞标签页与会话名 |
-| `tuner` / `tuner-ci` | **暂不接** | tuner 是按 credit 计费的取数中转（转录、社媒、检索、抓取）。它的检索与抓取能力已被 anysearch（匿名可用）、agent-reach（6 通道零配置）、`serp-query.mjs`（免费 2500 次）覆盖。**触发条件**：上述三条全部不可用，且用户已有 key，才谈 |
+| `tuner` / `tuner-ci` | **暂不接** | tuner 是按 credit 计费的取数中转（转录、社媒、检索、抓取）。它的检索与抓取能力已被 anysearch（匿名可用）、agent-reach（6 通道零配置）、[SERP 取数路线](seo-serp.md#serp-取数路线)（浏览器默认）覆盖。**触发条件**：上述三条全部不可用，且用户已有 key，才谈 |
 | `macmini` | **与 rankup 无关，不要加载** | 远程 Mac Mini 的 SSH 与 OpenClaw 诊断 |
 | `ops` | **与 rankup 无关，不要加载** | 另一个项目（K12）的服务器运维中枢，含该项目专有的域名、日志通道与 runbook |
 | `kollab-cli` | **与 rankup 无关，不要加载** | 另一个工作区平台的资源管理 CLI |

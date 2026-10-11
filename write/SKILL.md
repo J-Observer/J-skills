@@ -31,7 +31,7 @@ description: |
 | 要起标题、写小红书或口播稿、做传播设计；检查口播稿哪里会划走；诊断稿子有没有共鸣 | `references/hooks-and-platforms.md` |
 | 小红书等平台的标题公式，短视频开头钩子 | `references/title-formulas.md` |
 | 翻译、写摘要、只调格式、Markdown 转公众号 HTML | `references/translate-and-format.md` |
-| 官网首页、落地页、定价页等营销文案；带引用和来源的文章 | `references/copy-and-research.md` |
+| 官网首页、落地页、定价页等营销文案；带引用和来源的文章；**写 blog、站内介绍页（内容整合型，先读第三节的标准流程）** | `references/copy-and-research.md` |
 | 阶段四查模式、改写前定位 AI 痕迹 | `references/patterns-zh.md` |
 
 **用户说"读着别扭"或"AI 味重"时，默认进阶段三，不要进阶段四。** 句子层面的毛病多半是结构问题的症状，直接修句子是在给骨折贴创可贴。

@@ -25,10 +25,10 @@ SEO 与 GEO 是最主要的获客与验证手段，**不是适用边界**：项�
 | 选词、调研、找需求（**已有主词**） | [`playbooks/entry.md`](references/playbooks/entry.md) → [`research.md`](references/playbooks/research.md) | 按入口四步顺序与两路判读执行；方向未落主词先走 [`selection.md`](references/playbooks/selection.md)，无方向先走 [P1](references/playbooks/research/p1-discovery.md)，主词出现后回本行 | 入口卡写进 `.rankup/research/<词根>-<日期>.md` |
 | ChatGPT 问法链路、自然推荐验证 | [`seo-geo.md`](references/seo-geo.md) 步骤 2–3 | 问法、采样、追问与三清单只按该唯一源；词级编排与裁决回 [`entry.md`](references/playbooks/entry.md) | 入口卡②有三清单与原始证据指针 |
 | 「谷歌质量」「HCU」「E-E-A-T」「AI 内容会不会被打」「内容 review」「垃圾内容政策」 | [`seo-helpful-content.md`](references/seo-helpful-content.md) | 区分官方口径与业内推断；按单页或站点级自检表核对并留证据 | 对应自检表通过且无红线 |
-| 建站、做功能、写 UI | [`lifecycle/stage-3-build.md`](references/lifecycle/stage-3-build.md)、[`cloudflare-stack.md`](references/cloudflare-stack.md) | 用 shadcn 脚手架与组件库，不手写基础控件；当天过完 Day-1 清单 | [`checklists.md`](references/checklists.md) 段 3 通过 |
+| 建站、做功能、写 UI | [`lifecycle/stage-3-build.md`](references/lifecycle/stage-3-build.md)、[`cloudflare-stack.md`](references/cloudflare-stack.md) | 用用户指定模板，未指定则用默认 shadcn 命令；UI 来自组件库，不手写基础控件；当天过完 Day-1 清单；核[建设中红线](references/discipline.md#二十一禁止建设中内容与功能区域) | [`checklists.md`](references/checklists.md) 段 3 通过 |
 | 写页面内容、写文章、写 blog、model 页面、模型对比、产品对比、补参考视频、封面图 | [`blog`](../blog/SKILL.md)（`blog/SKILL.md`） | 按其分工与流程执行（X 调研交 Grok、成文交 Gemini、review 交 Sonnet），不自己编内容；站内英文页面内容一律走 `/blog` | sources、成文、review、评判（哥飞评分、AITDK、ChatGPT 匿名问答）、回读证据齐全 |
-| 做内页、「把这个词做成页面」 | [`lifecycle/stage-4-prelaunch.md`「新增内页随手清单」](references/lifecycle/stage-4-prelaunch.md#新增内页--新模板的随手清单2026-09-12-回流) | 页面映射按 [段 2 §2.3](references/lifecycle/stage-2-positioning.md#23-问法簇--页面--faqdescription与站点结构)；目标词登记到 `keywords.md`；按段 4 完成页面与体检 | `checks.md` 记 ✅ 与证据 |
-| 上线前体检、「能不能上线」 | `checklists.md` 段 4、[`lifecycle/stage-4-prelaunch.md`](references/lifecycle/stage-4-prelaunch.md) | 全套体检：AITDK、PageSpeed、图标专项、占位专项；重跑不采信上一轮 | 段 4 闸门全绿，或写明改不动的理由 |
+| 做内页、「把这个词做成页面」 | [`lifecycle/stage-4-prelaunch.md`「新增内页随手清单」](references/lifecycle/stage-4-prelaunch.md#新增内页--新模板的随手清单2026-09-12-回流) | 页面映射按 [段 2 §2.3](references/lifecycle/stage-2-positioning.md#23-问法簇--页面--faqdescription与站点结构)；目标词登记到 `keywords.md`；按段 4 完成页面与体检；核[建设中红线](references/discipline.md#二十一禁止建设中内容与功能区域) | `checks.md` 记 ✅ 与证据 |
+| 上线前体检、「能不能上线」 | `checklists.md` 段 4、[`lifecycle/stage-4-prelaunch.md`](references/lifecycle/stage-4-prelaunch.md) | 全套体检：AITDK、PageSpeed、图标专项、占位专项；重跑不采信上一轮；核[建设中红线](references/discipline.md#二十一禁止建设中内容与功能区域) | 段 4 闸门全绿，或写明改不动的理由 |
 | 接入、绑域名、提交 sitemap、「怎么不收录」 | [`lifecycle/stage-5-launch.md`](references/lifecycle/stage-5-launch.md)、[`search-platforms.md`](references/search-platforms.md) | 先 `site-onboard.mjs --check` 再执行；接入一律线上实测 | `.rankup/integrations.md` 逐行有证据与日期 |
 | 外链 | `backlink` Skill、[`lifecycle/stage-6-backlinks.md`](references/lifecycle/stage-6-backlinks.md) | Rankup 只判时机与数量；提交前把候选清单给用户圈定 | 台账有 submitted → public → indexed 证据 |
 | 变现、支付、定价 | [`monetization.md`](references/monetization.md)、[`lifecycle/stage-7-monetize.md`](references/lifecycle/stage-7-monetize.md) | 按分发方式选主通道与备份，目标环境端到端验证 | 验证记录进 `.rankup/integrations.md` |
@@ -58,7 +58,7 @@ SEO 与 GEO 是最主要的获客与验证手段，**不是适用边界**：项�
 | 「已上线站 ChatGPT 会不会推荐我们」「问 ChatGPT 为什么不推荐」「推荐位整改」「GEO 闭环」「复审」 | 5 / 6 上线后 | [`seo-geo-recommendation-loop.md`](references/seo-geo-recommendation-loop.md)：复用问法与三清单 → 建议甄别 → 整改发布 → 复审；采样规则只指 [`seo-geo.md`](references/seo-geo.md) |
 | 「有什么游戏站能做」「小游戏机会采集 / 决策」 | 1–2 | [`game-sites.md`](references/game-sites.md)：平台监控、sitemap 差分、新标题筛选；旧每日决策协议仅部分覆盖 |
 | 「做不做」「做哪个语种」「要不要多语言」「做成工具还是内容站」 | 2 | [`lifecycle/stage-2-positioning.md`](references/lifecycle/stage-2-positioning.md) |
-| 「我们做个网站吧」「帮我搭起来」 | 2→3 | 先过段 2 立项，再段 3 初始化；手上没有词树先回段 1 |
+| 「我们做个网站吧」「帮我搭起来」 | 2→3 | 先过段 2 立项，再段 3 按用户指定模板起站，未指定则用默认 shadcn 命令；手上没有词树先回段 1 |
 | 「做个功能」「加个 X」 / 开发中「按 rankup 规范来」 | 3–4 | [`lifecycle/stage-3-build.md`](references/lifecycle/stage-3-build.md)：UI 一律来自 shadcn 组件库，多功能工具站导航先读[侧栏统一规范](references/design-references.md#多功能工具站侧栏统一规范)；做完段 4 全套体检 |
 | 「做个好看的页面」「Hero 怎么设计」「找个组件参考」 / 任何整站设计、改版 | 3 | **必须走 `/design` 并逐字带上获奖标准 prompt**（全文见 [`stage-3-build.md`](references/lifecycle/stage-3-build.md) 硬规则「设计一律走 `/design`」），再用 [`design-references.md`](references/design-references.md) 选 2–3 个案例再实现 |
 | 「我们做个内页吧」「关键词没问题了，做成内页」 | 4 | 见「强制流程」做内页一行 |
@@ -105,8 +105,9 @@ SEO 与 GEO 是最主要的获客与验证手段，**不是适用边界**：项�
 ### 3 建站与开发 · [全文](references/lifecycle/stage-3-build.md)
 
 - **适用**：shadcn、TanStack、Cloudflare 与段 4–6 的网页规则只约束 Web 面；macOS 按 `build-macos-apps` 专项 Skill，iOS/iPad 按对应原生工具，商店分发读 `monetization.md` 五；只有 App 时网页项标 N/A。
-- **入口**：[`cloudflare-stack.md`](references/cloudflare-stack.md)（脚手架命令、资源选择）；三方库优先见 [`integrations.md`](references/integrations.md)。
-- **原则与范围**：Web 面复用现有可访问组件与 shadcn 初始化流程，保留键盘、焦点与 ARIA 能力；基础控件边界见[纪律十六](references/discipline.md#十六组件库红线段-3--段-4ui-只准来自组件库不许自己造控件)。**品牌图标在开发当天做齐**，Day-1 清单见[段 3](references/lifecycle/stage-3-build.md)。
+- **入口**：[`cloudflare-stack.md`](references/cloudflare-stack.md)（用户指定模板 / 未指定时的默认脚手架命令、资源选择）；三方库优先见 [`integrations.md`](references/integrations.md)。
+- **原则与范围**：Web 面复用现有可访问组件；用户指定模板已有的 shadcn 初始化配置视为同等有效，追加组件仍用 `shadcn add`，保留键盘、焦点与 ARIA 能力；基础控件边界见[纪律十六](references/discipline.md#十六组件库红线段-3--段-4ui-只准来自组件库不许自己造控件)。**品牌图标在开发当天做齐**，Day-1 清单见[段 3](references/lifecycle/stage-3-build.md)。
+- **红线**：建站、上线前与每次 review 必查 [Cloudflare 循环消耗与账单熔断](references/cloudflare-stack.md#89-循环消耗与账单熔断红线)；不能证明有界的付费后台触发不得启用，预算告警不当消费硬顶。
 - **闸门**：`checklists.md` 段 3。
 
 ### 4 上线前 SEO / GEO · [全文](references/lifecycle/stage-4-prelaunch.md)
@@ -138,7 +139,7 @@ SEO 与 GEO 是最主要的获客与验证手段，**不是适用边界**：项�
 
 先查脚本清单，禁止现写等价实现或手点界面，脚本坏了修脚本（[`discipline.md`](references/discipline.md) 二）；执行、取数、完成标准与事故判据统一查 [`discipline.md`](references/discipline.md)，AI 探针的通道与证据边界查 [`seo-geo.md`](references/seo-geo.md)。
 
-- **一切浏览器动作一律 OpenCLI 驱动用户的浏览器**，以复用登录态与可复现会话；见[纪律五](references/discipline.md#五浏览器与取数规则在-opencli-skill这里只留判据)。
+- **浏览器通道与公开页面例外统一按纪律五执行**，以复用登录态与可复现会话；见[纪律五](references/discipline.md#五浏览器与取数规则在-opencli-skill这里只留判据)。
 - **所有 AI 爬虫必须放行**并逐 UA 实测，使公开内容具备被发现与读取的资格；见[基础安全](references/cloudflare-stack.md)与 `checklists.md` 段 5。
 - 令牌保护见文末「令牌与项目中立」；密钥不进回复、日志或仓库，防止泄漏与误提交。
 
@@ -163,7 +164,7 @@ SEO 与 GEO 是最主要的获客与验证手段，**不是适用边界**：项�
 
 ### `rankup review`
 
-对站本身做全面体检，编排在 `site-review.md` 第一节：先摸前提，再把可独立运行的组按可用并发派出（技术 SEO / 速度 / GEO / 关键词长尾 SERP / 哥飞官方 Skill 数据复核 / 市场规模 / 接入与记忆），主 Agent 汇总回写。A 组含 AITDK 全站报告，Issues 与未满分项一律必修（`checklists.md`「闸门 4c」）。G 组：`scripts/review.mjs --project-root .` 出五块报告；会话记录 `scripts/sessions.mjs --project-root . --days 14 --new-only`（水位线在 `.rankup/review-state.json`，`--dump` 消化完才 `--mark`），从中找用户纠正、验证过的结论、坑与根因、已推翻旧记录的事实（**修订**原条目）。review 发现 Day-1 项缺失，先回流进段 3 / 段 4 清单再修站。
+每轮核 [Cloudflare 循环消耗红线](references/cloudflare-stack.md#89-循环消耗与账单熔断红线)，含后台 alarm/通知/重试及真实熔断。对站本身做全面体检，编排在 `site-review.md` 第一节：先摸前提，再把可独立运行的组按可用并发派出（技术 SEO / 速度 / GEO / 关键词长尾 SERP / 哥飞官方 Skill 数据复核 / 市场规模 / 接入与记忆），主 Agent 汇总回写。A 组含 AITDK 全站报告，Issues 与未满分项一律必修（`checklists.md`「闸门 4c」）。G 组：`scripts/review.mjs --project-root .` 出五块报告；会话记录 `scripts/sessions.mjs --project-root . --days 14 --new-only`（水位线在 `.rankup/review-state.json`，`--dump` 消化完才 `--mark`），从中找用户纠正、验证过的结论、坑与根因、已推翻旧记录的事实（**修订**原条目）。review 发现 Day-1 项缺失，先回流进段 3 / 段 4 清单再修站。
 
 ### `rankup doctor`
 
@@ -193,7 +194,7 @@ SEO 与 GEO 是最主要的获客与验证手段，**不是适用边界**：项�
 
 ## 安装与版本
 
-先装 `opencli`（`npx skills add yan-labs/yan-skills --skill opencli -g -y`）：OpenCLI 本体装我们自己的构建，不是应用商店版（商店版默认前台抢标签页，失败不报错）；`opencli doctor` 报扩展版本过低时照它说的做。一切浏览器动作用 `opencli browser <描述性会话名>` 的 dedicated 窗口，理由见 `discipline.md` 五。Web 项目的 Cloudflare 工具链：`npm i -g cf`、`npx skills add yan-labs/yan-skills --skill cf-cli -g -y`；现有项目继续用项目锁定的 Wrangler。
+先装 `opencli`（`npx skills add yan-labs/yan-skills --skill opencli -g -y`）：OpenCLI 本体装我们自己的构建，不是应用商店版（商店版默认前台抢标签页，失败不报错）；`opencli doctor` 报扩展版本过低时照它说的做。浏览器通道及会话规则见 `discipline.md` 五。Web 项目的 Cloudflare 工具链：`npm i -g cf`、`npx skills add yan-labs/yan-skills --skill cf-cli -g -y`；现有项目继续用项目锁定的 Wrangler。
 
 ```bash
 npx skills add yan-labs/yan-skills --skill rankup -g -y   # 全局安装

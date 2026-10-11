@@ -84,13 +84,13 @@ anything — see <law-ref id="readiness-must-bind-to-this-query"/> and
 ### Use the script, not hand-driven clicks
 
 ```bash
-node scripts/tools-share-open.mjs --tool semrush
-node scripts/tools-share-open.mjs --tool similarweb
-node scripts/tools-share-open.mjs --tool semrush \
+node scripts/tools-share-open.mjs --tool semrush --window dedicated
+node scripts/tools-share-open.mjs --tool similarweb --window dedicated
+node scripts/tools-share-open.mjs --tool semrush --window dedicated \
   --goto '/analytics/backlinks/referring-domains/?q=example.com&searchType=domain'
 ```
 
-It opens the panel in a named background OpenCLI session, picks the card by
+With the explicit `--window dedicated` above, it opens the panel in a named dedicated OpenCLI session, picks the card by
 matching its label, clicks `打开`, polls until the expected origin appears, and
 prints the subscription expiry and today's quota. It **never types a password**:
 a logged-out panel is an error telling the owner to sign in themselves.
@@ -733,7 +733,7 @@ visibility: {reads, visible, hidden, visibleRatio}, frontmostAppSamples: [{at, l
 ## Non-interruptive OpenCLI policy
 
 The dashboard's `打开` controls may create or activate a browser window. Default
-to a named OpenCLI browser session with `--window background` (the
+to a named OpenCLI browser session with `--window dedicated` (the
 visibility-dependent report scripts instead default to the virtual-display
 strategy above, which is equally non-interruptive). Inspect the card
 and launcher first. If a stable target URL or already-open tool tab is available,
