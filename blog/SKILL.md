@@ -46,7 +46,7 @@ description: |
 
 1. **摸底**：当前路由/组件/schema/深链接/计价数据源（只读，Sol 或 Claude）。
 2. **画布**：在同一张设计画布新建/更新“文章页标准”页，UI library 先定组件，再画 model 页、blog、模型对比、产品对比四种模板（`/design`，一页一页发布）。
-3. **组件实现**：公共组件 + 内容 schema（向后兼容）+ `/generator` 按模型参数深链接 + X 嵌入 + shadcn 图表 + 参数表数据由站内计价自动生成。URL、canonical、JSON-LD 不变。详见 `references/components.md`。
+3. **组件实现**：公共组件 + 内容 schema（向后兼容）+ `/generator` 按模型参数深链接 + X 嵌入 + shadcn 图表 + 参数表与积分图表数据由站内计价自动生成（frontmatter 只声明 `model`/`xKind`，不写数字）。URL、canonical 不变，JSON-LD 只增不改。草稿与 manifest 的 `gaps` 不进构建产物。详见 `references/components.md`。
 4. **资料采集**：每篇文章一份 `sources/<slug>.json`，格式与来源规则见 `references/sources.md`。X 交 Grok，其余交 Claude。采集后逐条验证链接可打开、日期与作者对得上。
 5. **成文**：Gemini 3.8 Flash 按 `references/writer-brief.md` 写；输入是 sources 文件、站内参数表数据、文章骨架。
 6. **Review**：Claude Sonnet 按 `references/writer-brief.md` 的清单核对，改动写回；通过后才进仓库。
@@ -58,7 +58,7 @@ description: |
 
 ## 页面必备件（模型页）
 
-文章介绍 → YouTube 参考视频（宽屏 iframe，可全屏播放）→ 参数/价格表（入参出参、最长时长、每秒积分）→ 社区评价墙（X share card，含可播放视频）+ Reddit 超链接 → Prompt 集合卡（该模型有集合时）→ 资料来源（官方 blog/文档/定价页）→ 引导 card（首屏、文中、文末，点击跳 `/generator` 并带模型参数）→ FAQ → 相关内链。对比类文章把“参数表”换成“我们 vs 他们”的价格与功能表，竞品数据只引用有出处的采集。
+首屏（封面、标题、摘要、事实条、引导 card）→ 文章介绍 → YouTube 参考视频（宽屏 iframe，可全屏播放）→ 参数/价格表（入参出参、时长、每条与每秒积分）→ Prompt 集合卡（该模型有集合时）→ 社区评价墙（X share card，含可播放视频）+ Reddit 超链接 → 积分图表 → 文中引导 card → FAQ → 资料来源（官方文档/定价页在前，独立评测在后）→ 文末引导 card → 相关内链。引导 card 点击跳 `/generator` 并带模型参数。对比类文章把“参数表”换成“我们 vs 他们”的价格与功能表，竞品数据只引用有出处的采集。顺序与组件以 `references/components.md` 为准。
 
 ## 联动的 Skill
 

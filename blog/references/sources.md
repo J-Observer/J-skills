@@ -3,7 +3,7 @@
 目标：让每篇文章的每个事实都有一条可点击的来源，EEAT 结构完整（文章介绍、YouTube、X share card、参考资料）。
 
 ## 文件
-`sources/<slug>.json`（位置按组件实现落定，暂放 `~/.agent-reports/<日期>/sources/`，入库后移到 `sites/effect-video/content/articles/sources/`）。
+采集稿放 `~/.agent-reports/<日期>/sources/<slug>.json`，用 `node scripts/merge-article-sources.mjs --from <目录>` 规范化后写入 `sites/effect-video/content/articles/sources/<slug>.json`（X 帖子在这一步缓存，超过 30 词的 excerpt 会被截断并列出）。`official[]` 里的条目在页面 References 归入“官方”组；`gaps` 只给内部看，不进页面和构建产物。
 
 ```json
 {
