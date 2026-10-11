@@ -6,12 +6,14 @@ description: |
   资料采集规范（只拼别人的资料、来源可核实）、页面组件标准（YouTube iframe、X 评论墙、Prompt 集合卡、参数表/对比表、shadcn 图表、引导 card）、
   以及最后的评判阶段（哥飞 AI 评分、AITDK 的 SEO/关键词密度/GEO 监测、ChatGPT 匿名问答）串在一起，并和 rankup、agent-fleet、write、gefei、opencli、design 联动。
   只要任务是“写/改/迁移一篇站内文章或模型页”“给模型页补视频/评价/参数表”“写模型对比或产品对比文”“把页面内容写出来”，就用它；rankup 里凡是要写页面内容都引导到这里。
-  触发词：/blog、写文章、写 blog、model 页面、模型介绍页、模型对比、产品对比、seedance 文章、补参考视频、评论墙、X share card、文章标准化。
+  触发词：/blog、封面图、配图、文章封面、写文章、写 blog、model 页面、模型介绍页、模型对比、产品对比、seedance 文章、补参考视频、评论墙、X share card、文章标准化。
 ---
 
 # blog · 我们自己的文章流程
 
 这个 Skill 记录用户（2026-10-11）定下的文章类页面做法，只服务 effect.video 一类站点。它不重复别的 Skill 的内容，只规定“谁做什么、按什么顺序、哪些不许做”，细节指到对应 Skill 去读。
+
+配图（封面图）与正文同等重要，是写文章的一部分：每篇文章都要有一张海报式封面，走 `/imagegen`，见 `references/cover.md`。
 
 ## 为什么这样做
 
