@@ -33,6 +33,7 @@ description: |
 | **成文** | **Gemini 3.8 Flash**（`fleet-go new … --to gemini`） | 把全部资料写进去，只做衔接与梳理，正面表述 |
 | **成文后 review** | **Claude Sonnet** | 对着 sources 核对事实、引用、语气、夸大 |
 | 代码/SEO 复核 | **Claude Opus**（只读）；Sol 只读也可 | maker 与 checker 不同人 |
+| **封面图**（每篇文章一张海报式封面） | **Codex `image_gen`**（`/imagegen`，`fleet-go new … --to gpt --make image`） | 好莱坞大片感：夸张、强冲击力、视觉焦点鲜明；不出现文字/logo/商标/真实人物；详见 `references/cover.md` |
 | 部署与线上回读 | 按 agent-fleet 的部署模板，生产只读回读 | 生产不做真实付费验证 |
 
 派单一律用 `agent-fleet` 的 `fleet-go new`（run_in_background，不加 `&`），写作 brief 模板见 `references/writer-brief.md`。
@@ -47,6 +48,7 @@ description: |
 4. **资料采集**：每篇文章一份 `sources/<slug>.json`，格式与来源规则见 `references/sources.md`。X 交 Grok，其余交 Claude。采集后逐条验证链接可打开、日期与作者对得上。
 5. **成文**：Gemini 3.8 Flash 按 `references/writer-brief.md` 写；输入是 sources 文件、站内参数表数据、文章骨架。
 6. **Review**：Claude Sonnet 按 `references/writer-brief.md` 的清单核对，改动写回；通过后才进仓库。
+6.5 **封面图**：每篇文章一张，按 `references/cover.md` 用 `/imagegen` 生成，落盘并转 webp，写进 frontmatter（cover、og 图同源）。
 7. **迁移与接入**：写入 `content/articles/**`，页面三处引导 card（首屏、文中、文末），YouTube iframe 必备，X 评论墙，Reddit 仅链接，Prompt 集合卡（有则内置），参数表/对比表。
 8. **复核**：Opus 只读复核代码与 SEO，Sonnet 复核内容；修必修项。
 9. **部署与回读**：生产部署后只读回读（页面、嵌入可播放、JSON-LD、canonical、截图并排）；IndexNow。
