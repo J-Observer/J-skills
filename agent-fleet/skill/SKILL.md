@@ -128,6 +128,10 @@ Kollab 网关 402 会话预算：本小时预算按首次请求时的余额定�
 
 文案遵守 [文案语气规范](references/copy-voice.md)，Gemini 自动注入，brief 给事实清单与禁止项；纯机械改写可用 `--no-voice`。编码与只读复核见 [Codex 编程与 review](references/codex-coding.md)。范围以本次 brief 的一个目标、授权与验收为准，相关改动可做，无关线索只列出。最终回复约 15 行，长内容写入 REPORT；退出码与实际验收分开记录。
 
+## /design 画布：设计与上传分工
+
+画布文件（`.dc.html`、css、`canvas.json` 改动）由 `fleet sonnet`（难的 `fleet opus`）写到本地目录；fleet 通道没有本应用的 Artifact 工具，不能上传。上传由内置 `executor-haiku`（Agent 工具）用 Artifact 工具按目录逐页发布，便宜且有权限。同一画布的上传一次只派一个 haiku，保证 `canvas.json` 合并不冲突。画布 brief 带上全局 CLAUDE.md §5.8 的页面组织和 Design System 规则。
+
 ## 行动范围
 
 一单只做 brief 指定的一个目标及必要改动，方法由执行者选择；小障碍记入报告「偏差」，超出授权或缺少交付必需输入时如实停止。完整规则与自动注入的逐字范围句见 [行动范围](references/operations.md#行动范围)。
