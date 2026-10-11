@@ -2,7 +2,7 @@
 name: rankup
 description: 独立开发者的项目全生命周期管理：需求验证、选词选品、建站或做原生 App、上线接入、SEO/GEO 获客、支付变现、监控迭代与跨会话接力。以下情况使用：用户提到 rankup 或 /rankup（check、review、init；doctor 仅指整理项目 .rankup 记录）；当前目录或工作区有 .rankup/，或要读取、续做、整理项目计划、路线图、待办、PRD、交接或进度文档；在这些项目记录上下文里说「继续」「接着做」「上次做到哪」「下一步做什么」；以及项目规划、需求验证、关键词调研与 SERP、独立 Google Trends 热度查询或对比、AI 搜索推荐（GEO）、网站体检、sitemap/IndexNow/Search Console、流量、建站、上线、支付（Stripe、Anyway、PayPal）、变现与增长。SEO/GEO 是主要手段，不是适用边界，非 SEO 的项目计划与 macOS、iOS、iPad 原生 App 同样适用。纯文案（含 SEO 趋势博客等主题写作）、纯视觉设计、与项目管理无关的通用开发及基础设施排错（含 Cloudflare 部署报错、普通 CLI doctor）不触发；目录内有 .rankup/ 时仅叠加项目记录维护义务；外链执行交 backlink，浏览器驱动交 opencli，配图生成交 imagegen，多模型派单交 agent-fleet。
 metadata:
-  version: "3.38.3"
+  version: "3.38.7"
 ---
 
 # Rankup
@@ -26,6 +26,7 @@ SEO 与 GEO 是最主要的获客与验证手段，**不是适用边界**：项�
 | ChatGPT 问法链路、自然推荐验证 | [`seo-geo.md`](references/seo-geo.md) 步骤 2–3 | 问法、采样、追问与三清单只按该唯一源；词级编排与裁决回 [`entry.md`](references/playbooks/entry.md) | 入口卡②有三清单与原始证据指针 |
 | 「谷歌质量」「HCU」「E-E-A-T」「AI 内容会不会被打」「内容 review」「垃圾内容政策」 | [`seo-helpful-content.md`](references/seo-helpful-content.md) | 区分官方口径与业内推断；按单页或站点级自检表核对并留证据 | 对应自检表通过且无红线 |
 | 建站、做功能、写 UI | [`lifecycle/stage-3-build.md`](references/lifecycle/stage-3-build.md)、[`cloudflare-stack.md`](references/cloudflare-stack.md) | 用 shadcn 脚手架与组件库，不手写基础控件；当天过完 Day-1 清单 | [`checklists.md`](references/checklists.md) 段 3 通过 |
+| 写页面内容、写文章、写 blog、model 页面、模型对比、产品对比、补参考视频、封面图 | [`blog`](../blog/SKILL.md)（`blog/SKILL.md`） | 按其分工与流程执行（X 调研交 Grok、成文交 Gemini、review 交 Sonnet），不自己编内容；站内英文页面内容一律走 `/blog` | sources、成文、review、评判（哥飞评分、AITDK、ChatGPT 匿名问答）、回读证据齐全 |
 | 做内页、「把这个词做成页面」 | [`lifecycle/stage-4-prelaunch.md`「新增内页随手清单」](references/lifecycle/stage-4-prelaunch.md#新增内页--新模板的随手清单2026-09-12-回流) | 页面映射按 [段 2 §2.3](references/lifecycle/stage-2-positioning.md#23-问法簇--页面--faqdescription与站点结构)；目标词登记到 `keywords.md`；按段 4 完成页面与体检 | `checks.md` 记 ✅ 与证据 |
 | 上线前体检、「能不能上线」 | `checklists.md` 段 4、[`lifecycle/stage-4-prelaunch.md`](references/lifecycle/stage-4-prelaunch.md) | 全套体检：AITDK、PageSpeed、图标专项、占位专项；重跑不采信上一轮 | 段 4 闸门全绿，或写明改不动的理由 |
 | 接入、绑域名、提交 sitemap、「怎么不收录」 | [`lifecycle/stage-5-launch.md`](references/lifecycle/stage-5-launch.md)、[`search-platforms.md`](references/search-platforms.md) | 先 `site-onboard.mjs --check` 再执行；接入一律线上实测 | `.rankup/integrations.md` 逐行有证据与日期 |
@@ -64,7 +65,8 @@ SEO 与 GEO 是最主要的获客与验证手段，**不是适用边界**：项�
 | 「看一下 SEO / GEO 有没有问题」「能不能上线」「TDK」「密度」 | 4 | `checklists.md` 段 4 + [`seo-box.md`](references/seo-box.md)；第三方复核加载官方 `gefei-page`（[`seo-webcafe.md`](references/seo-webcafe.md)） |
 | 「怎么被 AI 引用」「llms.txt」「对 AI 代理友好吗」 | 4 | [`seo-ai-search.md`](references/seo-ai-search.md)；推荐位做法见 `seo-geo.md`；SEO 专题索引 [`seo-growth.md`](references/seo-growth.md) |
 | 「生成 logo / 配图 / og 图」「做一整套网站图标」 | 3–4 | `/imagegen` 真实生成；图标集 `scripts/make-favicons.mjs --src <logo.png> --out <public目录>` |
-| 「写一下这页的文案」「AI 味太重」 | 4 | 中文 `/write`（自带起稿、改稿与去 AI 味体检，不依赖别的 Skill）；内容形状按 `/ai-seo`，见 [`skill-ecosystem.md`](references/skill-ecosystem.md) |
+| 「写这个模型页」「写篇 blog」「把页面内容写出来」「做对比文」 | 4（上线前） | [`/blog`](../blog/SKILL.md)：站内英文页面内容走它，不自己编 |
+| 「写一下这页的文案」「AI 味太重」 | 4 | 站内英文页面内容走 `/blog`，中文稿仍走 `/write`；中文 `/write`（自带起稿、改稿与去 AI 味体检，不依赖别的 Skill）；内容形状按 `/ai-seo`，见 [`skill-ecosystem.md`](references/skill-ecosystem.md) |
 | 「站慢不慢」「Core Web Vitals」 | 4 | `scripts/pagespeed.mjs collect --strategy both`，判读 `seo-box.md` 一 |
 | 「这个域名能不能用」「域名黑历史」 | 5 | [段 5](references/lifecycle/stage-5-launch.md) 黑历史闸门 + 官方 `gefei-domain` |
 | 「域名买完了」「帮我绑域名」 | 5 | [`cloudflare/domain-email.md`](references/cloudflare/domain-email.md) §8.5 全 API 绑定 → [`cloudflare-stack.md`](references/cloudflare-stack.md) §8.8 基础安全 → `domain-email.md` §8.6 邮箱 → 上线验收 |
