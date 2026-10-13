@@ -31,7 +31,7 @@ def validate(root):
              for p in sorted((root / group / 'tests').glob('*.test.mjs'))]
     run(['node', '--test', '--test-reporter=spec', *tests], root)
     for name in ('verdict-test', 'control-unit-test', 'shortcuts-test'):
-        run(['node', f'agent-fleet/test/{name}.mjs'], root)
+        run(['node', f'test/{name}.mjs'], root / 'agent-fleet')
     run([sys.executable, '-m', 'unittest', 'discover', '-s', 'scripts/maintenance/tests', '-v'], root)
     run([sys.executable, '-m', 'unittest', 'discover', '-s', 'skill-link-check/tests', '-v'], root)
 

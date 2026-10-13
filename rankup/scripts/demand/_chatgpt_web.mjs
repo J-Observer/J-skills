@@ -1,4 +1,4 @@
-/** Shared temporary ChatGPT page driver; OpenCLI uses the logged-in Chrome. */
+/** Temporary ChatGPT driver, checked 2026-10-11: temporary-chat=true plus page notice/banner; never changes personalization. */
 import { spawnSync } from 'node:child_process';
 
 const SLD2 = new Set(['co.uk', 'org.uk', 'com.au', 'co.jp', 'com.br', 'co.in', 'com.cn', 'com.tw', 'co.kr', 'com.hk', 'com.sg', 'co.nz', 'com.mx', 'com.tr', 'co.za']);
@@ -71,43 +71,25 @@ export function closeSession(web) {
   return result;
 }
 
-/** 已开路径已实测；未验证的模式切换停止，避免未确认状态下发送。 */
+/** URL 与临时页声明/横幅同时存在才放行；登录状态及个性化菜单不作判据。 */
+export function temporaryPageNotice(state) {
+  let url;
+  try { url = new URL(state?.url); } catch { return ''; }
+  if (url.origin !== 'https://chatgpt.com' || url.searchParams.get('temporary-chat') !== 'true') return '';
+  const lines = String(state?.text || '').split('\n');
+  return lines.filter(line => /不会.*记忆|不.*使用.*记忆|won.t.*memor|doesn.t.*memor|does not.*memor|won.t.*use.*memor/i.test(line) || /^\s*(临时聊天|temporary chat)\s*$/i.test(line)).join('\n');
+}
+
 export function ensurePrivacySwitches(web) {
-  const readState = (wait = false) => parseEvalJson(browserCommand(web, ['eval', `(async () => {
-    if (${wait}) {
-      const deadline = Date.now() + 10000;
-      while ((!document.querySelector('[contenteditable="true"][role="textbox"]') || !document.querySelector('[data-testid="app-shell-header-context-menu-surface"] button[aria-haspopup="menu"]')) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 200));
-    }
-    return JSON.stringify({
+  const state = parseEvalJson(browserCommand(web, ['eval', `JSON.stringify({
+    url:location.href,
     mode:document.querySelector('[data-testid="app-shell-header-context-menu-surface"] button[aria-haspopup="menu"]')?.innerText.trim(),
-    temporary:!!document.querySelector('button[aria-label="关闭临时聊天"]'),
-    text:document.body.innerText
-  });})()`], { timeoutS: 15 }).stdout);
-  let state = readState();
-  if (state?.temporary && state.mode === '个性化') {
-    const switched = parseEvalJson(browserCommand(web, ['eval', `(async () => {
-      const click = el => {
-        const rect = el.getBoundingClientRect();
-        const options = {bubbles:true,clientX:rect.x + rect.width / 2,clientY:rect.y + rect.height / 2,button:0,pointerType:'mouse',isPrimary:true};
-        for (const type of ['pointerover','pointerenter','mouseover','pointerdown','mousedown','pointerup','mouseup','click']) el.dispatchEvent(new (type.startsWith('pointer') ? PointerEvent : MouseEvent)(type, options));
-      };
-      const button = document.querySelector('[data-testid="app-shell-header-context-menu-surface"] button[aria-haspopup="menu"]');
-      if (button?.innerText.trim() !== '个性化') return JSON.stringify({ok:false});
-      click(button);
-      await new Promise(resolve => setTimeout(resolve, 300));
-      const item = [...document.querySelectorAll('[role="menuitemradio"]')].find(el => el.innerText.trim().startsWith('不个性化'));
-      if (!item) return JSON.stringify({ok:false});
-      click(item);
-      await new Promise(resolve => setTimeout(resolve, 300));
-      return JSON.stringify({ok:true});
-    })()`], { timeoutS: 15 }).stdout);
-    if (switched?.ok && browserCommand(web, ['open', 'https://chatgpt.com/?temporary-chat=true'], { timeoutS: 30 }).status === 0) state = readState(true);
-    else state = null;
-  }
-  const notice = (state?.text || '').split('\n').filter(line => /不会.*记忆|不.*使用.*记忆|won.t.*memor|doesn.t.*memor/i.test(line)).join('\n');
-  if (!state?.temporary || !notice || state.mode !== '不个性化') {
+    text:[document.querySelector('main,[role="main"]')?.innerText || '', ...[...document.querySelectorAll('header button,header h1')].map(el => el.innerText)].join('\\n')
+  })`], { timeoutS: 15 }).stdout);
+  const notice = temporaryPageNotice(state);
+  if (!notice) {
     return { ...failedPage(web), ok: false, failure: 'privacy-switch',
-      error: `隐私开关未确认：临时聊天=${!!state?.temporary && !!notice}，个性化模式=${state?.mode || '读不到'}；未发送问题。` };
+      error: `隐私开关未确认：需 temporary-chat=true 且页面临时聊天声明或横幅；个性化模式=${state?.mode || '读不到'}；未发送问题。` };
   }
   web.temporaryNotice = notice;
   return { ok: true, mode: state.mode, temporaryNotice: notice };
@@ -153,13 +135,14 @@ export function failedPage(web) {
 
 export async function sendTurn({ prompt, timeoutS, web, continuation = false, natural = false }) {
   const t0 = Date.now();
-  const deadline = t0 + timeoutS * 1000;
+  let deadline = t0 + timeoutS * 1000;
   const browser = (...args) => browserCommand(web, args, { timeoutS: Math.max(1, Math.floor((deadline - Date.now()) / 1000)) });
   let notice = web.temporaryNotice || '';
   if (!continuation) {
     const opened = await openSession({ web, timeoutS });
     if (!opened.ok) return opened;
     notice = web.temporaryNotice;
+    deadline = Date.now() + timeoutS * 1000;
   }
   const state = natural ? parseEvalJson(browser('eval', `JSON.stringify({count:document.querySelectorAll('[data-markdown-text-style="assistant-message"]').length,blocked:/验证码|captcha|verify you are human|too many requests|usage limit|reached the limit|达到.*上限/i.test(([...document.querySelectorAll('[data-markdown-text-style="assistant-message"]')].reduce((t,a)=>t.split(a.innerText).join(''),document.body.innerText))),auth:!document.querySelector('[contenteditable="true"][role="textbox"]') && /登录|log in|sign in/i.test(document.body.innerText)})`).stdout) : null;
   if (state?.blocked || state?.auth) return { ...failedPage(web), ok: false, failure: state.auth ? 'auth' : 'rate-limit', error: '临时页出现登录、验证码或限流提示', durationMs: Date.now() - t0 };

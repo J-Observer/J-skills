@@ -54,3 +54,7 @@ A merge conflict remains a reason to stop and review; the workflow does not choo
 ## Local backlink registry preservation (2026-10-04)
 
 `backlink/data/submission-targets.json` is a mutable local registry. Updates preserve its local edits when the upstream file has not changed, while keeping source hashes separate from deployed hashes. If both sides change differently (including upstream removal), deployment stops before touching installed files. All other tracked customizations still block updates. The registry remains local and is included in installation backups; it is not uploaded to the Fork. Concurrent changes during staging still stop deployment.
+
+## Upstream integration repair (2026-10-13)
+
+Upstream `78b89a2` rewrites the Codex runner and browser setup flows. The integration retains app-server steering/resume and browser retry/fill behavior while preserving Windows argument arrays and CRLF handling. Windows process inspection uses CIM instead of Unix `ps`; explicit Node-script executables run through Node without a command shell. Fixture paths, proxy variable casing and signal assertions account for Windows semantics. Fleet checks run from its package directory, as required by its new CLI integration fixtures. No conflict override or validation bypass was introduced.

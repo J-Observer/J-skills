@@ -39,9 +39,28 @@ export function patchPidRecord(runId, patch) {
   return writePidRecord(runId, { ...current, ...patch });
 }
 
+function windowsProcesses(filter = '') {
+  // Fixed query shape; filters below are constructed only from validated numeric PIDs.
+  const command = `[Console]::OutputEncoding=[Text.UTF8Encoding]::new(); Get-CimInstance Win32_Process ${filter} | Select-Object ProcessId,ParentProcessId,CommandLine | ConvertTo-Json -Compress`;
+  const out = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], {
+    encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true, timeout: 15000,
+  }).trim();
+  if (!out) return [];
+  const rows = JSON.parse(out);
+  return Array.isArray(rows) ? rows : [rows];
+}
+let ownWindowsCommand;
+
 /** 当前进程的 command 行,写进 pid.json 供 stop 时对照。 */
 export function processCommand(pid) {
+  if (!Number.isSafeInteger(Number(pid)) || Number(pid) <= 0) return '';
   try {
+    if (process.platform === 'win32') {
+      if (Number(pid) === process.pid && ownWindowsCommand) return ownWindowsCommand;
+      const command = windowsProcesses(`-Filter "ProcessId=${Number(pid)}"`)[0]?.CommandLine || '';
+      if (Number(pid) === process.pid) ownWindowsCommand = command;
+      return command;
+    }
     return execFileSync('ps', ['-o', 'command=', '-p', String(pid)], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
@@ -123,6 +142,7 @@ export function collectDescendantPids(rootPid, rows) {
 }
 
 export function readPidPpidTable() {
+  if (process.platform === 'win32') return windowsProcesses().map(row => ({ pid: row.ProcessId, ppid: row.ParentProcessId }));
   const out = execFileSync('ps', ['-ax', '-o', 'pid=,ppid='], {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'ignore'],
