@@ -1,1 +1,1 @@
-不得打印密钥、密码、令牌或凭据；只输出存在状态、长度或完全脱敏标记，秘密仅经受控存储与进程通道使用。
+不得打印密钥、密码、令牌或凭据；秘密仅经受控存储与进程通道使用。读取任何配置、环境变量、ConfigMap、.env 或 config 源码时，输出必须经过 `redact`（包括 stderr）；优先只输出名字、计数或存在状态，不整文件 cat、不用带上下文的 grep（禁止 -A/-B/-C）。查配置用 `safe-grep '模式' 路径`，默认不带上下文并自动脱敏；其他必要的读取用 `命令 2>&1 | redact`，不要先原样输出再脱敏。若读到未遮挡的含凭据值的行，立刻停止该读取，在报告「偏差」记录发生位置和类别，不复述值。工具不在 PATH 时先 `export PATH="/Users/kcsx/Project/kcsx/macmini/yan-skills/agent-fleet/bin:$PATH"`；用法与漏检限制见 agent-fleet 的 `docs/redact.md`。这只是模式识别，只降低泄露概率，不保证识别新格式。

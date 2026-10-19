@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+"""Pattern-based output redaction; see docs/redact.md for limits."""
+import json
+import re
+import subprocess
+import sys
+
+SENSITIVE = re.compile(r'password|passwd|pwd|secret|token|api_?key|access_key|private_key|credential|auth', re.I)
+ASSIGNMENT = re.compile(
+    r'''(?P<prefix>(?<![\w])(?P<key>"[^"\r\n]+"|'[^'\r\n]+'|[\w.-]+)[ \t]*[:=][ \t]*)'''
+    r'''(?P<value>"(?:\\.|[^"\\\r\n])*"|'(?:\\.|[^'\\\r\n])*'|Bearer[ \t]+[^\s,;}]+|[^\s,;}]+)''', re.I)
+URL_AUTH = re.compile(r'(\b(?:rediss?|amqps?|postgres(?:ql)?|mysql|mongodb(?:\+srv)?|https?)://)[^\s/@:]+:[^\s/@]*@', re.I)
+AWS = re.compile(r'\b(?:AKIA|ASIA)[A-Z0-9]{16}\b')
+BEARER = re.compile(r'\b(Bearer[ \t]+)[A-Za-z0-9._~+/=-]+', re.I)
+JWT = re.compile(r'\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b')
+RANDOM = re.compile(r'(?<![\w/+.-])[A-Za-z0-9_+/-]{32,}={0,2}(?![\w/+.=-])')
+PEM_BEGIN = re.compile(r'-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----')
+PEM_END = re.compile(r'-----END (?:[A-Z0-9]+ )*PRIVATE KEY-----')
+
+
+def assignment(match):
+    key, value = match['key'], match['value']
+    kind = SENSITIVE.search(key)
+    if not kind or value.startswith('<redacted:'):
+        return match[0]
+    quote = value[0] if value[0] in "\"'" else ''
+    return match['prefix'] + quote + '<redacted:' + kind[0].lower() + '>' + quote
+
+
+def random_secret(match):
+    value = match[0]
+    # shortcut: entropy is heuristic; hex digests and recognizable paths stay intact.
+    if (re.fullmatch(r'[a-fA-F0-9]+', value) or value.startswith(('/', './', '../', '~/'))
+            or not all(re.search(p, value) for p in (r'[a-z]', r'[A-Z]', r'[0-9]'))):
+        return value
+    return '<redacted:secret>'
+
+
+def redact_lines(lines):
+    in_private_key = False
+    for line in lines:
+        if in_private_key or PEM_BEGIN.search(line):
+            start = PEM_BEGIN.search(line) if not in_private_key else None
+            end = PEM_END.search(line)
+            prefix = line[:start.start()] if start else ''
+            suffix = line[end.end():] if end else ('\r\n' if line.endswith('\r\n') else '\n' if line.endswith('\n') else '')
+            in_private_key = end is None
+            line = prefix + '<redacted:private_key>' + suffix
+        line = ASSIGNMENT.sub(assignment, line)
+        line = URL_AUTH.sub(r'\1<redacted:username>:<redacted:password>@', line)
+        line = AWS.sub('<redacted:aws_access_key>', line)
+        line = BEARER.sub(r'\1<redacted:bearer>', line)
+        line = JWT.sub('<redacted:jwt>', line)
+        yield RANDOM.sub(random_secret, line)
+
+
+def main():
+    args = sys.argv[1:]
+    if not args:
+        sys.stdin.reconfigure(errors='replace', newline='')
+        sys.stdout.writelines(redact_lines(sys.stdin))
+        return 0
+    if args[0] != '--grep' or len(args) < 3:
+        print('Usage: redact < input | redact --grep PATTERN PATH [PATH ...]', file=sys.stderr)
+        return 2
+    # Buffer before redacting so private-key blocks spanning multiple lines stay hidden.
+    try:
+        result = subprocess.run(['rg', '--no-config', '--hidden', '--no-ignore', '--glob', '!**/.git/**', '--color', 'never', '--no-heading',
+                                 '--json', '--context', '0',
+                                 '--regexp', args[1], '--', *args[2:]],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except OSError:
+        print('safe-grep: cannot start rg; check installation', file=sys.stderr)
+        return 2
+    # A body-only PEM match lacks its header. Read each matched file through the
+    # redactor first, then select only matching line numbers from rg's result.
+    matches = result.stdout.decode('utf-8', errors='replace').splitlines()
+    files = {}
+    for match in matches:
+        event = json.loads(match)
+        if event['type'] != 'match':
+            continue
+        data = event['data']
+        path = data['path'].get('text')
+        number = data['line_number']
+        if path is None:
+            print('safe-grep: non-UTF-8 path unsupported; no further content emitted', file=sys.stderr)
+            return 2
+        if path not in files:
+            try:
+                with open(path, encoding='utf-8', errors='replace', newline='') as source:
+                    files[path] = list(redact_lines(source))
+            except OSError:
+                print('safe-grep: cannot read matched file; no further content emitted', file=sys.stderr)
+                return 2
+        safe_path = ''.join(redact_lines([path]))
+        if number <= len(files[path]):
+            text = files[path][number - 1].rstrip('\r\n')
+            print(f'{safe_path}:{number}:{text}')
+    if result.returncode not in (0, 1):
+        print('safe-grep: rg failed; check pattern and paths (raw diagnostics suppressed)', file=sys.stderr)
+    return result.returncode
+
+
+if __name__ == '__main__':
+    try:
+        sys.exit(main())
+    except BrokenPipeError:
+        sys.exit(0)
