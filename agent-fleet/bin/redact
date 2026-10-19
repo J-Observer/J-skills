@@ -10,7 +10,10 @@ ASSIGNMENT = re.compile(
     r'''(?P<prefix>(?<![\w])(?P<key>"[^"\r\n]+"|'[^'\r\n]+'|[\w.-]+)[ \t]*[:=][ \t]*)'''
     r'''(?P<value>"(?:\\.|[^"\\\r\n])*"|'(?:\\.|[^'\\\r\n])*'|Bearer[ \t]+[^\s,;}]+|[^\s,;}]+)''', re.I)
 URL_AUTH = re.compile(r'(\b(?:rediss?|amqps?|postgres(?:ql)?|mysql|mongodb(?:\+srv)?|https?)://[^\s/@:]*:)[^\s/@]*@', re.I)
-AWS = re.compile(r'\b(?:AKIA|ASIA)[A-Z0-9]{16}\b')
+CLOUD_KEY = re.compile(
+    r'(?:(?<![\w])|(?<=%[0-9A-Fa-f]{2}))'
+    r'(?:(?P<aws>AKIA[A-Z0-9]{16}|ASIA[A-Z0-9]{16})|'
+    r'(?P<aliyun>LTAI[A-Za-z0-9]{16,32})|(?P<tencent>AKID[A-Za-z0-9]{16,32}))(?![\w])')
 BEARER = re.compile(r'\b(Bearer[ \t]+)[A-Za-z0-9._~+/=-]+', re.I)
 JWT = re.compile(r'\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b')
 RANDOM = re.compile(r'(?<![\w/+.-])[A-Za-z0-9_+/-]{32,}={0,2}(?![\w/+.=-])')
@@ -48,7 +51,9 @@ def redact_lines(lines):
             line = prefix + '<redacted:private_key>' + suffix
         line = ASSIGNMENT.sub(assignment, line)
         line = URL_AUTH.sub(r'\1<redacted:password>@', line)
-        line = AWS.sub('<redacted:aws_access_key>', line)
+        line = CLOUD_KEY.sub(lambda m: '<redacted:' + {'aws': 'aws_access_key',
+                                  'aliyun': 'aliyun_access_key',
+                                  'tencent': 'tencent_secret_id'}[m.lastgroup] + '>', line)
         line = BEARER.sub(r'\1<redacted:bearer>', line)
         line = JWT.sub('<redacted:jwt>', line)
         yield RANDOM.sub(random_secret, line)

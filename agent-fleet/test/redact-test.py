@@ -45,6 +45,20 @@ def main():
                 check(run(url).stdout == prefix + '<redacted:password>@localhost:6379/db',
                       'database URL password masked with authority preserved')
     aws = ['AKIA' + 'FAKE000000000000', 'ASIA' + 'FAKE000000000000']
+    cloud_ids = [(prefix + 'Fake0000000000000000', kind)
+                 for prefix, kind in [('LTAI', 'aliyun_access_key'), ('AKID', 'tencent_secret_id')]]
+    cloud_ids += [(value, 'aws_access_key') for value in aws]
+    for value, kind in cloud_ids:
+        for prefix, suffix in [('', ''), ('error: ', ' invalid'),
+                               ('{"AccessKeyId":"', '"}'),
+                               ('AccessKeyId=', '&Action=GetCallerIdentity'),
+                               ('AccessKeyId%3D', '%26Action%3DGetCallerIdentity'),
+                               ('AccessKeyId%3d', '%26Action%3dGetCallerIdentity')]:
+            check(run(prefix + value + suffix).stdout ==
+                  prefix + '<redacted:' + kind + '>' + suffix,
+                  'cloud key masked with surrounding structure preserved')
+        for ordinary_value in ('word' + value, value[:4] + 'ordinary'):
+            check(run(ordinary_value).stdout == ordinary_value, 'cloud-like ordinary word preserved')
     bearer = 'fake' + '-bearer-value'
     jwt = '.'.join(['eyJ' + 'mYWtl', 'ZmFrZQ', 'ZmFrZQ'])
     random_value = ('Fake0' + 'aB1cD2eF3gH4iJ5kL6mN7oP8qR9sT')
