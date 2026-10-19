@@ -105,6 +105,52 @@ try {
     }
     writeFileSync(bad,original+'\n错误示范：nohup fleet code task.md &'); assert.equal(run(['lint',bad]).status,0);
   });
+  test('local-commit 授权与禁止、验收一致，可叠加且不改变 local 默认行为', () => {
+    for (const auth of ['local-commit','local-commit,readonly-web','local,local-commit','local-commit,paid']) {
+      const r=run(['new','commit-check','--to','gpt','--auth',auth,'--budget','$1，失败不重试','--goal','修复卡片并本地提交','--dry-run']);
+      assert.equal(r.status,0,r.stderr);
+      assert.match(r.stdout,/允许在本地分支提交/);
+      assert.match(r.stdout,/不推送、不部署、不写线上数据/);
+      assert.doesNotMatch(r.stdout,/不做 git 写操作|提交\/推送|无提交/);
+      assert.match(r.stdout,/本地提交哈希/);
+      if (auth.includes('readonly-web')) assert.match(r.stdout,/允许只读联网/);
+      if (auth.includes('paid')) assert.match(r.stdout,/允许当前目标必要的付费验证/);
+    }
+    const local=run(['new','local-check','--to','gpt','--goal','修复卡片','--dry-run']);
+    assert.equal(local.status,0,local.stderr);
+    assert.match(local.stdout,/不做 git 写操作/); assert.match(local.stdout,/无提交/);
+  });
+  test('密钥诊断仅给行号与规则，摘要、长文件名和路径不误报', () => {
+    const normal=[
+      '镜像 digest：sha256:'+ 'a1'.repeat(32),
+      '文件：fleet-task-'+'long-name-'.repeat(8)+'report.md',
+      '检查 fleet-task-'+'x'.repeat(40)+'.md 文件',
+      '路径：/tmp/sk-'+'x'.repeat(40)+'/report.md',
+      '路径：/tmp/exports/'+'a'.repeat(64)+'/fleet-task-report.md',
+    ].join('\n');
+    const preview=spawnSync(script,['new','normal-check','--to','gpt','--dry-run'],{encoding:'utf8',env,input:normal});
+    assert.equal(preview.status,0,preview.stderr);
+    const bad=join(temp,'secret-check.md');
+    const cases=[
+      ['aws-access-key-id','AKIA'+'A1'.repeat(8)],
+      ['bearer-token','Bearer '+'x'.repeat(24)],
+      ['bearer-token','Bearer\n'+'x'.repeat(24)],
+      ['private-key','-----BEGIN RSA PRIVATE KEY-----'],
+      ['credential-assignment','key='+ 'aB3z9X'.repeat(6)],
+      ['sk-token','sk-'+ 'x'.repeat(24)],
+      ['sk-token','密钥：sk-'+ 'x'.repeat(24)+'.'],
+    ];
+    for (const [ruleName,value] of cases) {
+      writeFileSync(bad,original+'\n说明\n'+value);
+      const r=run(['lint',bad]);
+      assert.equal(r.status,1,ruleName);
+      const line=original.split('\n').length+2;
+      assert.ok(r.stderr.includes('第 '+line+' 行'),ruleName);
+      assert.ok(r.stderr.includes(ruleName),ruleName);
+      assert.ok(!r.stderr.includes(value),ruleName);
+      assert.equal(r.stdout,'');
+    }
+  });
   test('body 文件、stdin、授权叠加、paid 必须预算、默认报告和 no-launch', () => {
     const body=join(temp,'body.md'); writeFileSync(body,'## 独有正文\n只处理本目标');
     let r=run(['new','--to','gpt','body','--body',body,'--auth','local,readonly-web','--no-launch']); assert.equal(r.status,0,r.stderr);

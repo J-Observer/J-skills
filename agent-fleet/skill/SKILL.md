@@ -43,12 +43,12 @@ description: 使用本机 fleet 分派 Codex GPT-6.1 Sol、Gemini、Grok 或 JEV
 ```sh
 # 改代码（本地，不部署）
 fleet-go new fix-card --to gpt --auth local --write /path/to/project --goal "修复卡片布局" <<'BRIEF'
-只修卡片在窄屏溢出；验收：现有构建通过，窄屏可完整阅读。
+卡片在手机窄屏上会溢出，希望内容能完整读到。可以改卡片和必要的相邻样式，保留别人没提交的改动；如果必须改共享组件的默认样式才能解决，就先停下并写清原因。现有构建通过，窄屏上内容完整、没有横向滚动，就算做完。
 BRIEF
 
 # 只读复核（checker）
 fleet-go new review-card --to gpt --review --auth review --read /path/to/project --goal "复核 fix-card 的改动" <<'BRIEF'
-对照 git diff 与 fix-card 报告，列必修项；结论写在最终回复里。
+fix-card 已修过手机卡片溢出，需要确认改动和报告是否对得上。只读这次改动和相关代码；缺少验收证据就列为未确认，不改文件。给出能否交付的结论，有必修项就说清原因。
 BRIEF
 
 # 部署生产（授权边界与回滚条件占位由模板补全，正文写具体版本与回读清单）
@@ -61,6 +61,7 @@ fleet-go new gen-test --to gpt --auth paid,local --budget "$1，失败最多重�
 fleet-go new page-copy --to gemini --goal "写 XX 页英文文案，正面表述" --body body.md
 ```
 - `--to gpt|claude|grok|gemini|jev` 必填；`--tier haiku|sonnet|opus|fable` 仅 Claude，默认 sonnet；`--review` 用于 GPT/Grok，只读；GPT 可用 `--low`，Grok 可用 `--model <id>`、`--subagents`，Gemini 可用 `--bulk`。`--auth`、`--write/--read`、`--forbid`、`--pitfalls`、`--budget`、`--goal`、`--why`、`--report` 沿用，默认已知坑按产品选择。
+- 需要本地提交时用 `--auth local-commit` 代替 `local`：允许在本地分支提交，不推送、不部署、不写线上数据，验收报告要列提交哈希。可与 `readonly-web`、带预算的 `paid` 组合；与 `local` 同传时取代 `local`。只读审查、生产部署仍用各自的授权块。
 - `--make image` 叠加图片产物样板，不改变执行者：绝对输出目录、逐张编号文件名、尺寸比例、共享风格、`No text, no letters, no logos, no watermarks.`、做不出如实报告的逃生口、逐文件绝对路径/实际像素/字节数/alpha/方法回报。不得交占位图、ASCII、纯色块或下载图。GPT 使用 imagegen 的 Codex `image_gen`；Grok 使用内置 `image_gen` / `image_edit`，不传 model 参数。
 - `--make video` 仅 Grok，用内置 `image_to_video` / `reference_to_video`，不传 model 参数；ZDR/privacy 错误如实报告原因与处理方法，不交占位文件。
 - `--body body.md` 只接受现存文件路径；`--body -` 显式读取 stdin，也可以省略 `--body` 使用 heredoc。不存在的路径会明确报错。
@@ -137,6 +138,8 @@ Kollab 网关 402 会话预算：本小时预算按首次请求时的余额定�
 一单只做 brief 指定的一个目标及必要改动，方法由执行者选择；小障碍记入报告「偏差」，超出授权或缺少交付必需输入时如实停止。完整规则与自动注入的逐字范围句见 [行动范围](references/operations.md#行动范围)。
 
 ## 简报与验收
+
+**简报怎么写**：像交代给刚接手的同事，用大白话讲清背景、想要的结果、能碰的边界、什么时候停和怎么算做完；按任务需要伸缩，把做法留给执行者。正文只补他查不到的上下文和已知坑，不重复自动样板，一单只围绕一个目标。完整规则以 [~/.claude/CLAUDE.md §4.1a](/Users/kcsx/.claude/CLAUDE.md) 为准；授权与模板保持一致，本地提交选上面的 `local-commit`。
 
 | verdict | 含义与处理 |
 |---|---|

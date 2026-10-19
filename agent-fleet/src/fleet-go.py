@@ -14,7 +14,7 @@ import time
 BLOCKS = Path(__file__).resolve().parents[1] / 'skill/templates/blocks'
 PRODUCTS = {'gpt': '(a) Codex 编码', 'claude': 'Claude 月度额度',
             'grok': 'Grok Build CLI', 'gemini': 'Gemini 文本任务', 'jev': 'JEV 判断'}
-AUTH = ['local', 'readonly-web', 'deploy-prod', 'paid', 'review']
+AUTH = ['local', 'local-commit', 'readonly-web', 'deploy-prod', 'paid', 'review']
 PITFALLS = ['node-proxy', 'zsh', 'pnpm-entry', 'local-preview', 'playwright-clean', 'shared-tree', 'secrets', 'fleet-bg', 'ssr-check']
 
 
@@ -44,8 +44,17 @@ def lint(text, to='gpt'):
         errors.append('缺少 REPORT: <绝对路径> 行。')
     if rule() not in text:
         errors.append('缺少逐字规则句。')
-    if re.search(r'sk-[A-Za-z0-9_-]{16,}|Bearer\s+[A-Za-z0-9._~+/-]{20,}', text):
-        errors.append('发现疑似密钥字面量（已隐藏）。')
+    secret_rules = [
+        ('sk-token', r'(?<![A-Za-z0-9_/.-])sk-[A-Za-z0-9_-]{16,}(?![A-Za-z0-9_/-]|\.[A-Za-z0-9])'),
+        ('aws-access-key-id', r'(?<![A-Za-z0-9])AKIA[A-Z0-9]{16}(?![A-Za-z0-9])'),
+        ('bearer-token', r'(?i:Bearer)\s+[A-Za-z0-9._~+/-]{20,}'),
+        ('private-key', r'-----BEGIN (?:[A-Z0-9]+ )?PRIVATE KEY-----'),
+        ('credential-assignment', r'''(?i:\b(?:api[_-]?key|access[_-]?key|token|password|secret|key)\s*=\s*)["']?[A-Za-z0-9_+/-]{20,}={0,2}'''),
+    ]
+    for name, pattern in secret_rules:
+        for match in re.finditer(pattern, text):
+            number = text.count('\n', 0, match.start()) + 1
+            errors.append(f'第 {number} 行：发现疑似密钥字面量；规则 {name}（已隐藏）。')
     for line in text.splitlines():
         # 只检查启动命令；禁令和标明的错误示范是说明文字。
         if re.search(r'禁止|不加|不要|错误示范|绝不|不得', line):
@@ -264,6 +273,8 @@ def new(args):
     auth = args.auth.split(',')
     if any(a not in AUTH for a in auth):
         raise ValueError('未知授权块。可用：' + ','.join(AUTH))
+    if 'local-commit' in auth:
+        auth = [a for a in auth if a != 'local']
     if 'paid' in auth and not args.budget:
         raise ValueError('paid 必须提供 --budget（上限与重试次数）。')
     pitfalls = args.pitfalls.split(',') if args.pitfalls is not None else (['node-proxy', 'zsh', 'secrets', 'shared-tree'] if args.to in ('gpt', 'grok') else ['secrets', 'fleet-bg'])
@@ -272,7 +283,8 @@ def new(args):
         pitfalls.extend(p.stem[8:] for p in BLOCKS.glob('pitfall-deploy-*.md'))
     if any(p not in PITFALLS and not (BLOCKS / ('pitfall-' + p + '.md')).exists() for p in pitfalls if p):
         raise ValueError('未知已知坑块。')
-    values = {'NAME': args.name, 'REPORT': report, 'BUDGET': args.budget or '未授权付费', 'DATE': day}
+    values = {'NAME': args.name, 'REPORT': report, 'BUDGET': args.budget or '未授权付费', 'DATE': day,
+              'COMMITS': '本地提交仅限授权分支，报告列出本地提交哈希' if 'local-commit' in auth else '无提交'}
     if args.body and args.body != '-':
         body_path = Path(args.body).expanduser()
         if not body_path.is_file():
@@ -298,7 +310,8 @@ def new(args):
         if args.make == 'image':
             parts.append('执行方法：' + ('使用 imagegen Skill 和 Codex 内置 image_gen 工具。' if args.to == 'gpt' else 'Grok 使用内置 image_gen / image_edit 工具，无 model 参数。' if args.to == 'grok' else '使用当前产品可用的真实图片生成工具，不能生成则如实报告。'))
     writes = [report, '/tmp/' + args.name + '/', *(args.write or [])]
-    parts.append('## 允许读写/禁止\n允许写：\n' + '\n'.join('- ' + p for p in dict.fromkeys(writes)) + '\n只读：\n' + '\n'.join('- ' + p for p in (args.read or [])) + '\n禁止：' + (args.forbid or '越界、未授权部署、提交/推送、付费、打印密钥。'))
+    forbid = '越界、未授权部署、推送、写线上数据、未授权付费、打印密钥。' if 'local-commit' in auth else '越界、未授权部署、提交/推送、付费、打印密钥。'
+    parts.append('## 允许读写/禁止\n允许写：\n' + '\n'.join('- ' + p for p in dict.fromkeys(writes)) + '\n只读：\n' + '\n'.join('- ' + p for p in (args.read or [])) + '\n禁止：' + (args.forbid or forbid))
     parts.append('## 已知坑\n' + '\n\n'.join(block('pitfall-' + p, values) for p in dict.fromkeys(pitfalls) if p))
     parts.extend(['## 验收\n' + block('accept-boilerplate', values) + '\n\n' + block('report-template', values), rule()])
     text = '\n\n'.join(parts) + '\n'
