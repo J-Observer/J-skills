@@ -35,6 +35,15 @@ def main():
     for scheme in ('redis', 'rediss', 'amqp', 'amqps', 'postgres', 'postgresql',
                    'mysql', 'mongodb', 'mongodb+srv', 'https'):
         lines.append(scheme + '://' + 'fake-user' + ':' + secret + '@localhost/db')
+    database_schemes = ('redis', 'rediss', 'amqp', 'amqps', 'postgres', 'postgresql',
+                        'mysql', 'mongodb', 'mongodb+srv')
+    for scheme in database_schemes:
+        for username in ('', 'fake-user'):
+            for password in (secret, 'fake%25value', 'fake%40value', 'fake%25%40value'):
+                prefix = scheme + '://' + username + ':'
+                url = prefix + password + '@localhost:6379/db'
+                check(run(url).stdout == prefix + '<redacted:password>@localhost:6379/db',
+                      'database URL password masked with authority preserved')
     aws = ['AKIA' + 'FAKE000000000000', 'ASIA' + 'FAKE000000000000']
     bearer = 'fake' + '-bearer-value'
     jwt = '.'.join(['eyJ' + 'mYWtl', 'ZmFrZQ', 'ZmFrZQ'])
@@ -54,11 +63,12 @@ def main():
     check(len(text.splitlines()) == len(output.splitlines()), 'line count preserved')
     for key in keys:
         check(key + '=<redacted:' in output, 'assignment name preserved')
-    check('https://<redacted:username>:<redacted:password>@localhost/db' in output,
-          'URL user and password masked')
+    check('https://fake-user:<redacted:password>@localhost/db' in output,
+          'URL password masked')
     ordinary = '\n'.join(['PATH=/usr/local/bin:/bin', 'file=release-2026-Final.tar.gz',
                            'digest=sha256:' + 'abcdef0123456789' * 4,
                            'url=https://example.com/files/report.json',
+                           'url=https://example.com:8080/path',
                            'url=https://fake-user@example.com/db', 'port=8080', '', 'tail'])
     check(run(ordinary).stdout == ordinary, 'ordinary configuration byte-for-byte')
     check(run('port=8080\r\n\r\n').stdout == 'port=8080\n\n', 'CRLF subprocess text translation')
@@ -69,7 +79,7 @@ def main():
     check(base64_value not in run('opaque=' + base64_value).stdout, 'base64 secret under unknown key')
     check(run('path=/Users/fake/ProjectA1234567890LongDirectoryName').stdout ==
           'path=/Users/fake/ProjectA1234567890LongDirectoryName', 'long ordinary path preserved')
-    with tempfile.TemporaryDirectory(prefix='redact-', dir='/tmp/fleet-redact-tool') as directory:
+    with tempfile.TemporaryDirectory(prefix='redact-', dir=os.environ.get('TMPDIR', '/tmp')) as directory:
         fixture = Path(directory) / 'fixture.conf'
         fixture.write_text('before=normal\n' + 'password' + '=' + secret + '\nafter=normal\n' +
                            pem_begin + '\n' + pem_body + '\n' + pem_end + '\n')
