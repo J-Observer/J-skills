@@ -42,11 +42,19 @@ class EnglishCheck(unittest.TestCase):
             'Latency is not the problem. The queue is.',
             'No longer a tool, now a partner.',
             'No longer a tool\nnow a partner.',
+            'It is not just a tool, it is a game-changer.',
+            'This isn’t about speed; it’s about trust.',
+            'It’s more than just a tool.',
+            'It is not a tool, this is a workspace.',
+            'It is not a tool, that’s a workspace.',
+            'Not X but rather Y.',
+            'Not X, instead Y.',
         ]
         for text in hard:
             with self.subTest(text=text):
                 self.assertTrue(list(check.locate(check.mask_en_quotes(check.mask(text)),
                                                  check.EN_HARD['翻案腔'], check.re.I)))
+                self.assertEqual(run(text, '--lang', 'en').returncode, 1)
         uncertain = [
             "It isn't a tool, it's a partner.",
             "It is not a tool; it is a partner.",
@@ -63,6 +71,12 @@ class EnglishCheck(unittest.TestCase):
 
     def test_normal_and_protected(self):
         normal = [
+            'She did not call, but she wrote.',
+            'It was not a bad idea, but it was slow.',
+            'I do not want tea, but coffee is fine.',
+            'It is not a bad idea, but it is slow.',
+            'She does not call, but she writes.',
+            'She didn’t call, but she wrote.',
             'It is not raining.',
             "This isn't available yet.",
             "We aren't ready for release.",
@@ -88,6 +102,10 @@ class EnglishCheck(unittest.TestCase):
                 r = run(text, '--lang', 'en')
                 self.assertEqual(r.returncode, 0, r.stdout)
                 self.assertNotIn('[硬禁]', r.stdout)
+        for text in normal[:6]:
+            with self.subTest(concession=text):
+                self.assertIn('[提示] 疑似翻案（可能是让步句，如是在重新定义主体请改写）',
+                              run(text, '--lang', 'en').stdout)
         r = run('> not a tool but a partner\nNot a file but a workspace.', '--lang', 'en')
         self.assertIn('[硬禁] 翻案腔 x1', r.stdout)
         self.assertIn('L2:', r.stdout)

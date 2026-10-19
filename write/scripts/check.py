@@ -34,11 +34,14 @@ SOFT = {
 # shortcut: 每个分句最多 160 字符，超长或隐含翻案仍需人工通读。
 EN_CLAUSE = r"[^.!?;，,\n]{1,160}?"
 EN_JOIN = r"(?:[,;.]\s*|[ \t]*\n\s*)"
-EN_TURN = r"(?:but\b\s*|(?:it|this|that)(?:[’']s|\s+is)\b|(?:they|we)(?:[’']re|\s+are)\b|instead\b|rather\b)"
+EN_REDEFINE = r"(?:(?:it|this|that)(?:[’']s|\s+is)\b|(?:they|we)(?:[’']re|\s+are)\b|instead\b|rather\b)"
+EN_TURN = rf"(?:but\b\s*|{EN_REDEFINE})"
 EN_HARD = {
     "翻案腔": (
         rf"\bnot\s+(?:just|only|merely|simply)\b{EN_CLAUSE}{EN_JOIN}(?!but\s+also\b)(?:{EN_TURN}|(?!but\b)[^\s.!?])"
-        rf"|\bnot\b(?!\s+only\b){EN_CLAUSE}(?:{EN_JOIN})?but\b(?!\s+also\b)"
+        rf"|(?:^|(?<=[.!?\n]))[ \t]*not\b(?!\s+only\b){EN_CLAUSE}(?:{EN_JOIN})?but\b(?!\s+also\b)"
+        rf"|\bnot\b{EN_CLAUSE}(?:{EN_JOIN}(?:but\s+)?|[ \t]+but\s+)(?:rather|instead)\b"
+        rf"|\b(?:it|this|that)(?:\s+isn[’']t|\s+is\s+not|[’']s\s+not)\s+(?:a|an|the)\s+[\w’'-]+[ \t]*{EN_JOIN}(?:but\s+)?(?:{EN_REDEFINE}|(?:a|an|the)\b)"
         r"|\bmore\s+than\s+just\b"
         rf"|\b(?:isn[’']t|is\s+not|[’']s\s+not)\s+about\b{EN_CLAUSE}{EN_JOIN}{EN_TURN}"
         rf"|\b(?:isn[’']t|is\s+not)\s+the\s+problem\b{EN_JOIN}{EN_CLAUSE}\b(?:is|are)\b"
@@ -52,7 +55,10 @@ EN_SOFT = {
     "高频 AI 词": r"\b(?:delv(?:e|es|ed|ing)|tapestr(?:y|ies)|unlock(?:s|ed|ing)?|elevat(?:e|es|ed|ing)|seamless(?:ly)?|game[- ]changer|navigat(?:e|es|ed|ing) (?:the |a )?landscape)\b",
     "套话开头收尾": r"(?:^|(?<=[.!?]))[ \t]*(?:in today[’']s [^.!?\n]{0,80}\b(?:world|landscape)|in conclusion|ultimately|in summary|in an ever[- ]evolving world)\b",
     "泛指开头": r"(?:^|(?<=[.!?]))[ \t]*whether\s+you(?:[’']re|\s+are)\b[^.!?\n]{1,160}\bor\b",
-    "疑似翻案": rf"\b(?:it|this|that|we|they)\s*(?:isn[’']t|aren[’']t|don[’']t|is\s+not|are\s+not|do\s+not|[’']s\s+not)\b{EN_CLAUSE}{EN_JOIN}{EN_TURN}",
+    "疑似翻案（可能是让步句，如是在重新定义主体请改写）": (
+        rf"\b(?:not|isn[’']t|aren[’']t|wasn[’']t|weren[’']t|don[’']t|doesn[’']t|didn[’']t)\b"
+        rf"{EN_CLAUSE}(?:{EN_JOIN})?{EN_TURN}"
+    ),
     "客服与聊天残留": r"\b(?:certainly[!,.]|here is your revised copy|i hope this helps)",
     "比喻与借权威": r"\b(?:a lighthouse in the ocean|weave your dreams|experts agree|marks a new era)\b",
     "空泛正面形容": r"\b(?:innovative|powerful|robust|effortless|cutting-edge|revolutionary|transformative)\b",
