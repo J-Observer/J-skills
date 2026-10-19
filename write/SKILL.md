@@ -170,3 +170,5 @@ python3 ~/.claude/skills/write/scripts/check.py --clean 稿件.md > 稿件.clean
 **结构问题不要在句子层面修。** 用户抱怨句子的时候，先怀疑结构。
 
 **改完必重核计数。** 每一轮修改都会让配图数量、小结条数、章节引用对不上。这是最容易漏、也最显得业余的一类错误。
+
+固定回归测试：`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s write/tests -v`（在仓库根目录运行）。

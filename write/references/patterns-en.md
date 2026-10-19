@@ -2,6 +2,14 @@
 
 这是检查线索，不是词语黑名单。提示项回到上下文判断；硬禁的翻案句、破折号、提示性冒号与口头路标清零。改句子前先找它实际想表达的事实，不删真实否定、条件或归因。其他拉丁字母语言可借用检查思路，不把英文词表当作该语言词表。
 
+## 机器检测的级别与边界
+
+- **硬禁翻案**：`not just/only/merely/simply X, (but) Y`、`not X but Y`、`more than just X`、`isn't/is not/it's not about X, it's/it is about Y`、`X isn't/is not the problem, Y is`、`no longer X, now Y`。全写、直弯撇号和大小写均支持；逗号、分号、句号或换行可连接后面的 but / it / this / that / they / we / instead / rather。`not only A but also B` 是正常递进，不报翻案硬禁。
+- **疑似翻案仅提示**：`it isn't/is not/it's not`、`this isn't`、`that's not`、`we aren't`、`they don't` 等普通否定后接肯定转折。它们可能是事实纠正，不能仅靠句式硬禁；没有后半转折的普通否定不命中。
+- **口头路标硬禁**：句首 `It's/It is worth noting`、`Let's dive in / delve / unpack` 等；**套话仅提示**：句首 `Whether you're/you are X or Y`、`In today's … world/landscape`、`In conclusion / Ultimately / In summary`。收尾词只按句首识别，不猜文章含义。
+- **其余仅提示**：已有高频词、空泛形容、三项并列、客服残留和清单中的固定比喻/借权威短语。连续三句相同前两词，或不超过 12 词的短句相同首词，提示节奏复读；不做语法分析，不能覆盖所有同结构句。列表数量与装饰标题是否过多、隐含比喻和无来源断言仍需人工判断。
+- 英文检查屏蔽引号内的引文、Markdown `>` 引用及代码；不清理或改写引文。每个翻案分句限 160 字符，长分句和隐含翻案仍需人工通读。引用屏蔽不适用于中文，保留既有中文行为。
+
 ## 一、拿修辞动作抬价
 
 | 模式 | 坏例子 | 处理与改法 |

@@ -31,15 +31,30 @@ SOFT = {
     "小结标题": r"^#{1,6}\s*(小结|总结|结语|写在最后)\s*$",
 }
 # 英文词表也用于其他拉丁字母文本的表层筛查，不代表完整语言校对。
+# shortcut: 每个分句最多 160 字符，超长或隐含翻案仍需人工通读。
+EN_CLAUSE = r"[^.!?;，,\n]{1,160}?"
+EN_JOIN = r"(?:[,;.]\s*|[ \t]*\n\s*)"
+EN_TURN = r"(?:but\b\s*|(?:it|this|that)(?:[’']s|\s+is)\b|(?:they|we)(?:[’']re|\s+are)\b|instead\b|rather\b)"
 EN_HARD = {
-    "翻案腔": r"\bnot\b[^.!?\n]{1,160}\bbut\b|\bnot\s+just\b[^.!?\n]{1,160}\bit[’']?s\b|\bmore\s+than\s+just\b",
+    "翻案腔": (
+        rf"\bnot\s+(?:just|only|merely|simply)\b{EN_CLAUSE}{EN_JOIN}(?!but\s+also\b)(?:{EN_TURN}|(?!but\b)[^\s.!?])"
+        rf"|\bnot\b(?!\s+only\b){EN_CLAUSE}(?:{EN_JOIN})?but\b(?!\s+also\b)"
+        r"|\bmore\s+than\s+just\b"
+        rf"|\b(?:isn[’']t|is\s+not|[’']s\s+not)\s+about\b{EN_CLAUSE}{EN_JOIN}{EN_TURN}"
+        rf"|\b(?:isn[’']t|is\s+not)\s+the\s+problem\b{EN_JOIN}{EN_CLAUSE}\b(?:is|are)\b"
+        rf"|\bno\s+longer\b{EN_CLAUSE}{EN_JOIN}(?:but\s+)?now\b"
+    ),
     "破折号": r"—|--",
     "提示性冒号": r"^\s*(?:\#{1,6}\s+|[-*]\s+)?(?:here[’']s\s+)?(?:the\s+)?(?:key|point|takeaway|bottom line|answer|reason|conclusion|summary|in short|in a nutshell)(?:\s+is)?\s*:",
-    "口头路标": r"(?:^|(?<=[.!?]))[ \t]*(?:\#{1,6}[ \t]+|[-*][ \t]+)?(?:here[’']s the thing|let[’']s dive in|let[’']s unpack|it[’']s worth noting|importantly|at the end of the day|to put it simply)\b",
+    "口头路标": r"(?:^|(?<=[.!?]))[ \t]*(?:\#{1,6}[ \t]+|[-*][ \t]+)?(?:here[’']s the thing|let[’']s (?:dive in|delve|unpack)|(?:it[’']s|it is) worth noting|importantly|at the end of the day|to put it simply)\b",
 }
 EN_SOFT = {
     "高频 AI 词": r"\b(?:delv(?:e|es|ed|ing)|tapestr(?:y|ies)|unlock(?:s|ed|ing)?|elevat(?:e|es|ed|ing)|seamless(?:ly)?|game[- ]changer|navigat(?:e|es|ed|ing) (?:the |a )?landscape)\b",
-    "套话开头收尾": r"\b(?:in today[’']s fast[- ]paced world|in conclusion|in summary|in an ever[- ]evolving world)\b",
+    "套话开头收尾": r"(?:^|(?<=[.!?]))[ \t]*(?:in today[’']s [^.!?\n]{0,80}\b(?:world|landscape)|in conclusion|ultimately|in summary|in an ever[- ]evolving world)\b",
+    "泛指开头": r"(?:^|(?<=[.!?]))[ \t]*whether\s+you(?:[’']re|\s+are)\b[^.!?\n]{1,160}\bor\b",
+    "疑似翻案": rf"\b(?:it|this|that|we|they)\s*(?:isn[’']t|aren[’']t|don[’']t|is\s+not|are\s+not|do\s+not|[’']s\s+not)\b{EN_CLAUSE}{EN_JOIN}{EN_TURN}",
+    "客服与聊天残留": r"\b(?:certainly[!,.]|here is your revised copy|i hope this helps)",
+    "比喻与借权威": r"\b(?:a lighthouse in the ocean|weave your dreams|experts agree|marks a new era)\b",
     "空泛正面形容": r"\b(?:innovative|powerful|robust|effortless|cutting-edge|revolutionary|transformative)\b",
     "三段式并列": r"\b[^\W\d_]+(?:[ -][^\W\d_]+){0,2},\s+[^\W\d_]+(?:[ -][^\W\d_]+){0,2},?\s+(?:and|or)\s+[^\W\d_]+(?:[ -][^\W\d_]+){0,2}\b",
 }
@@ -57,6 +72,16 @@ def mask(text):
     def blank(m):
         return re.sub(r"[^\n]", " ", m.group(0))
     return CODE.sub(blank, FRONT.sub(blank, text))
+
+
+def mask_en_quotes(text):
+    """英文引文和 Markdown 引用不算作者自己的修辞，保留位置。"""
+    quoted = (
+        r'(?m)^>[ \t]?[^\n]*$|"[^"]*"|“[^”]*”'
+        r"|(?<!\w)'(?:[^']|(?<=\w)'(?=\w))*'(?!\w)"
+        r"|(?<!\w)‘(?:[^’]|(?<=\w)’(?=\w))*’(?!\w)|~~~.*?~~~"
+    )
+    return re.sub(quoted, lambda m: re.sub(r"[^\n]", " ", m.group()), text, flags=re.S)
 
 
 def locate(text, pattern, flags=0):
@@ -120,6 +145,8 @@ def main():
         sys.stdout.write(clean(raw, lang))
         return
     text = mask(raw)
+    if lang == "en":
+        text = mask_en_quotes(text)
     report, hard_total, soft_kinds = [], 0, 0
     for name, pat in (HARD if lang == "zh" else EN_HARD).items():
         hits = list(locate(text, pat, 0 if lang == "zh" else re.I))
@@ -159,6 +186,10 @@ def main():
     flat = len(lens) > 8 and cv(lens) < 0.35
     openers = [s.strip()[:2] if lang == "zh" else " ".join(s.lower().split()[:2]) for s in sents]
     rep = any(openers[i] == openers[i + 1] == openers[i + 2] for i in range(len(openers) - 2))
+    if lang == "en":
+        short_heads = [s.lower().split()[0] if 0 < length(s) <= 12 else None for s in sents]
+        rep = rep or any(short_heads[i] is not None and short_heads[i] == short_heads[i + 1] == short_heads[i + 2]
+                         for i in range(len(short_heads) - 2))
     if flat:
         report.append("[节奏] 句长变异低于 0.35，读着像节拍器，检查是否被改平")
     if rep:
