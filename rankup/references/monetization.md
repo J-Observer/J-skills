@@ -22,6 +22,12 @@
 
 【实测】热点需求先用能完成核心任务的版本验证，再尽快试价格与真实付款；准备支付流程可提前做，但不要等积分和全部功能做完才验证需求。流量高峰可能早于付费上线，访问量必须和订单分开看（运气选手走得远，[复盘](https://new.web.cafe/topic/6dx0cbme8c)；未署名作者，[复盘](https://new.web.cafe/topic/l8n2hjtx6d)）。
 
+### GPT 引荐流量的付费墙【经验】
+
+【经验】（来源：[哥飞社区帖 + 群聊，2026-10-20](https://new.web.cafe/topic/thh1uh2v9c)）：**适用于 GPT 引荐流量**，社群建议不送免费额度；短期热点可试 $9.9 单次 / $19.9 三次 / $29.9 五次，作为价格实验参考，不是本站默认套餐。对「有流量没出单」，社群判断多数是免费额度给多了；先按渠道核对意图与支付漏斗，不能据此直接归因。注册到付费综合约 8%、普通 AI 视频站 2% 已算不错也是社群口径，样本与分母定义不明，不能当转化目标或收益预测；单点案例 n=1 不当通用结论。
+
+这与 [conversion.md](experiences/conversion.md) 的「先免费体验、用优质模型展示价值」适用场景不同：本条只收录 GPT 引荐、尤其短期热点的付费墙实验建议，不覆盖其他渠道；以分渠道的每访客收入、毛利、退款与真实交付验证。归因偏低及 Direct 混入的限制见 [seo-geo.md 步骤 1](seo-geo.md#步骤-1ai-需求估算阶梯)；评估时自己埋点记录可识别来源并保留未知，不只看 referrer，也不把全部 Direct 算成 GPT。
+
 ## 一、Stripe
 
 路由到 [`integrations.md`](integrations.md)「Stripe 路由」与 `stripe-best-practices` Skill，本文不复制。
@@ -132,5 +138,5 @@ macOS、iOS、iPad App与浏览器扩展的分发渠道；macOS还可直销。�
 ## 七、本文不做的事
 
 - 不代替用户开通商家账号、不代替登录支付后台、不生成或存放任何凭据（[`integrations.md`](integrations.md)「权限边界」）。
-- 不给具体金额建议；定价判据在 conversion.md，数字由站主定。
+- 不设通用默认价格；上文 GPT 引荐小节的金额仅为有来源的渠道实验参考，定价判据在 conversion.md，实际价格由站主定。
 - 各站的通道状态、Plan ID、webhook 地址一律记在 `<project>/.rankup/integrations.md`，不回流本文件。
