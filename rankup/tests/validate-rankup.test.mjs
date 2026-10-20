@@ -285,3 +285,27 @@ test("release validator rejects missing Cloudflare loop cost protections", async
     }
   });
 });
+
+test("release validator requires reusable test identity and login route rules", async () => {
+  await withSkillCopy(async (skillRoot) => {
+    for (const [file, phrase] of [
+      ["references/discipline.md", "已有测试身份就直接用，不向用户重复索要"],
+      ["references/discipline.md", "缺登录通道不等于缺输入"],
+      ["references/discipline.md", "只动该账号自己拥有的测试空间与测试页面"],
+      ["references/discipline.md", "不购买、不升级套餐、不绕过产品权益限制"],
+      ["references/project-memory.md", "测试身份：位置/取 token 命令"],
+    ]) {
+      const target = path.join(skillRoot, file);
+      const original = await readFile(target, "utf8");
+      assert.ok(original.includes(phrase), phrase);
+      await writeFile(target, original.replaceAll(phrase, "[removed]"));
+      try {
+        const result = validate(skillRoot);
+        assert.equal(result.status, 1, `${file}: ${phrase}`);
+        assert.match(result.stderr, /missing required content/);
+      } finally {
+        await writeFile(target, original);
+      }
+    }
+  });
+});
