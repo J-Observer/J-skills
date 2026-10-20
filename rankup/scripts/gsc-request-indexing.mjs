@@ -42,6 +42,7 @@
  *                       即调用方项目目录，不是本 Skill 目录——状态是项目数据，不随 Skill 分发）。
  *   --session <名>      opencli 会话名。默认 `gsc-request-indexing-<每对话唯一后缀>`。
  *   --keep-session      完成后不关闭浏览器会话。
+ *   --request-indexed   已收录页面也请求一次（仍遵守配额）。
  *   --force             忽略状态文件里已记的 indexed/requested，重新检查这些 URL。
  *   --lang <zh|en>      界面语言，默认 auto（两套文案都试）。
  *   --dry-run           只解析 URL 列表并打印，不打开浏览器、不动 GSC。
@@ -174,6 +175,7 @@ let statePath = ".rankup/state/gsc-indexing.json"
 let session = `gsc-request-indexing-${sessionSuffix()}`
 let keepSession = false
 let force = false
+let requestIndexed = false
 let lang = "auto"
 let dryRun = false
 let positionalUrls = []
@@ -189,6 +191,7 @@ function parseArgs(argv) {
     if (a === "--state" && argv[i + 1]) { statePath = argv[++i]; continue }
     if (a === "--session" && argv[i + 1]) { session = argv[++i]; continue }
     if (a === "--keep-session") { keepSession = true; continue }
+    if (a === "--request-indexed") { requestIndexed = true; continue }
     if (a === "--force") { force = true; continue }
     if (a === "--lang" && argv[i + 1]) { lang = argv[++i]; continue }
     if (a === "--dry-run") { dryRun = true; continue }
@@ -323,6 +326,7 @@ const L = {
   requestButton: { zh: ["请求编入索引"], en: ["REQUEST INDEXING", "Request Indexing", "Request indexing"] },
   indexed: { zh: ["网址在 Google 上"], en: ["URL is on Google", "This URL is on Google"] },
   notIndexed: { zh: ["网址尚未收录到 Google", "网址不在 Google 上"], en: ["URL is not on Google", "This URL is not on Google"] },
+  requestError: { zh: ["提交您的索引编制请求时出现了问题"], en: ["There was a problem submitting your indexing request"] },
   requestedSuccess: { zh: ["已请求编入索引", "已将网址添加到优先抓取队列"], en: ["Indexing requested", "URL indexing requested"] },
   ownershipError: { zh: ["您没有此网址的所有权"], en: ["not verified as an owner", "no permission"] },
 }
@@ -528,6 +532,7 @@ function submitUrlInSearchBox(url, optionTimeoutMs = 6000) {
   typeInto(SEARCH_BOX_SELECTOR, url)
   const gotOption = findAndClickOption(url, optionTimeoutMs)
   if (!gotOption) {
+    clickTarget(SEARCH_BOX_SELECTOR)
     pressKey("Enter")
     settle(1)
     clickSearchSubmitButton()
@@ -550,7 +555,7 @@ function stampAndClick(texts) {
   const js = `
     const want=${JSON.stringify(texts)};
     document.querySelectorAll('[data-rankup-target]').forEach(e=>e.removeAttribute('data-rankup-target'));
-    const cands=[...document.querySelectorAll('button,[role=button],div[jsaction]')].filter(e=>e.offsetParent);
+    const cands=[...document.querySelectorAll('button,[role=button]')].filter(e=>e.offsetParent);
     const norm=e=>((e.innerText||'').trim().replace(/\\s+/g,' '));
     let el=cands.find(e=>want.some(w=>norm(e).toLowerCase()===w.toLowerCase()));
     if(!el) el=cands.find(e=>want.some(w=>norm(e).toLowerCase().includes(w.toLowerCase())));
@@ -636,6 +641,7 @@ async function main() {
 
   const results = []
   let quotaStopped = false
+  let serviceStopped = false
   function persist() {
     saveState(statePath, state)
     writeFileSync(
@@ -644,7 +650,7 @@ async function main() {
     )
   }
 
-  const baseUrl = `https://search.google.com/search-console?resource_id=${encodeURIComponent(property)}`
+  const baseUrl = `https://search.google.com/search-console?resource_id=${encodeURIComponent(property)}&hl=${lang === "en" ? "en" : "zh-CN"}`
   ensureSearchBoxReady(baseUrl)
 
   for (let i = 0; i < todo.length; i++) {
@@ -686,7 +692,7 @@ async function main() {
         continue
       }
 
-      if (verdict === "indexed") {
+      if (verdict === "indexed" && !requestIndexed) {
         console.log(`  已收录，跳过（不占配额）`)
         results.push({ url, status: "indexed" })
         state.urls[url] = { status: "indexed", checkedAt: new Date().toISOString() }
@@ -714,6 +720,7 @@ async function main() {
           break
         }
         const polled = pollPageText((t) => {
+          if (includesAny(t, wanted("requestError"))) return "service-error"
           if (quotaHit(t)) return "quota"
           if (includesAny(t, wanted("requestedSuccess"))) return "success"
           return null
@@ -740,6 +747,15 @@ async function main() {
         state.urls[url] = { status: "quota-stopped", checkedAt: new Date().toISOString() }
         quotaStopped = true
         persist()
+        break
+      }
+      if (outcome === "service-error") {
+        const failure = scene(`url-${String(i + 1).padStart(2, "0")}-service-error`, { url })
+        results.push({ url, status: "failed", reason: "gsc-service-error", scene: failure.files })
+        state.urls[url] = { status: "failed", checkedAt: new Date().toISOString(), error: "gsc-service-error" }
+        serviceStopped = true
+        persist()
+        console.error("  ⏸ Google 无法处理索引请求，本轮停止，保留断点稍后续跑")
         break
       }
       // 既不是成功也不是配额：超时或未知结果
@@ -771,7 +787,7 @@ async function main() {
   writeManifest(evidenceDir(), {
     script: "gsc-request-indexing", property, sitemapUrl,
     ...counts, total: allUrls.length, processedThisRun: todo.length,
-    stopReason: quotaStopped ? "quota-stopped" : (counts.failed > 0 ? "completed-with-failures" : "completed"),
+    stopReason: serviceStopped ? "gsc-service-error" : quotaStopped ? "quota-stopped" : (counts.failed > 0 ? "completed-with-failures" : "completed"),
     finishedAt: new Date().toISOString(),
   })
   persist()

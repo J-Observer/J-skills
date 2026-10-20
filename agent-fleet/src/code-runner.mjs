@@ -247,7 +247,7 @@ export async function runCode({ prompt, cwd = process.cwd(), low = false, review
         child.stdin.write('{"method":"initialized"}\n');
         const response = await rpc('thread/start', { cwd: workdir, model: 'gpt-6.1-sol', sandbox: 'danger-full-access', approvalPolicy: 'never' });
         metadata.threadId = metadata.sessionId = response.thread.id; ownsAppThread = true; record();
-        const turn = await rpc('turn/start', { threadId: metadata.threadId, input: textInput(fullPrompt), effort: low ? 'low' : 'medium' });
+        const turn = await rpc('turn/start', { threadId: metadata.threadId, input: textInput(fullPrompt), effort: process.env.FLEET_CODEX_EFFORT || (low ? 'low' : 'medium') });
         turnId = turn.turn.id; record({ activeTurnId: turnId }); schedule();
         await turnDone;
         inbox.pump(); await drain;
@@ -265,7 +265,7 @@ export async function runCode({ prompt, cwd = process.cwd(), low = false, review
       let nextPrompt = session ? offsetQueue.splice(0).join('\n\n') || fullPrompt : fullPrompt;
       do {
         writeFileSync(resultPath, '');
-        const args = ['exec', '--skip-git-repo-check', '--json', '-m', 'gpt-6.1-sol', '-c', `model_reasoning_effort=${low ? 'low' : 'medium'}`,
+        const args = ['exec', '--skip-git-repo-check', '--json', '-m', 'gpt-6.1-sol', '-c', `model_reasoning_effort=${process.env.FLEET_CODEX_EFFORT || (low ? 'low' : 'medium')}`, '-c', 'service_tier="fast"',
           '--sandbox', review ? 'read-only' : 'danger-full-access', '-C', workdir, '-o', resultPath,
           ...(session ? ['resume', session, '-'] : ['-'])];
         if (session) {

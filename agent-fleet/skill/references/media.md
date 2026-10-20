@@ -21,7 +21,7 @@ kollab model run --model google/gemini-3.1-flash-image --prompt "一只猫" --ou
 
 `--input-json` 补充各工具的必填字段；`--model`、`--prompt` 覆盖 JSON 中同名字段。视频、3D、音频的具体 tool、模型 id 与参数均从 `fleet media list` 读取。`fleet media run` 通过 `kollab tool run` 下载媒体到 `--out`（默认 `./fleet-media/`）；无媒体文件的文字或结构化回执写到 `result.json`，终端只显示路径与状态、费用摘要。
 
-认证优先用 `KOLLAB_API_KEY` 或 `KOLLAB_STANDALONE_API_KEY`（可用 `kollab api-key create` 创建），其次用进程级 `KOLLAB_API_TOKEN` 或已有 `kollab login` 会话。TEST 必须显式设置 `KOLLAB_API_URL`，不要复用生产 profile。文字 Agent 可继续按现有 `kollab-gateway*` 配置走 `/api/llm`。普通配图也可用 imagegen；从 Agent 调用 Kollab 图片模型用 `fleet media run generate_image`。
+认证优先用 `KOLLAB_API_KEY` 或 `KOLLAB_STANDALONE_API_KEY`（可用 `kollab api-key create` 创建），其次用进程级 `KOLLAB_API_TOKEN` 或已有 `kollab login` 会话。TEST 必须显式设置 `KOLLAB_API_URL`，使用独立的 TEST profile。文字 Agent 可继续按现有 `kollab-gateway*` 配置走 `/api/llm`。普通配图也可用 imagegen；从 Agent 调用 Kollab 图片模型用 `fleet media run generate_image`。
 
 ## 暂未开放
 

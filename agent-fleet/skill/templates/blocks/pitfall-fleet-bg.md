@@ -1,1 +1,1 @@
-fleet / fleet-go 启动只用工具 run_in_background:true；脚本保持前台，不加 &、nohup、setsid 或 disown。
+fleet / fleet-go 启动使用工具 run_in_background:true，脚本保持前台，进程生命周期交给工具管理；&、nohup、setsid、disown 属于本块允许启动方式之外。接手未结束任务先 fleet status --running --json，再用 fleet wait <runId> 接上；杀 fleet 外壳不等于杀掉 codex，先用 pgrep -fl 'codex exec.*<worktree>' 核验底层进程，存活时沿用原任务等待，重派以旧任务和底层进程均已结束为前提。

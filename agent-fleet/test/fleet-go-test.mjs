@@ -3,7 +3,7 @@ import { geminiBriefCases } from './gemini-brief-fixtures.mjs';
 import { geminiBlocked } from '../src/shortcuts.mjs';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
-import { tmpdir, homedir } from 'node:os';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 const root = resolve(import.meta.dirname ?? new URL('..', import.meta.url).pathname, import.meta.dirname ? '..' : '.');
 const script = join(root, 'bin/fleet-go');
@@ -12,16 +12,8 @@ const home = join(temp, 'home');
 const bin = join(temp, 'bin');
 mkdirSync(join(home, '.claude'), { recursive: true });
 mkdirSync(bin);
-const source = join(homedir(), '.claude/CLAUDE.md');
 const rule = readFileSync(join(root, 'skill/templates/blocks/rule-sentence.md'), 'utf8').trim();
-if (existsSync(source)) {
-  const live = readFileSync(source, 'utf8').match(/禁止单纯转发，允许分发子步骤：[^\n]+?最终给出真正的结论作为你的最终答案/)[0];
-  assert.equal(rule, live);
-  writeFileSync(join(home, '.claude/CLAUDE.md'), readFileSync(source));
-} else {
-  console.log('SKIP：本机 CLAUDE.md 不存在，跳过真实规则句比较。');
-  writeFileSync(join(home, '.claude/CLAUDE.md'), rule);
-}
+writeFileSync(join(home, '.claude/CLAUDE.md'), "禁止单纯转发，允许分发子步骤：不能把整个任务原样甩给另一个 agent 后只回'已启动/等结果'就结束当轮；可以拆出边界清晰的子步骤交给更便宜的 agent 做，但你必须自己掌握全局、消化并验证子任务结果，最终给出真正的结论作为你的最终答案");
 const calls = join(temp, 'calls.jsonl');
 const states = join(temp, 'states.json');
 writeFileSync(states, '[]');
@@ -47,7 +39,7 @@ try {
     const r=run(['new','--to','gpt','one','--goal','独有目标','--dry-run','--write','/tmp/project','--read','/tmp/source']);
     assert.equal(r.status,0,r.stderr); brief=r.stdout;
     let previous=-1;
-    for(const text of ['归类：','REPORT:','围绕本 brief','## 授权覆盖','## 目标','## 允许读写/禁止','## 已知坑','## 验收',rule]) {
+    for(const text of ['归类：','REPORT:','围绕本 brief','## 授权覆盖','## 目标','## 允许范围','## 已知坑','## 验收',rule]) {
       const i=brief.indexOf(text); assert.ok(i>previous,text); previous=i;
     }
     assert.equal(brief.trim().split('\n').at(-1),rule);
@@ -56,6 +48,13 @@ try {
     assert.match(brief,/规则回执/);
     assert.equal(history().length,0);
     assert.ok(!existsSync(join(home,'.agent-reports')));
+    const globalRules = join(home, '.claude/CLAUDE.md');
+    const legacy = readFileSync(globalRules, 'utf8');
+    writeFileSync(globalRules, rule);
+    assert.equal(run(['new','positive-rule','--to','gpt','--goal','x','--dry-run']).status, 0);
+    writeFileSync(globalRules, '规则句缺失');
+    assert.equal(run(['new','missing-rule','--to','gpt','--goal','x','--dry-run']).status, 1);
+    writeFileSync(globalRules, legacy);
   });
   // 使用输出的 REPORT 路径，避免日期 locale 与时区差异。
   const report = brief.match(/^REPORT: (.+)$/m)[1];
@@ -110,15 +109,15 @@ try {
       const r=run(['new','commit-check','--to','gpt','--auth',auth,'--budget','$1，失败不重试','--goal','修复卡片并本地提交','--dry-run']);
       assert.equal(r.status,0,r.stderr);
       assert.match(r.stdout,/允许在本地分支提交/);
-      assert.match(r.stdout,/不推送、不部署、不写线上数据/);
+      assert.match(r.stdout,/推送、部署、线上写入由主线程另行授权/);
       assert.doesNotMatch(r.stdout,/不做 git 写操作|提交\/推送|无提交/);
       assert.match(r.stdout,/本地提交哈希/);
-      if (auth.includes('readonly-web')) assert.match(r.stdout,/允许只读联网/);
-      if (auth.includes('paid')) assert.match(r.stdout,/允许当前目标必要的付费验证/);
+      if (auth.includes('readonly-web')) assert.match(r.stdout,/允许范围：只读联网/);
+      if (auth.includes('paid')) assert.match(r.stdout,/允许范围：当前目标必要的付费验证/);
     }
     const local=run(['new','local-check','--to','gpt','--goal','修复卡片','--dry-run']);
     assert.equal(local.status,0,local.stderr);
-    assert.match(local.stdout,/不做 git 写操作/); assert.match(local.stdout,/无提交/);
+    assert.match(local.stdout,/部署、git 写操作、线上写入由主线程另行授权/); assert.match(local.stdout,/提交按授权覆盖执行/);
   });
   test('密钥诊断仅给行号与规则，摘要、长文件名和路径不误报', () => {
     const normal=[
@@ -229,7 +228,7 @@ print(json.dumps(results))
   test('图片六项、视频工具与隐私错误要求、JEV问题元信息', () => {
     for(const to of ['gpt','grok','claude','gemini','jev']) {
       const r=run(['new','image','--to',to,'--make','image','--goal','生成猫','--dry-run']); assert.equal(r.status,0,r.stderr);
-      for(const item of ['/tmp/image/','01-image.png','1024×1024','共享风格块','No text, no letters, no logos, no watermarks.','Do not substitute placeholders','alpha yes/no']) assert.ok(r.stdout.includes(item),item);
+      for(const item of ['/tmp/image/','01-image.png','1024×1024','共享风格块','keep the canvas free of text, letters, logos and watermarks','Deliver actual generated images','alpha status']) assert.ok(r.stdout.includes(item),item);
     }
     const r=run(['new','video','--to','grok','--make','video','--goal','视频','--dry-run']); assert.equal(r.status,0,r.stderr); assert.match(r.stdout,/ZDR\/privacy/); assert.match(r.stdout,/reference_to_video/);
     assert.equal(run(['new','bad-video','--to','gpt','--make','video','--goal','视频','--dry-run']).status,1);

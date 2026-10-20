@@ -3,7 +3,8 @@
 // 参数：--link <支付链接> --ref <引用> --email <邮箱> [--env stg|prod] [--env-file <path>] [--meta k=v]
 //       [--session anyway-paytest] [--address-line1 <街道地址>] [--city <城市>]。
 // 登录态：OpenCLI 已连接用户浏览器；目标商户后台已登录；复核需要该环境 API key。
-// 已知坑：stg 用测试卡，prod 的卡信息从进程环境变量读取；币种切换可能重建表单；必须用
+// 已知坑：stg 用 Stripe 借记测试卡 4000056655665556（4242 信用卡在 Anyway 沙盒被拒，2026-10-20 确认），
+// prod 的卡信息从进程环境变量读取；币种切换可能重建表单；必须用
 // --window dedicated（非 background，后者在此结账页无法滚动，见下方 WINDOW_MODE 注释）；
 // 美国账单地址的"地址"“城市”字段现为必填，留空会导致提交按钮点击后无任何反应。
 // 验证日期：2026-09-29（stg，含完整 4 次重试循环、真实跳转）。原流程验证日期 2026-09-07。
@@ -71,7 +72,8 @@ if (!flags.ref) {
 const SESSION = flags.session || 'anyway-paytest';
 const TIMEOUT_S = Number(flags.timeout || 120);
 const EMAIL = flags.email;
-const CARD_NUMBER = ENV === 'stg' ? '4242424242424242' : process.env.ANYWAY_CARD_NUMBER;
+// Stripe debit test card: 4242 credit card is declined by Anyway sandbox (confirmed 2026-10-20).
+const CARD_NUMBER = ENV === 'stg' ? '4000056655665556' : process.env.ANYWAY_CARD_NUMBER;
 const CARD_EXPIRY = ENV === 'stg' ? futureExpiry() : process.env.ANYWAY_CARD_EXPIRY;
 const CARD_CVC = ENV === 'stg' ? '123' : process.env.ANYWAY_CARD_CVC;
 if (ENV === 'prod' && (!CARD_NUMBER || !CARD_EXPIRY || !CARD_CVC)) throw new Error('prod payment requires ANYWAY_CARD_NUMBER, ANYWAY_CARD_EXPIRY and ANYWAY_CARD_CVC environment variables');

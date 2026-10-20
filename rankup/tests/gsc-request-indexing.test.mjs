@@ -220,3 +220,9 @@ test("findButtonMatch 候选词列表任一命中即可", () => {
 test("findButtonMatch 都不匹配返回 -1", () => {
   assert.equal(findButtonMatch(["取消"], ["请求编入索引"]), -1);
 });
+
+test("识别 Google 提交错误，不混淆检测中或成功状态", () => {
+  assert.ok(includesAny("提交您的索引编制请求时出现了问题。请稍后重试。", wanted("requestError")));
+  assert.equal(includesAny("正在测试实际网址可否编入索引", wanted("requestError")), null);
+  assert.equal(includesAny("已请求编入索引", wanted("requestError")), null);
+});
