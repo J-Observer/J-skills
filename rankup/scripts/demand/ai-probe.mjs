@@ -51,7 +51,7 @@
  *   --effort <low|medium>   codex 通道推理强度，默认 low。
  *   --model <name>          codex 通道模型，默认 gpt-6-sol。
  *   --concurrency <n>       codex 通道并发数，默认 3（chatgpt-web 强制 1）。
- *   --gap-ms <ms>           相邻两次发起之间的最小间隔，默认 codex 2000 / chatgpt-web 15000。
+ *   --gap-ms <ms>           相邻两次发起之间的最小间隔，默认 codex 2000 / chatgpt-web 随机 30000–90000（显式设置覆盖）。
  *   --timeout-s <秒>        单次提问超时。codex 默认 300；chatgpt-web 默认 150（指「发送成功后」轮询会话数据的最长时间，
  *                           超时即失败并给出会话号，不重发、不无限重试）。
  *   --web-session <名>      仅 chatgpt-web：读会话数据用的 opencli browser 会话名，默认 ai-probe-web（描述性名字，别用 $$）。
@@ -154,7 +154,8 @@ import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from './_lib.mjs';
-import { regDomain, oc, parseEvalJson, classifyWebSend, failedPage, sendTurn as runTemporaryChat, closeSession, browserCommand, manageSession } from './_chatgpt_web.mjs';
+import { lockChatgpt, reserveConversation, checkExit, randomMs } from './_chatgpt_guard.mjs';
+import { checkSessionHealth, regDomain, oc, parseEvalJson, classifyWebSend, failedPage, sendTurn as runTemporaryChat, closeSession, browserCommand, manageSession } from './_chatgpt_web.mjs';
 export { regDomain, parseEvalJson } from './_chatgpt_web.mjs';
 
 // ───────────────────────── 域名工具 ─────────────────────────
@@ -406,9 +407,13 @@ function convIdFrom(text) {
 }
 
 /** 发送：只借 `opencli chatgpt ask --new --wait false`（不传 --web-search），拿 conversationId。最多 2 次，认证类错误不重试。 */
-async function sendChatgptPrompt(prompt) {
+async function sendChatgptPrompt(prompt, web) {
   let lastErr = ''; let failure = 'send-failed';
   for (let attempt = 1; attempt <= 2; attempt++) {
+    lockChatgpt();
+    await reserveConversation();
+    checkSessionHealth(web);
+    await checkExit(web);
     const r = oc(['chatgpt', 'ask', prompt, '--new', '--wait', 'false', '-f', 'json', '--site-session', 'persistent', '--window', 'isolated'], { timeoutS: 150 });
     if (r.spawnError === 'ENOENT') return { ok: false, failure: 'no-opencli', error: 'PATH 里找不到 opencli' };
     const conv = convIdFrom(r.stdout) || convIdFrom(r.stderr);
@@ -431,7 +436,7 @@ async function runMultiTurnChat({ prompts, timeoutS, web }) {
   let first = null; let last = null;
   try {
     for (const [i, prompt] of prompts.entries()) {
-      if (i) await sleep(8000);
+      if (i) await sleep(randomMs(10, 25));
       last = await runTemporaryChat({ prompt, timeoutS, web, continuation: i > 0, natural: true });
       first ||= last;
       turns.push({ n: i + 1, prompt, answer: last.text || '',
@@ -450,11 +455,19 @@ async function runMultiTurnChat({ prompts, timeoutS, web }) {
 async function runChatgptWebOnce({ prompt, timeoutS, web }) {
   if (web.temporary) return runTemporaryChat({ prompt, timeoutS, web });
   const t0 = Date.now();
-  const sent = await sendChatgptPrompt(prompt);
+  lockChatgpt();
+  if (!web.opened) {
+    const opened = browserCommand(web, ['open', 'https://chatgpt.com/'], { timeoutS: 90 });
+    web.opened = opened.status === 0;
+    if (!web.opened) return { ok: false, failure: 'page', error: '无法打开 ChatGPT 登录检查页' };
+  }
+  let sent;
+  try { sent = await sendChatgptPrompt(prompt, web); }
+  catch (error) { return { ok: false, failure: 'session-health', error: error.message }; }
   if (!sent.ok) return { ok: false, failure: sent.failure, error: sent.error, durationMs: Date.now() - t0 };
   const conv = sent.conv;
   const conversationUrl = `https://chatgpt.com/c/${conv}`;
-  const fail = (failure, error, extra = {}) => ({ ...(['rate-limit', 'auth', 'page', 'timeout'].includes(failure) ? failedPage(web) : {}), ok: false, failure, error, conversationId: conv, durationMs: Date.now() - t0, ...extra });
+  const fail = (failure, error, extra = {}) => ({ ...(['session-health', 'captcha', 'rate-limit', 'auth', 'page', 'timeout'].includes(failure) ? failedPage(web) : {}), ok: false, failure, error, conversationId: conv, durationMs: Date.now() - t0, ...extra });
   const pollDeadline = Date.now() + timeoutS * 1000;
   let got = null; let last = null; let fails = 0; let reopens = 0; let lastErr = '';
   while (Date.now() < pollDeadline) {
@@ -655,7 +668,7 @@ async function main() {
   const effort = String(args.effort || 'low');
   const timeoutS = Number(args['timeout-s'] || (webChannel ? 150 : 300));
   const concurrency = webChannel ? 1 : Math.max(1, Number(args.concurrency || 3));
-  const gapMs = Number(args['gap-ms'] ?? (webChannel ? 15000 : 2000));
+  const gapMs = Number(args['gap-ms'] ?? (webChannel ? 30000 : 2000));
   const outDir = path.resolve(String(args.out));
   const rawDir = path.join(outDir, 'raw');
   fs.mkdirSync(rawDir, { recursive: true });
@@ -711,7 +724,7 @@ async function main() {
   // 读会话数据用的 opencli browser 会话：描述性名字（不用 $$/随机串，方便一眼认出、也避免同名并发——同名会话别给两个任务用）
   const webState = webChannel ? { session: String(args['web-session'] || 'ai-probe-web'), ready: false, opened: false, keepOpen, keepAlive: keepOpen || multiTurn, temporary: multiTurn || (args['no-temporary'] !== true && args.temporary !== false) } : null;
 
-  if (webState) manageSession(webState);
+  if (webState && !args['dry-run'] && !args['summarize-only']) { lockChatgpt(); manageSession(webState); }
 
   async function worker() {
     while (queue.length && !abortAll) {
@@ -719,7 +732,7 @@ async function main() {
       const rawBase = path.join(rawDir, job.label);
       const jsonPath = `${rawBase}.json`;
       if (args.resume && fs.existsSync(jsonPath)) { try { const prev = JSON.parse(fs.readFileSync(jsonPath, 'utf8')); if (prev.ok) { results.push(prev); log(`${job.label} 已有结果，跳过`); continue; } } catch { /* rerun */ } }
-      const wait = Math.max(0, lastStart + gapMs - Date.now()); lastStart = Date.now() + wait; if (wait) await sleep(wait);
+      const wait = webChannel && lastStart && args['gap-ms'] == null ? randomMs(30, 90) : Math.max(0, lastStart + gapMs - Date.now()); lastStart = Date.now() + wait; if (wait) await sleep(wait);
       log(`${job.label} 发送（${channel}）`);
       let res = null;
       // 网页通道不在这一层重试：发送失败已在 sendChatgptPrompt 内重试过一次；超时（会话已存在）再发只会往用户的 ChatGPT 历史里多塞一条
@@ -756,7 +769,7 @@ async function main() {
       fs.writeFileSync(`${rawBase}.answer.md`, `${answer}\n`);
       results.push(rec);
       log(`${job.label} ${rec.ok ? 'ok' : 'FAIL'} ${rec.durationMs ? (rec.durationMs / 1000).toFixed(0) + 's' : ''} 联网=${rec.searched} 检索命中=${rec.retrieved.length} 引用=${rec.cited.length} 名单=${rec.reco.list.map((x) => x.domain).join(',') || '（空）'}${rec.conversationId ? ` 会话=${rec.conversationId}` : ''}`);
-      if (!rec.ok && ['quota-402', 'auth', 'model', 'no-codex', 'no-opencli', 'rate-limit', 'privacy-switch'].includes(rec.failure)) { abortAll = rec.failure; log(`遇到 ${rec.failure}：停止后续提问，交回人处理（不硬试）`); }
+      if (!rec.ok && ['quota-402', 'auth', 'model', 'no-codex', 'no-opencli', 'rate-limit', 'privacy-switch', 'session-health', 'captcha'].includes(rec.failure)) { abortAll = rec.failure; log(`遇到 ${rec.failure}：停止后续提问，交回人处理（不硬试）`); }
     }
   }
   try {

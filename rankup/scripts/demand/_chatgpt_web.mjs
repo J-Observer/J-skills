@@ -1,5 +1,6 @@
 /** Temporary ChatGPT driver, checked 2026-10-11: temporary-chat=true plus page notice/banner; never changes personalization. */
 import { spawnSync } from 'node:child_process';
+import { lockChatgpt, reserveConversation, healthFailure, checkExit } from './_chatgpt_guard.mjs';
 
 const SLD2 = new Set(['co.uk', 'org.uk', 'com.au', 'co.jp', 'com.br', 'co.in', 'com.cn', 'com.tw', 'co.kr', 'com.hk', 'com.sg', 'co.nz', 'com.mx', 'com.tr', 'co.za']);
 // 多租户平台：子域名才是「一个产品」，不能折叠到主域
@@ -19,6 +20,7 @@ export function regDomain(input) {
 }
 
 export function oc(args, { timeoutS = 180, env = process.env } = {}) {
+  if (args[0] === 'chatgpt') lockChatgpt();
   const r = spawnSync('opencli', args, { env, encoding: 'utf8', timeout: timeoutS * 1000, maxBuffer: 64 * 1024 * 1024 });
   return { status: r.status, stdout: r.stdout || '', stderr: r.stderr || '', spawnError: r.error ? (r.error.code || r.error.message) : null };
 }
@@ -45,6 +47,7 @@ export function classifyWebSend(text) {
 
 export const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 export function browserCommand(web, args, options = {}) {
+  lockChatgpt();
   const command = ['browser', web.session, ...args, '--window', process.env.AI_PROBE_WEB_WINDOW || 'dedicated'];
   if (!web.keepAlive || args[0] !== 'open') return oc(command, options);
   if (!web.legacyKeepAlive) {
@@ -60,7 +63,7 @@ export function browserCommand(web, args, options = {}) {
 export function manageSession(web) {
   const cleanup = () => { if (web.opened && !web.retained) closeSession(web); };
   const interrupt = signal => { web.retained = false; cleanup(); process.exit(signal === 'SIGINT' ? 130 : 143); };
-  process.once('exit', cleanup);
+  process.prependOnceListener('exit', cleanup);
   process.once('SIGINT', () => interrupt('SIGINT'));
   process.once('SIGTERM', () => interrupt('SIGTERM'));
 }
@@ -95,7 +98,22 @@ export function ensurePrivacySwitches(web) {
   return { ok: true, mode: state.mode, temporaryNotice: notice };
 }
 
+export function checkSessionHealth(web) {
+  const state = parseEvalJson(browserCommand(web, ['eval', `JSON.stringify((() => {
+    let text = document.body.innerText;
+    for (const el of document.querySelectorAll('article,[data-message-author-role],textarea,[contenteditable="true"]')) text = text.replaceAll(el.innerText || el.value || '', '');
+    return {text,
+      login:!!document.querySelector('[data-testid="login-button"],a[href*="/auth/login"]'),
+      loggedIn:!!document.querySelector('[data-testid="accounts-profile-button"],[data-testid="user-menu-button"]')};
+  })())`], { timeoutS: 15 }).stdout);
+  const failure = healthFailure(state || {});
+  if (failure) throw new Error(`ChatGPT 会话健康检查失败：${failure}；停止，不自动登录或切换账号。`);
+}
+
 export async function openSession({ web, timeoutS = 150 }) {
+  lockChatgpt();
+  await reserveConversation({ limit: web.hourlyLimit || 18 });
+  await checkExit(web);
   const t0 = Date.now();
   const deadline = t0 + timeoutS * 1000;
   const browser = (...args) => browserCommand(web, args, { timeoutS: Math.max(1, Math.floor((deadline - Date.now()) / 1000)) });
@@ -116,6 +134,7 @@ export async function openSession({ web, timeoutS = 150 }) {
     }
     web.temporaryNotice = notice;
   }
+  checkSessionHealth(web);
   return { ...ensurePrivacySwitches(web), durationMs: Date.now() - t0 };
 }
 
@@ -133,7 +152,11 @@ export function failedPage(web) {
   return { answer: '', cited: [], pageText: redact(page?.pageText), pageUrl: redact(page?.pageUrl) };
 }
 
-export async function sendTurn({ prompt, timeoutS, web, continuation = false, natural = false }) {
+export async function sendTurn(options) {
+  try { return await sendTurnChecked(options); }
+  catch (error) { return { ok: false, failure: 'session-health', error: error.message, answer: '', cited: [], durationMs: 0 }; }
+}
+async function sendTurnChecked({ prompt, timeoutS, web, continuation = false, natural = false }) {
   const t0 = Date.now();
   let deadline = t0 + timeoutS * 1000;
   const browser = (...args) => browserCommand(web, args, { timeoutS: Math.max(1, Math.floor((deadline - Date.now()) / 1000)) });
@@ -144,6 +167,8 @@ export async function sendTurn({ prompt, timeoutS, web, continuation = false, na
     notice = web.temporaryNotice;
     deadline = Date.now() + timeoutS * 1000;
   }
+  checkSessionHealth(web);
+  await checkExit(web);
   const state = natural ? parseEvalJson(browser('eval', `JSON.stringify({count:document.querySelectorAll('[data-markdown-text-style="assistant-message"]').length,blocked:/验证码|captcha|verify you are human|too many requests|usage limit|reached the limit|达到.*上限/i.test(([...document.querySelectorAll('[data-markdown-text-style="assistant-message"]')].reduce((t,a)=>t.split(a.innerText).join(''),document.body.innerText))),auth:!document.querySelector('[contenteditable="true"][role="textbox"]') && /登录|log in|sign in/i.test(document.body.innerText)})`).stdout) : null;
   if (state?.blocked || state?.auth) return { ...failedPage(web), ok: false, failure: state.auth ? 'auth' : 'rate-limit', error: '临时页出现登录、验证码或限流提示', durationMs: Date.now() - t0 };
   const before = state?.count || 0;

@@ -95,6 +95,14 @@
 
 ## 脚本用法
 
+**网页采样节奏**：默认每小时 ≤18 个新对话（跨进程共享滚动窗口，满额记录等待），样本间随机 30–90 秒、样本内追问随机 10–25 秒；`geo-loop.mjs` 单次最多 25 个新对话，剩余用 `--resume` 分段跑，上线后一段、隔天一段。采样期间固定代理节点，同时只跑一个 ChatGPT 自动化；共享 PID 锁拒绝第二进程，死进程锁可清理，活进程不因超时被抢锁。每个样本发送前确认登录；登出、验证码、too many requests 类提示即停，不自动登录或换账号。启动打印公开 IP/国家并逐轮检查，出口变化或查不到即暂停，人工固定节点后再续跑。IP 查询测的是 Node 进程出口，须让 Node 与 Chrome 使用同一代理线路。
+
+【经验，2026-10-23】95 分钟内 44 个临时聊天、一百多条消息，固定 15/8 秒间隔且东京代理出口下发生登出；未见验证码或 429，原因未确认。这是经验而非官方限流口径，不保证改节奏就能避免登出。
+
+`--sample-min 30 --sample-max 90`、`--followup-min 10 --followup-max 25` 可覆盖秒数；`--hourly-limit 18`、`--max-conversations 25` 可显式覆盖上限。默认达到单次上限保存为 paused；`--resume` 沿用相同参数与输出目录，已完成样本跳过，未完成尝试保留但不计入统计，续跑时重开该样本，不自动重试。续跑不能重置共享小时配额；已有输出无 `--resume` 时拒绝覆盖。旧输出缺计划信息时另用新目录，保留原证据。
+
+`--plan` 只打印随机节奏、上限、跳过与剩余数，并获取同一把锁；不联网、不打开网页、不写采样结果。计划按空窗口模拟，实跑使用持久窗口；`--smoke` 会真实发问，不能替代离线计划。运行使用 `NODE_USE_ENV_PROXY=1`，沿用已有代理配置。
+
 `--pitch-file <路径>` 读取调用方抓取首页与关键页后整理的可核实卖点（附页面证据）；或 `--pitch "文本"`。未提供时仅用首页 title/description 兜底，输出明确标注“卖点未人工核实”，不把元数据当作实测证据。复审时卖点参数同时列出逐项已完成整改及回读证据。
 
 `--prompts-file` 是 UTF-8 每行一个需求问法；或重复传 `--prompt`。每次命令只接一个站点和一轮，输出目录每轮独立。`--round` 默认 0，复审时显式设整改轮号。`--no-pitch` 只执行 A/B，不发送本站网址或品牌，用于自然复测；其余模式的脚本串行执行每个独立样本 A → B，C 在该站本轮首个样本中执行一次（告知与逐条顾虑两次），后续独立样本不重复推销；复审的后续样本仅事实性告知网址，不再追问顾虑，再汇总该轮 A；不并发开聊天。
@@ -102,6 +110,8 @@
 `REPS` 按 [seo-geo.md 步骤 2](seo-geo.md#步骤-2探针采样) 选取并记录，示例不另定采样次数。
 
 ```bash
+# 离线检查默认节奏与单次上限，不实际发问。
+node scripts/geo-loop.mjs --domain example.invalid --prompt '测试需求' --reps 27 --plan --out /tmp/geo-plan
 node scripts/geo-loop.mjs --domain example.com --prompts-file /tmp/needs.txt --pitch-file /tmp/verified-pitch.txt --reps "$REPS" --round 0 --out /tmp/example-geo/r0
 node scripts/geo-loop.mjs --domain example.com --prompt '〔原始需求问法〕' --pitch-file /tmp/verified-recheck.txt --reps "$REPS" --round 1 --recheck --out /tmp/example-geo/r1-informed
 # 同轮自然复测：显式 --no-pitch，使用独立输出目录。
