@@ -24,7 +24,7 @@ else if(args[2]==='click') {writeFileSync(statePath,String(++count));writeFileSy
 else if(args[2]==='eval') {
  const expression=args[3];
  const gate=process.env.MOCK_GATE || '';
- const result=expression.includes('loggedIn:') ? {text:gate,loggedIn:gate!=='logout',login:gate==='logout'}
+ const result=expression.includes('loggedIn:') ? {text:gate,loggedIn:gate!=='logout' && gate!=='unknown',login:gate==='logout'}
  : expression.includes('mode:document') ? {url:'https://chatgpt.com/?temporary-chat=true',text:'临时聊天'}
  : expression.includes('ready:') ? {ready:true,text:'临时聊天'}
  : expression.includes('const answers') ? {text:'{"recommendations":[],"suggestions":[]}',count,busy:false,links:[],sources:false}
@@ -64,7 +64,9 @@ test('live PID lock conflicts, dead PID and timed-out malformed locks are reclai
   writeFileSync(join(dir,'chatgpt-web.lock'),'');utimesSync(join(dir,'chatgpt-web.lock'),new Date(0),new Date(0));acquireLock(dir)();
 });
 test('health rejects logout even when a composer exists, captcha and rate limits',()=>{
-  assert.equal(healthFailure({loggedIn:false,ready:true}),'auth');
+  assert.equal(healthFailure({loggedIn:false,ready:true}),'unknown');
+  assert.equal(healthFailure({loggedIn:true,login:true}),'auth');
+  assert.equal(healthFailure(), 'unknown');
   assert.equal(healthFailure({loggedIn:true,text:'captcha'}),'captcha');
   assert.equal(healthFailure({loggedIn:true,text:'Too many requests'}),'rate-limit');
   assert.equal(healthFailure({loggedIn:true,text:'正常'}),null);
@@ -102,11 +104,11 @@ test('mocked run pauses at cap, refuses overwrite, resumes without repeating com
   assert.equal(readFileSync(join(f.dir,'sent'),'utf8'),'yes'.repeat(6));
   assert.equal(f.run(['--resume','--prompt','different']).status,1);
 });
-for (const gate of ['logout','captcha','Too many requests']) test(`mocked ${gate} stops before sending, preserves progress`,t=>{
+for (const gate of ['logout','unknown','captcha','Too many requests']) test(`mocked ${gate} stops before sending, preserves progress`,t=>{
   const f=fixture(t),result=f.run([],{MOCK_GATE:gate});
   assert.equal(result.status,1,result.stderr);
   const data=JSON.parse(readFileSync(join(f.dir,'out/summary.json'),'utf8'));
-  assert.equal(data.status,'stopped');assert.equal(data.progress.completed,0);assert.ok(data.stopReason.includes(gate==='logout'?'auth':gate==='captcha'?'captcha':'rate-limit'));
+  assert.equal(data.status,'stopped');assert.equal(data.progress.completed,0);assert.ok(data.stopReason.includes(gate==='logout'?'auth':gate==='unknown'?'unknown':gate==='captcha'?'captcha':'rate-limit'));
   assert.equal(existsSync(join(f.dir,'sent')),false);
   assert.equal(existsSync(join(f.dir,'.cache/rankup/chatgpt-web.lock')),false);
 });

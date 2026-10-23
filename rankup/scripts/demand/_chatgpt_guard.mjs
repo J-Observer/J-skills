@@ -73,7 +73,8 @@ export async function reserveConversation({ limit = 18, dir = cacheDir, now = Da
 export function healthFailure({ text = '', login = false, loggedIn = false } = {}) {
   if (/验证码|captcha|verify you are human|确认您是人类/i.test(text)) return 'captcha';
   if (/too many requests|rate.?limit|usage limit|reached the limit|达到.*上限|请求过多/i.test(text)) return 'rate-limit';
-  if (login || !loggedIn) return 'auth';
+  if (login) return 'auth';
+  if (!loggedIn) return 'unknown';
   return null;
 }
 export async function checkExit(web, fetcher = fetch, log = console.error) {

@@ -98,14 +98,21 @@ export function ensurePrivacySwitches(web) {
   return { ok: true, mode: state.mode, temporaryNotice: notice };
 }
 
+/** Runs in the page; history/profile signals must not override an explicit login gate. */
+export function sessionHealthState() {
+  let text = document.body.innerText;
+  for (const el of document.querySelectorAll('article,[data-message-author-role],textarea,[contenteditable="true"]')) text = text.replaceAll(el.innerText || el.value || '', '');
+  const login = /^(?:auth\.)?(?:chatgpt|openai)\.com$/.test(location.hostname)
+    && /^\/(?:auth\/(?:login|signup)|log-in|sign-up)(?:\/|$)/.test(location.pathname)
+    || !!document.querySelector('[data-testid="login-button"],[data-testid="signup-button"],a[href*="/auth/login"],a[href*="/auth/signup"]')
+    || [...document.querySelectorAll('button,a')].some(el => /^(登录|登入|注册|免费注册|Log in|Sign in|Sign up|Sign up for free)$/i.test((el.innerText || '').trim()));
+  return {text, login,
+    loggedIn: !login && (!!document.querySelector('[data-testid="accounts-profile-button"],[data-testid="user-menu-button"]')
+      || !!document.querySelector('nav a[href^="/c/"],aside a[href^="/c/"],[data-testid="history"] a[href^="/c/"]'))};
+}
+
 export function checkSessionHealth(web) {
-  const state = parseEvalJson(browserCommand(web, ['eval', `JSON.stringify((() => {
-    let text = document.body.innerText;
-    for (const el of document.querySelectorAll('article,[data-message-author-role],textarea,[contenteditable="true"]')) text = text.replaceAll(el.innerText || el.value || '', '');
-    return {text,
-      login:!!document.querySelector('[data-testid="login-button"],a[href*="/auth/login"]'),
-      loggedIn:!!document.querySelector('[data-testid="accounts-profile-button"],[data-testid="user-menu-button"]')};
-  })())`], { timeoutS: 15 }).stdout);
+  const state = parseEvalJson(browserCommand(web, ['eval', `JSON.stringify((${sessionHealthState.toString()})())`], { timeoutS: 15 }).stdout);
   const failure = healthFailure(state || {});
   if (failure) throw new Error(`ChatGPT 会话健康检查失败：${failure}；停止，不自动登录或切换账号。`);
 }
