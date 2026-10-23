@@ -324,7 +324,7 @@ export function saveState(path, state) {
 // 含完整搜索框交互与真实点击提交。其余为候选/兜底，命中即用，见文件头「已知限制」。
 const L = {
   requestButton: { zh: ["请求编入索引"], en: ["REQUEST INDEXING", "Request Indexing", "Request indexing"] },
-  indexed: { zh: ["网址在 Google 上"], en: ["URL is on Google", "This URL is on Google"] },
+  indexed: { zh: ["网址在 Google 上", "网址已收录到 Google"], en: ["URL is on Google", "This URL is on Google"] },
   notIndexed: { zh: ["网址尚未收录到 Google", "网址不在 Google 上"], en: ["URL is not on Google", "This URL is not on Google"] },
   requestError: { zh: ["提交您的索引编制请求时出现了问题"], en: ["There was a problem submitting your indexing request"] },
   requestedSuccess: { zh: ["已请求编入索引", "已将网址添加到优先抓取队列"], en: ["Indexing requested", "URL indexing requested"] },
