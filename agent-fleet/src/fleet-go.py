@@ -245,6 +245,11 @@ def amend(args):
         return
     matches = [r for r in running() if r.get('state', r.get('status')) == 'running'
                and (r.get('briefPath') == str(path) or r.get('name') == args.name)]
+    if not matches and args.say:
+        # 上一轮已结束（常见：部分完成后交回）：修订已写入 brief，直接按修订后的 brief 续派，省掉单独 relaunch
+        print('没有运行中的 run：按修订后的 brief 直接 relaunch。', flush=True)
+        relaunch(args.name)
+        return
     if len(matches) != 1:
         raise ValueError('找不到唯一运行中的 run；修订已保留，未发送或重启。')
     run = matches[0]

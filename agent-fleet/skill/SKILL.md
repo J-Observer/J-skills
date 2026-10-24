@@ -59,13 +59,13 @@ fleet-go new gen-test --to gpt --auth paid,local --budget "$1，失败最多重�
 fleet-go new page-copy --to gemini --goal "写 XX 页英文文案，正面表述" --body body.md
 ```
 - `--to gpt|claude|grok|gemini|jev` 必填；`--tier haiku|sonnet|opus|fable` 仅 Claude，默认 sonnet；`--review` 用于 GPT/Grok，只读；GPT 可用 `--low`，Grok 可用 `--model <id>`、`--subagents`，Gemini 可用 `--bulk`。`--auth`、`--write/--read`、`--forbid`、`--pitfalls`、`--budget`、`--goal`、`--why`、`--report` 沿用，默认已知坑按产品选择。
-- 需要本地提交时用 `--auth local-commit` 代替 `local`：允许在本地分支提交；本块不含推送、部署与线上写入，这些操作由对应授权块承载，正文补充保持在所选块范围内；验收报告要列提交哈希。可与 `readonly-web`、带预算的 `paid` 组合；与 `local` 同传时取代 `local`。只读审查、生产部署仍用各自的授权块。
+- 需要本地提交时用 `--auth local-commit` 代替 `local`：允许在本地分支提交；与 `deploy-prod` 同传时推送、合入环境分支、流水线发布都已授权（执行者不得因“本块不含推送”停下），单独使用时不推送；验收报告要列提交哈希。可与 `readonly-web`、带预算的 `paid` 组合；与 `local` 同传时取代 `local`。只读审查、生产部署仍用各自的授权块。
 - `--make image` 叠加图片产物样板，沿用所选执行者：绝对输出目录、逐张编号文件名、尺寸比例、共享风格、纯画面（文字、字母、logo 与水印留空）、受阻时报告已完成部分与缺口、逐文件绝对路径/实际像素/字节数/alpha/方法回报。交付实际生成的图片；占位图、ASCII、纯色块或下载图按缺少生成产物报告。GPT 使用 imagegen 的 Codex `image_gen`；Grok 使用内置 `image_gen` / `image_edit`，这些工具没有 model 参数，仅传工具支持的输入，沿用工具自身模型。
 - `--make video` 仅 Grok，用内置 `image_to_video` / `reference_to_video`，这些工具没有 model 参数，仅传工具支持的输入，沿用工具自身模型；ZDR/privacy 错误如实报告原因、处理方法与产物缺口。
 - `--body body.md` 只接受现存文件路径；`--body -` 显式读取 stdin，也可以省略 `--body` 使用 heredoc。不存在的路径会明确报错。
 - 重新拉起已有任务：`fleet-go relaunch <name> [--to <产品>] [--tier <档位>]`，沿用唯一同名 brief、`--name` 和 `--report`，由派用者显式决定执行者；仍有未结束同名任务时拒绝重复派发。
 - **先预览再派**：`fleet-go new ... --dry-run`（只打印 brief，命令写 stderr）；`--no-launch` 只写 brief 不派发；`fleet-go lint brief.md` 检查样板（归类行、REPORT 行、逐字规则句、允许范围小节、密钥字面量）。
-- **改方向**：用 `fleet-go amend <name> "补充要求"`，它给 brief 顶部追加「修订 N」并（`--say`）尽量发给运行中的任务；Codex 优先同轮 steer，失败尝试中断后续会话；两者不可用时会提示，此时才考虑 `--restart`（只停止所选 run，按 runId/brief/`--name` 核验残留，最多等 60 秒、每 0.5 秒轮询，再走 `relaunch`，以 run 身份判断。超时已确认 stopped 且无同一 runId 存活时告警并重新拉起，否则保留修订并报错）。调整沿用 `amend` / `relaunch` 保存的 brief 与任务身份。
+- **改方向**：用 `fleet-go amend <name> "补充要求"`，它给 brief 顶部追加「修订 N」并（`--say`）尽量发给运行中的任务；Codex 优先同轮 steer，失败尝试中断后续会话；任务已结束（常见：部分完成交回）时 `--say` 直接按修订后的 brief relaunch（整条命令放 `run_in_background`），不必再单独 relaunch；运行中且两者都不可用时会提示，此时才考虑 `--restart`（只停止所选 run，按 runId/brief/`--name` 核验残留，最多等 60 秒、每 0.5 秒轮询，再走 `relaunch`，以 run 身份判断。超时已确认 stopped 且无同一 runId 存活时告警并重新拉起，否则保留修订并报错）。调整沿用 `amend` / `relaunch` 保存的 brief 与任务身份。
 - 看进度：`fleet-go status`（默认非终态及最近 1 小时，`--all` 查看全部本地历史；脱离启动的任务带 ⚠）；仍可用 `fleet status --running --json`。
 - 一个任务一次 Bash 调用；多个独立任务同一条消息里并行发多条 Bash。同一份共享工作树按单写入者串行执行。
 - 已有 Claude Code 的 PreToolUse hook `~/.claude/hooks/check-fleet-launch.py`：命令里带 `fleet`/`fleet-go` 派单子命令又带 `&`、`nohup`、`setsid`、`disown` 会被直接拦下。

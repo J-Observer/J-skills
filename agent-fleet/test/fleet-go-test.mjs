@@ -92,8 +92,12 @@ try {
     state(); reset(); const r=run(['amend','one','重启','--restart']); assert.equal(r.status,7,r.stderr);
     assert.deepEqual(history().map(c=>c.args[0]),['status','stop','status','status','code']);
   });
-  test('找不到运行 run 清楚提示', () => {
-    writeFileSync(states,'[]'); const r=run(['amend','one','离线修订','--say']); assert.equal(r.status,1); assert.match(r.stderr,/找不到唯一运行/);
+  test('没有运行 run 时 --say 直接按修订后 brief relaunch', () => {
+    writeFileSync(states,'[]'); reset(); const r=run(['amend','one','离线修订','--say']); assert.equal(r.status,7,r.stderr); assert.match(r.stdout,/直接 relaunch/);
+    assert.ok(history().some(c=>c.args[0]==='code'));
+  });
+  test('--restart 找不到运行 run 仍清楚提示', () => {
+    writeFileSync(states,'[]'); const r=run(['amend','one','离线重启','--restart']); assert.equal(r.status,1); assert.match(r.stderr,/找不到唯一运行/);
   });
   test('lint 缺项失败、合格通过、后台命令和秘密拒绝且不回显', () => {
     const bad=join(temp,'bad.md'); writeFileSync(bad,'没有必需项');
@@ -104,12 +108,17 @@ try {
     }
     writeFileSync(bad,original+'\n错误示范：nohup fleet code task.md &'); assert.equal(run(['lint',bad]).status,0);
   });
+  test('local-commit+deploy-prod 合派时推送与合入已授权', () => {
+    const r=run(['new','commit-deploy','--to','gpt','--auth','local-commit,deploy-prod','--goal','修复并上线','--dry-run']);
+    assert.equal(r.status,0,r.stderr); assert.match(r.stdout,/推送功能分支\/开 PR/); assert.match(r.stdout,/不因本块停下/);
+  });
   test('local-commit 授权与禁止、验收一致，可叠加且不改变 local 默认行为', () => {
     for (const auth of ['local-commit','local-commit,readonly-web','local,local-commit','local-commit,paid']) {
       const r=run(['new','commit-check','--to','gpt','--auth',auth,'--budget','$1，失败不重试','--goal','修复卡片并本地提交','--dry-run']);
       assert.equal(r.status,0,r.stderr);
       assert.match(r.stdout,/允许在本地分支提交/);
-      assert.match(r.stdout,/推送、部署、线上写入由主线程另行授权/);
+      assert.match(r.stdout,/同单带 deploy-prod 时按该块执行/);
+      assert.match(r.stdout,/未带 deploy-prod 时不做/);
       assert.doesNotMatch(r.stdout,/不做 git 写操作|提交\/推送|无提交/);
       assert.match(r.stdout,/本地提交哈希/);
       if (auth.includes('readonly-web')) assert.match(r.stdout,/允许范围：只读联网/);
