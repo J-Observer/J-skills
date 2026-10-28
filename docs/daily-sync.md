@@ -58,3 +58,7 @@ A merge conflict remains a reason to stop and review; the workflow does not choo
 ## Upstream integration repair (2026-10-13)
 
 Upstream `78b89a2` rewrites the Codex runner and browser setup flows. The integration retains app-server steering/resume and browser retry/fill behavior while preserving Windows argument arrays and CRLF handling. Windows process inspection uses CIM instead of Unix `ps`; explicit Node-script executables run through Node without a command shell. Fixture paths, proxy variable casing and signal assertions account for Windows semantics. Fleet checks run from its package directory, as required by its new CLI integration fixtures. No conflict override or validation bypass was introduced.
+
+## Upstream integration repair (2026-10-28)
+
+Upstream `e0c0fea` merged cleanly, but its new ChatGPT/GEO checks failed on Windows. The HTML fixture now explicitly uses UTF-8 for Python stdin; GEO fixtures use file URLs for Node preloads, an isolated Windows home directory and an explicit Node mock executable. The shared ChatGPT driver reuses the existing Windows OpenCLI launcher, preserving argument arrays and avoiding command-shell shims. Login, quota, lock, stop and resume assertions remain active.

@@ -16,7 +16,7 @@ import { lint as lintDocs } from "./maintain/doc-lint.mjs";
 const execFileAsync = promisify(execFile);
 
 const skillRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const expectedVersion = "3.38.7";
+const expectedVersion = "3.38.12";
 const requiredReferences = [
   "integrations/kie.md",
   "integrations/kie-models.md",
@@ -175,7 +175,15 @@ const requiredContent = {
     "### 证据等级标记",
     "三层归属",
   ],
+  "references/discipline.md": [
+    "### 测试身份与登录通路",
+    "已有测试身份就直接用，不向用户重复索要",
+    "缺登录通道不等于缺输入",
+    "只动该账号自己拥有的测试空间与测试页面",
+    "不购买、不升级套餐、不绕过产品权益限制",
+  ],
   "references/project-memory.md": [
+    "测试身份：位置/取 token 命令",
     "## 沉淀义务",
     "## 可复用操作脚本",
     "## 三层归属",

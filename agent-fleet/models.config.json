@@ -33,19 +33,19 @@
     "requiresGateway": true
   },
   "kollab-gateway": {
-    "description": "Kollab 自己的公开 LLM 网关(POST /api/llm,Anthropic Messages 兼容协议),用账号自助生成的 kollab_live_* standalone API key 鉴权,费用从该 key 绑定的 Space 额度实时扣除。不要求申请第三方官方 Key,是 DeepSeek/Kimi 之外的第三个即用选项,模型范围由 Kollab 侧放开、不做白名单过滤。默认模型选的是 gemini-3.8-flash(2026-09 用 `kollab model list` 确认 paidOnly=false,不占用付费档位):故意不用 claude-sonnet-4-6,否则账单虽然走 Kollab 自己的 Space 额度,但底层实际还是在消耗 Claude,起不到「用非 Claude 模型分担任务」的效果。当前使用线上环境 https://kollab.im/api/llm 和已有生产账号 key。下面 kollab-gateway-* 系列条目复用同一个 baseURL/apiKeyEnv,只是按任务用途换了 model,方便直接按名字调用而不用每次手改这个文件——具体推荐见 README「任务类型 → 推荐模型」一节,后续会随实际使用持续校准,不是写死的规则。",
+    "description": "Kollab 自己的公开 LLM 网关(POST /api/llm,Anthropic Messages 兼容协议),用账号自助生成的 kollab_live_* standalone API key 鉴权,费用从该 key 绑定的 Space 额度实时扣除。不要求申请第三方官方 Key,是 DeepSeek/Kimi 之外的第三个即用选项,模型范围由 Kollab 侧放开、不做白名单过滤。默认模型是 gemini-4-argon(Kollab 官方价输入 $4/百万、输出 $20/百万;2026-10-15 经 fleet copy 通道真实验证可用,verdict=ok,账本显示实际用的是 gemini-4-argon;需 fleet key 绑定空间余额高于其最坏预留约 845 积分):故意不用 claude-sonnet-4-6,否则账单虽然走 Kollab 自己的 Space 额度,但底层实际还是在消耗 Claude,起不到「用非 Claude 模型分担任务」的效果。当前使用线上环境 https://kollab.im/api/llm 和已有生产账号 key。下面 kollab-gateway-* 系列条目复用同一个 baseURL/apiKeyEnv,只是按任务用途换了 model,方便直接按名字调用而不用每次手改这个文件——具体推荐见 README「任务类型 → 推荐模型」一节,后续会随实际使用持续校准,不是写死的规则。",
     "baseURL": "https://kollab.im/api/llm",
     "maxOutputTokens": 16000,
-    "model": "gemini-3.8-flash",
+    "model": "gemini-4-argon",
     "apiKeyEnv": "KOLLAB_PROD_API_KEY",
     "authHeader": "x-api-key",
     "subagentModel": "deepseek-v4.1-flash"
   },
   "kollab-gateway-copy": {
-    "description": "Kollab 网关,文案/创意用途:批量营销文案、社媒帖子、标题党变体、创意头脑风暴等对准确性要求不高、追求速度和多样性的写作任务。模型 gemini-3.8-flash,paidOnly=false。和默认 kollab-gateway 当前指向同一个模型,单独命名是为了不依赖默认值以后可能的调整,任务里显式写 --model kollab-gateway-copy 更稳。",
+    "description": "Kollab 网关,文案/创意用途:批量营销文案、社媒帖子、标题党变体、创意头脑风暴等对准确性要求不高、追求速度和多样性的写作任务。模型 gemini-4-argon(官方价输入 $4/百万、输出 $20/百万),2026-10-15 经 fleet copy 真实验证可用。和默认 kollab-gateway 当前指向同一个模型,单独命名是为了不依赖默认值以后可能的调整,任务里显式写 --model kollab-gateway-copy 更稳。",
     "baseURL": "https://kollab.im/api/llm",
     "maxOutputTokens": 16000,
-    "model": "gemini-3.8-flash",
+    "model": "gemini-4-argon",
     "apiKeyEnv": "KOLLAB_PROD_API_KEY",
     "authHeader": "x-api-key",
     "subagentModel": "deepseek-v4.1-flash"

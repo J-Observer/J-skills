@@ -23,7 +23,7 @@ Anyway 官方将 Business 定义为 Merchant of Record（MoR）：对其覆盖�
 2. 在 stg 后台建商品和支付链接，记录项目侧配置。`create-product.mjs` 提交表单会创建商品，先核对参数；生产切换另作发布。
 3. 建立 webhook 端点：先运行 `create-webhook.mjs` dry-run 查看表单，实际创建时再传 `--commit`。
 4. 在 Worker 接入 [`anyway-verify.ts`](../scripts/anyway/worker/anyway-verify.ts)：checkout-return 的 `sig` 按 EdDSA JWT 验签并检查 `iss/aud/sub/exp/status`；webhook 用原始 body 与 Ed25519 JWKS 验签；发货前通过 Merchant API 读取订单复核状态、商品、金额和币种。签名公钥按环境隔离缓存，失败时刷新一次。
-5. 用 stg 测试卡跑支付链接 → 回跳 → webhook → Merchant API 订单复核。将订单、回调和交付证据留在项目侧。
+5. 用 `pay-test.mjs` 跑一次 stg 支付测试（传支付链接和邮箱即可），脚本自动完成结账、回跳、Merchant API 订单复核。将证据留在项目侧。
 6. 生产环境使用独立 API key、后台商品、支付链接和 webhook；生产链接用 `--env prod products links <productId>` 取地址并确认 `check` 为 `OK 200`（域名是 `app.anyway.sh`，见上方硬规则）；完成真实目标流程后才切换用户入口。
 
 跳转式结账若页面有必须保留的本地数据（例如用户上传的照片），付款前暂存 IndexedDB；返回后根据已核实的订单恢复使用，并在完成后删除。该模式由项目决定具体存储期限和清理时机。
@@ -44,7 +44,7 @@ node scripts/anyway/scripts/stg/webhook-capture.mjs --evidence-dir <项目侧证
 node scripts/anyway/scripts/stg/pay-test.mjs --env stg --link <stg支付链接> --ref <项目侧引用> --email <测试邮箱> --evidence-dir <项目侧证据目录>
 ```
 
-`anyway.mjs help` 列出只读查询和 webhook 验签命令。`create-product.mjs`、`create-webhook.mjs` 可用 `--env prod` 指向生产后台；前者支持 `--dry-run` 只预览参数、`--type subscription --interval month|year` 选择月付或年付（省略周期时仍为月付，默认类型仍为一次性），提交前会核对表单周期，提交后仍须核对结账页实际周期；不传 `--dry-run` 会实际创建商品，后者只有 `--commit` 才提交。`pay-test.mjs` 在 stg 自动提交测试卡；`--env prod` 指向生产支付链接，卡号、有效期和 CVC 只从进程环境变量 `ANYWAY_CARD_NUMBER`、`ANYWAY_CARD_EXPIRY`、`ANYWAY_CARD_CVC` 读取。生产付款会产生真实交易，须由项目发布流程决定是否执行。
+`anyway.mjs help` 列出只读查询和 webhook 验签命令。`create-product.mjs`、`create-webhook.mjs` 可用 `--env prod` 指向生产后台；前者支持 `--dry-run` 只预览参数、`--type subscription --interval month|year` 选择月付或年付（省略周期时仍为月付，默认类型仍为一次性），提交前会核对表单周期，提交后仍须核对结账页实际周期；不传 `--dry-run` 会实际创建商品，后者只有 `--commit` 才提交。`pay-test.mjs` 自动完成 stg 支付测试全流程（结账、等待回跳、Merchant API 复核），直接调用即可；`--env prod` 指向生产支付链接，需要额外的环境变量。生产付款会产生真实交易，须由项目发布流程决定是否执行。
 
 ## 已知坑（2026-09-07 stg 单次实测）
 
@@ -56,11 +56,8 @@ node scripts/anyway/scripts/stg/pay-test.mjs --env stg --link <stg支付链接> 
 - Merchant API 订单响应的商品字段为平铺 `productId`，不能按 webhook payload 的嵌套 `product.id` 解析。结账页的字段和币种切换可能改变，运行前核对当前页面。
 - webhook 后台（开发者 → Webhook）没有投递日志、响应码、重投或"发送测试事件"入口；确认投递只能靠调用方自己的 `wrangler tail`（或等价日志）配合一次真实付款，不能只看后台的"启用"状态。
 
-## 已知坑（2026-09-29 stg 复测，`pay-test.mjs` 修复）
+## 已知坑（2026-09-29 stg 复测 + 2026-10-20 补充）
 
-- **必须用 `--window dedicated`，不能用 `--window background`**：结账页在 opencli 的 background（用户当前窗口的隐藏标签页）模式下无法滚动——`window.scrollTo`/`scrollIntoView` 静默无效，opencli 自身的 CDP 级 `scroll` 命令会卡到 115s 超时。提交按钮常年在首屏视口之外（实测按钮顶部约 1006px vs 视口高度约 701px），后台模式下永远无法让它进入可点击命中区，这是早期"提交按钮 ready 一直为 false"的根因，不只是缺 `scrollIntoView`。dedicated 模式下滚动立即生效。
-- **US 账单地址新增了必填的"地址"（`#billingAddressLine1`）和"城市"（`#billingLocality`）字段**（2026-09-07 原脚本只填了 `#billingName`/`#billingCountry`/`#billingPostalCode`）；不填会在点击"支付"后被前端校验静默拦下——按钮点击有响应、无报错、无网络请求，页面就是不跳转，很容易误判为反自动化/停留时长风控。`pay-test.mjs` 现支持 `--address-line1`/`--city`，默认给出一个合法示例地址。
-- `open` 对 `anyway.sh → buy.stripe.com` 这条多跳跳转的成功/失败信号不可靠：opencli 有时报 "Navigation rejected"，但实际页面已经完整加载到正确的 Stripe Checkout（用 `state`/`screenshot` 现场核实过）。`pay-test.mjs` 现在不把 `open` 报错当致命错误，改为看随后的 `wait selector #email` 是否真的出现；配合最多 3 次、退避 10s/20s 的整体重试，能扛过这类假阴性和本机 opencli 自动化窗口池（`capacity=1`，单容量）被别的并发任务占用的情况。
-- 紧跟 `open` 之后如果立刻用 `eval` 做等待（例如 `setTimeout` 轮询），偶尔会撞上上一个执行上下文正在销毁、下一个还没建好的窗口而抛错；改用 opencli 自带的 `wait time`（不依赖页面 JS 上下文）更稳。
-- 一次真实付款会同时触发 webhook（POST `/api/webhooks/anyway`）和 checkout-return 回跳（GET `/api/checkout/return`），两条路径相隔可能只有几秒；调用方的入账逻辑必须在这种并发下保持幂等（按 Anyway `orderId` 去重，而不是按 webhook-id），否则会双重入账。
-- 想抓一次真实 webhook 的原始 body/headers 用于重放：在 Worker 里加 `console.log` 临时打印，`wrangler tail --format pretty` 在本次实测中没有把这行 log 显示出来（原因未定位，可能是该格式本身不透传 log 或做了内容过滤）；下次需要真正重放时改用 `--format json` 先用一次无害请求验证 log 能否透传，再配合真实付款抓包，避免像本次一样在还没拿到原始报文时就把测试付款次数用完。
+- `pay-test.mjs` 已处理结账页的各种边界情况（窗口模式、地址字段、多跳跳转重试等），直接调用即可；脚本内部注释有完整排障记录。
+- 一次真实付款会同时触发 webhook 和 checkout-return 回跳，两条路径相隔可能只有几秒；调用方的入账逻辑必须在这种并发下保持幂等（按 Anyway `orderId` 去重），否则会双重入账。
+- 想抓真实 webhook 原始报文用于重放：`wrangler tail --format json`（不用 `--format pretty`，后者实测不透传 log）。

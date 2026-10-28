@@ -12,10 +12,13 @@ import sys
 import time
 
 BLOCKS = Path(__file__).resolve().parents[1] / 'skill/templates/blocks'
+LEGACY_RULE = "禁止单纯转发，允许分发子步骤：不能把整个任务原样甩给另一个 agent 后只回'已启动/等结果'就结束当轮；可以拆出边界清晰的子步骤交给更便宜的 agent 做，但你必须自己掌握全局、消化并验证子任务结果，最终给出真正的结论作为你的最终答案"
 PRODUCTS = {'gpt': '(a) Codex 编码', 'claude': 'Claude 月度额度',
             'grok': 'Grok Build CLI', 'gemini': 'Gemini 文本任务', 'jev': 'JEV 判断'}
-AUTH = ['local', 'readonly-web', 'deploy-prod', 'paid', 'review']
+AUTH = ['local', 'local-commit', 'readonly-web', 'deploy-prod', 'paid', 'review']
 PITFALLS = ['node-proxy', 'zsh', 'pnpm-entry', 'local-preview', 'playwright-clean', 'shared-tree', 'secrets', 'fleet-bg', 'ssr-check']
+
+EARLY_RULE = "你是这单的负责人，自己掌握全局；可以把边界清晰的子步骤交给更便宜的 agent，并消化、验证它们的结果，最终给出真正的结论作为你的最终答案。"
 
 
 def block(name, values=None):
@@ -29,9 +32,9 @@ def rule():
     stored = block('rule-sentence')
     source = Path.home() / '.claude/CLAUDE.md'
     if source.exists():
-        match = re.search(r'禁止单纯转发，允许分发子步骤：[^\n]+?最终给出真正的结论作为你的最终答案', source.read_text())
-        if not match or match[0] != stored:
-            raise ValueError('规则句与 ~/.claude/CLAUDE.md 不一致，请先同步 rule-sentence.md。')
+        text = source.read_text()
+        if stored not in text and LEGACY_RULE not in text:
+            raise ValueError('请同步 ~/.claude/CLAUDE.md 与 rule-sentence.md 的负责人规则句。')
     return stored
 
 
@@ -42,10 +45,19 @@ def lint(text, to='gpt'):
         errors.append('第一行必须以「归类：」开头并含「理由：」。')
     if not re.search(r'^REPORT: /[^\n]+$', text, re.M):
         errors.append('缺少 REPORT: <绝对路径> 行。')
-    if rule() not in text:
+    if rule() not in text and LEGACY_RULE not in text and EARLY_RULE not in text:
         errors.append('缺少逐字规则句。')
-    if re.search(r'sk-[A-Za-z0-9_-]{16,}|Bearer\s+[A-Za-z0-9._~+/-]{20,}', text):
-        errors.append('发现疑似密钥字面量（已隐藏）。')
+    secret_rules = [
+        ('sk-token', r'(?<![A-Za-z0-9_/.-])sk-[A-Za-z0-9_-]{16,}(?![A-Za-z0-9_/-]|\.[A-Za-z0-9])'),
+        ('aws-access-key-id', r'(?<![A-Za-z0-9])AKIA[A-Z0-9]{16}(?![A-Za-z0-9])'),
+        ('bearer-token', r'(?i:Bearer)\s+[A-Za-z0-9._~+/-]{20,}'),
+        ('private-key', r'-----BEGIN (?:[A-Z0-9]+ )?PRIVATE KEY-----'),
+        ('credential-assignment', r'''(?i:\b(?:api[_-]?key|access[_-]?key|token|password|secret|key)\s*=\s*)["']?[A-Za-z0-9_+/-]{20,}={0,2}'''),
+    ]
+    for name, pattern in secret_rules:
+        for match in re.finditer(pattern, text):
+            number = text.count('\n', 0, match.start()) + 1
+            errors.append(f'第 {number} 行：发现疑似密钥字面量；规则 {name}（已隐藏）。')
     for line in text.splitlines():
         # 只检查启动命令；禁令和标明的错误示范是说明文字。
         if re.search(r'禁止|不加|不要|错误示范|绝不|不得', line):
@@ -53,8 +65,8 @@ def lint(text, to='gpt'):
         if re.search(r'(?:^|[\s`$;(])(?:fleet|fleet-go)\s+(?:code|copy|bulk|grok-cli|grok|haiku|sonnet|opus|fable|judge|run|new)\b|^\s*(?:\$\s*)?`?(?:nohup|node|npm|pnpm|python3?|bash|sh)\s+', line):
             if re.search(r'\b(?:nohup|setsid|disown)\b|(?<![&>])&(?![&\d])', line):
                 errors.append('发现脱离启动命令；请使用工具 run_in_background。')
-    if to in ('gpt', 'grok') and not all(word in text for word in ['授权覆盖', '允许读写', '禁止']):
-        print('警告：GPT/Grok brief 缺少授权覆盖或允许读写/禁止小节。', file=sys.stderr)
+    if to in ('gpt', 'grok') and not all(word in text for word in ['授权覆盖', '允许范围']):
+        print('警告：GPT/Grok brief 请补齐授权覆盖与允许范围小节。', file=sys.stderr)
     return errors
 
 
@@ -233,6 +245,11 @@ def amend(args):
         return
     matches = [r for r in running() if r.get('state', r.get('status')) == 'running'
                and (r.get('briefPath') == str(path) or r.get('name') == args.name)]
+    if not matches and args.say:
+        # 上一轮已结束（常见：部分完成后交回）：修订已写入 brief，直接按修订后的 brief 续派，省掉单独 relaunch
+        print('没有运行中的 run：按修订后的 brief 直接 relaunch。', flush=True)
+        relaunch(args.name)
+        return
     if len(matches) != 1:
         raise ValueError('找不到唯一运行中的 run；修订已保留，未发送或重启。')
     run = matches[0]
@@ -264,6 +281,8 @@ def new(args):
     auth = args.auth.split(',')
     if any(a not in AUTH for a in auth):
         raise ValueError('未知授权块。可用：' + ','.join(AUTH))
+    if 'local-commit' in auth:
+        auth = [a for a in auth if a != 'local']
     if 'paid' in auth and not args.budget:
         raise ValueError('paid 必须提供 --budget（上限与重试次数）。')
     pitfalls = args.pitfalls.split(',') if args.pitfalls is not None else (['node-proxy', 'zsh', 'secrets', 'shared-tree'] if args.to in ('gpt', 'grok') else ['secrets', 'fleet-bg'])
@@ -272,7 +291,8 @@ def new(args):
         pitfalls.extend(p.stem[8:] for p in BLOCKS.glob('pitfall-deploy-*.md'))
     if any(p not in PITFALLS and not (BLOCKS / ('pitfall-' + p + '.md')).exists() for p in pitfalls if p):
         raise ValueError('未知已知坑块。')
-    values = {'NAME': args.name, 'REPORT': report, 'BUDGET': args.budget or '未授权付费', 'DATE': day}
+    values = {'NAME': args.name, 'REPORT': report, 'BUDGET': args.budget or '付费由主线程另行授权', 'DATE': day,
+              'COMMITS': '本地提交仅限授权分支，报告列出本地提交哈希' if 'local-commit' in auth else '提交按授权覆盖执行'}
     if args.body and args.body != '-':
         body_path = Path(args.body).expanduser()
         if not body_path.is_file():
@@ -296,9 +316,11 @@ def new(args):
     if args.make:
         parts.append('## 产物要求\n' + block('make-' + args.make, {'OUTDIR': '/tmp/' + args.name + '/'}))
         if args.make == 'image':
-            parts.append('执行方法：' + ('使用 imagegen Skill 和 Codex 内置 image_gen 工具。' if args.to == 'gpt' else 'Grok 使用内置 image_gen / image_edit 工具，无 model 参数。' if args.to == 'grok' else '使用当前产品可用的真实图片生成工具，不能生成则如实报告。'))
+            parts.append('执行方法：' + ('使用 imagegen Skill 和 Codex 内置 image_gen 工具。' if args.to == 'gpt' else 'Grok 使用内置 image_gen / image_edit 工具，model 参数留空。' if args.to == 'grok' else '使用当前产品可用的真实图片生成工具，生成受阻时如实报告缺口。'))
     writes = [report, '/tmp/' + args.name + '/', *(args.write or [])]
-    parts.append('## 允许读写/禁止\n允许写：\n' + '\n'.join('- ' + p for p in dict.fromkeys(writes)) + '\n只读：\n' + '\n'.join('- ' + p for p in (args.read or [])) + '\n禁止：' + (args.forbid or '越界、未授权部署、提交/推送、付费、打印密钥。'))
+    parts.append('## 允许范围\n允许写：\n' + '\n'.join('- ' + p for p in dict.fromkeys(writes)) + '\n只读：\n' + ('\n'.join('- ' + p for p in (args.read or [])) or '按正文指定路径读取。'))
+    if args.forbid:
+        parts.append('另行授权事项：' + args.forbid)
     parts.append('## 已知坑\n' + '\n\n'.join(block('pitfall-' + p, values) for p in dict.fromkeys(pitfalls) if p))
     parts.extend(['## 验收\n' + block('accept-boilerplate', values) + '\n\n' + block('report-template', values), rule()])
     text = '\n\n'.join(parts) + '\n'
