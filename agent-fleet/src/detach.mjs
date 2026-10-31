@@ -67,10 +67,11 @@ export async function launchDetached(cli, args, { cwd, model, briefPath, name, r
     });
   } finally { closeSync(fd); }
   try { await new Promise((resolve, reject) => {
+    // Windows obtains supervisor/child identity through CIM before acknowledging.
     const timer = setTimeout(() => {
       child.kill('SIGTERM');
       reject(new Error('detach 监督进程启动超时，未退回前台。'));
-    }, 1500);
+    }, process.platform === 'win32' ? 10000 : 1500);
     child.once('error', err => { clearTimeout(timer); reject(err); });
     child.once('exit', code => { clearTimeout(timer); reject(new Error(`detach 监督进程启动失败 (${code})，见 ${rec.logPath}`)); });
     child.once('message', msg => {

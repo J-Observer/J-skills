@@ -62,3 +62,7 @@ Upstream `78b89a2` rewrites the Codex runner and browser setup flows. The integr
 ## Upstream integration repair (2026-10-28)
 
 Upstream `e0c0fea` merged cleanly, but its new ChatGPT/GEO checks failed on Windows. The HTML fixture now explicitly uses UTF-8 for Python stdin; GEO fixtures use file URLs for Node preloads, an isolated Windows home directory and an explicit Node mock executable. The shared ChatGPT driver reuses the existing Windows OpenCLI launcher, preserving argument arrays and avoiding command-shell shims. Login, quota, lock, stop and resume assertions remain active.
+
+## Upstream integration repair (2026-10-31)
+
+Upstream `8d0ff16` adds launch discovery, keyword clustering and analytics/checkout readback scripts. The boards import conflict retains upstream domain normalization and the Windows OpenCLI launcher. The new browser scripts use the same launcher. Windows detached startup now allows 10 seconds for the supervisor's CIM identity queries before the ready acknowledgement; other platforms retain 1.5 seconds, and timeout failure still stops the supervisor.
